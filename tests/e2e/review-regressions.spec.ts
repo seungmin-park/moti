@@ -89,18 +89,16 @@ test("구매완료 가격 정렬은 카드에 보이는 실구매가를 따른�
     await recordPrice(page, "여행용 백팩", "20000");
   });
   await test.step("When 낮은 가격순을 선택한다", async () => {
-    await page
-      .getByRole("combobox", { name: "정렬" })
-      .selectOption("price-low");
+    await page.getByRole("button", { name: /^정렬:/ }).click();
+    await page.getByRole("menuitemradio", { name: "낮은 가격순" }).click();
   });
   await test.step("Then 2만원 상품이 100만원 상품 앞에 나오고 높은 가격순은 반대다", async () => {
     await expect(page.locator(".product-card h2")).toHaveText([
       "여행용 백팩",
       "작업실 스탠드",
     ]);
-    await page
-      .getByRole("combobox", { name: "정렬" })
-      .selectOption("price-high");
+    await page.getByRole("button", { name: /^정렬:/ }).click();
+    await page.getByRole("menuitemradio", { name: "높은 가격순" }).click();
     await expect(page.locator(".product-card h2")).toHaveText([
       "작업실 스탠드",
       "여행용 백팩",

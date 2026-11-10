@@ -1,0 +1,190 @@
+[
+  {
+    "name": "desktop",
+    "view": "wishlist",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "search-focus",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "sort-menu",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "collection-picker",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "create-collection",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "add-collections",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "detail-collecting",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "detail-failed",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "구매완료",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "컬렉션",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "공유 저장",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "share-success",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "share-duplicate",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "share-failed",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "menuAxe": 0,
+    "formAxe": 0,
+    "spacing": {
+      "left": "12px",
+      "right": "12px"
+    },
+    "pageErrors": []
+  },
+  {
+    "name": "mobile",
+    "view": "wishlist",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "search-focus",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "sort-menu",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "collection-picker",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "create-collection",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "add-collections",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "detail-collecting",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "detail-failed",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "구매완료",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "컬렉션",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "공유 저장",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "share-success",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "share-duplicate",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "share-failed",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "menuAxe": 0,
+    "formAxe": 0,
+    "spacing": {
+      "left": "12px",
+      "right": "12px"
+    },
+    "pageErrors": []
+  }
+]

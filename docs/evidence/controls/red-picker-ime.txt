@@ -1,0 +1,35 @@
+✘  1 [desktop-chromium] › tests/e2e/collection-picker.spec.ts:38:1 › 검색 Enter와 IME는 링크를 제출하지 않고 Escape는 드롭다운부터 닫는다 (467ms)
+
+
+  1) [desktop-chromium] › tests/e2e/collection-picker.spec.ts:38:1 › 검색 Enter와 IME는 링크를 제출하지 않고 Escape는 드롭다운부터 닫는다
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      57 |       return event.defaultPrevented;
+      58 |     }, key);
+    > 59 |     expect(cancelled).toBe(false);
+         |                       ^
+      60 |     await expect(search).toBeVisible();
+      61 |   }
+      62 |   await expect(page.getByRole("checkbox", { name: "책상 정리" })).toHaveCount(0);
+        at <workspace>/tests/e2e/collection-picker.spec.ts:59:23
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collection-picker-검색-Enter-1285c--제출하지-않고-Escape는-드롭다운부터-닫는다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collection-picker-검색-Enter-1285c--제출하지-않고-Escape는-드롭다운부터-닫는다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/collection-picker-검색-Enter-1285c--제출하지-않고-Escape는-드롭다운부터-닫는다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/collection-picker-검색-Enter-1285c--제출하지-않고-Escape는-드롭다운부터-닫는다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium] › tests/e2e/collection-picker.spec.ts:38:1 › 검색 Enter와 IME는 링크를 제출하지 않고 Escape는 드롭다운부터 닫는다

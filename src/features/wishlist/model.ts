@@ -45,7 +45,7 @@ export type Command =
       url: string;
       option: string;
       at: string;
-      collectionId?: string;
+      collectionIds: string[];
     }
   | { type: "metadata.retry"; id: string }
   | {
@@ -116,8 +116,9 @@ export function reduceSession(session: Session, command: Command): Session {
       );
     }
     if (
-      command.collectionId &&
-      !session.collections.some((c) => c.id === command.collectionId)
+      command.collectionIds.some(
+        (id) => !session.collections.some((collection) => collection.id === id),
+      )
     )
       return invalid(session, "collection", "컬렉션을 다시 선택해 주세요.");
     const identity = new URL(source);
@@ -149,7 +150,7 @@ export function reduceSession(session: Session, command: Command): Session {
       image: null,
       category: "기타",
       note: "",
-      collectionIds: command.collectionId ? [command.collectionId] : [],
+      collectionIds: [...new Set(command.collectionIds)],
       addedAt: command.at,
       metadata: { phase: "collecting", attempt: 1 },
       purchase: { status: "wish" },

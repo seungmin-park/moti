@@ -21,16 +21,8 @@ import {
   X,
 } from "lucide-react";
 import { formatPrice, type Command, type Product, type Session } from "./model";
-
-export type Modal =
-  | { kind: "add"; collectionId?: string }
-  | { kind: "detail"; id: string }
-  | { kind: "collection"; id?: string }
-  | { kind: "share" };
-export type AppAction =
-  | { type: "domain"; command: Command }
-  | { type: "open"; modal: Modal }
-  | { type: "close" };
+import type { AppAction, Modal } from "./app-state";
+import { CollectionPicker } from "./CollectionPicker";
 
 function Dialog({
   title,
@@ -104,12 +96,12 @@ function Feedback({ session }: { session: Session }) {
 
 function AddLink({
   session,
-  collectionId,
+  collectionIds,
   dispatch,
   onClose,
 }: {
   session: Session;
-  collectionId?: string;
+  collectionIds: string[];
   dispatch: Dispatch<AppAction>;
   onClose: () => void;
 }) {
@@ -129,7 +121,7 @@ function AddLink({
               url,
               option,
               at: new Date().toISOString(),
-              collectionId,
+              collectionIds,
             },
           });
         }}
@@ -163,6 +155,12 @@ function AddLink({
         <p className="field-help">
           다른 색상이나 사이즈는 따로 담아둘 수 있어요.
         </p>
+        <CollectionPicker
+          collections={session.collections}
+          selectedIds={collectionIds}
+          onToggle={(id) => dispatch({ type: "add.collection.toggle", id })}
+          onCreate={(name) => dispatch({ type: "add.collection.create", name })}
+        />
         <Feedback session={session} />
         <div className="form-note">
           <Bookmark size={17} />
@@ -572,7 +570,7 @@ export function ModalContent({
     return (
       <AddLink
         session={session}
-        collectionId={modal.collectionId}
+        collectionIds={modal.collectionIds}
         dispatch={dispatch}
         onClose={onClose}
       />
