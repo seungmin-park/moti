@@ -1,0 +1,41 @@
+ RUN  v5.1.0 <repository>
+
+ ❯ src/features/wishlist/model.test.ts (15 tests | 15 failed) 9ms
+   ❯ 링크 보관 (9)
+     × 정보 수집 전에 원본 URL을 보관한다 5ms
+     × 잘못된 URL 는 상태를 변경하지 않는다 1ms
+     × 잘못된 URL 문자열는 상태를 변경하지 않는다 0ms
+     × 잘못된 URL javascript:alert(1)는 상태를 변경하지 않는다 0ms
+     × 잘못된 URL ftp://example.com는 상태를 변경하지 않는다 0ms
+     × 잘못된 URL https://name:secret@example.com는 상태를 변경하지 않는다 0ms
+     × 추적 파라미터만 다른 중복은 기존 상품과 메모를 보존한다 0ms
+     × URL 옵션과 입력한 옵션이 다르면 각각 보관한다 0ms
+     × 수집 실패와 오래된 완료가 저장된 링크를 지우지 않는다 0ms
+   ❯ 구매와 컬렉션 (6)
+     × 구매완료 뒤 메모를 바꾸어도 실행 취소가 현재 메모와 컬렉션을 보존한다 0ms
+     × 중복 구매 명령과 이전 구매의 실행 취소는 새 구매를 변경하지 않는다 0ms
+     × 빈 구매 정보와 0원을 구분하고 잘못된 값은 원자적으로 거절한다 0ms
+     × 컬렉션 생성과 이름 변경이 상품 묶음을 보존한다 0ms
+     × 빈 컬렉션과 중복 이름, 없는 컬렉션 배정을 거절한다 0ms
+     × 컬렉션, 검색어, 구매 상태와 정렬을 함께 적용한다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/wishlist/model.test.ts > 링크 보관 > 정보 수집 전에 원본 URL을 보관한다
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/features/wishlist/model.test.ts:13:28
+     11|   it("정보 수집 전에 원본 URL을 보관한다", () => {
+     12|     const state = add();
+     13|     expect(state.products).toHaveLength(1);
+       |                            ^
+     14|     expect(state.products[0]).toMatchObject({ sourceUrl: "https://exam…
+     15|     expect(state.feedback?.kind).toBe("added");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯

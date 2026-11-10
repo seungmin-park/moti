@@ -1,0 +1,11 @@
+Command: npm exec -- playwright test --project=desktop-chromium --grep '링크 저장' --timeout=10000
+Running 1 test using 1 worker
+1 failed: 링크 저장 실패에도 원본 링크를 보존하고 중복을 방지한다
+Test timeout of 10000ms exceeded.
+Error: locator.click: Test timeout of 10000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: '링크 추가', exact: true })
+at tests/e2e/mockup.spec.ts:20:66
+The served minimal shell rendered 나의 위시리스트; the link-add control was not implemented.
+Screenshot and trace generated in test-results/mockup-링크-저장-실패에도-원본-링크를-보존하고-중복을-방지한다-desktop-chromium/.
+Exit code: 1
