@@ -1,0 +1,278 @@
+import { describe, expect, it, vi } from "vitest";
+import type { Access } from "../../auth/domain/access";
+import { toLinkSaveCommand } from "../application/commands";
+import { LibraryError, type Collection, type CollectionId, type Product, type ProductId } from "../domain/library";
+import { createLibraryHandlers } from "./library-handlers";
+import {
+  collectionCreateResponseSchema,
+  errorResponseSchema,
+  libraryReadResponseSchema,
+  linkSaveResponseSchema,
+} from "./library-dto";
+
+const origin = "https://moti.test";
+const allowed: Access = { kind: "allowed", userId: "user-1" };
+const collection = {
+  id: "11111111-1111-4111-8111-111111111111" as CollectionId,
+  name: "책상",
+  revision: 1,
+  createdAt: "2026-11-11T00:00:00.000Z",
+  updatedAt: "2026-11-11T00:00:00.000Z",
+} satisfies Collection;
+const product = {
+  id: "22222222-2222-4222-8222-222222222222" as ProductId,
+  sourceUrl: "https://example.com/item",
+  identityUrl: "https://example.com/item",
+  option: "",
+  shop: "example.com",
+  title: "새로 담은 상품",
+  note: "",
+  revision: 1,
+  collectionIds: [],
+  addedAt: "2026-11-11T00:00:00.000Z",
+  updatedAt: "2026-11-11T00:00:00.000Z",
+  purchase: { status: "wish" },
+  metadata: { phase: "queued", generation: 1, attempts: 0 },
+  lastSuccessfulPrice: null,
+} satisfies Product;
+
+function given(access: Access) {
+  const service = {
+    snapshot: vi.fn(async () => ({ products: [product], collections: [collection] })),
+    saveLink: vi.fn(async () => ({ kind: "added" as const, product })),
+    createCollection: vi.fn(async () => collection),
+  };
+  const signOut = vi.fn(async () => {});
+  const handlers = createLibraryHandlers(async () => ({ access, service, signOut }));
+  return { handlers, service, signOut };
+}
+
+const get = () => new Request(`${origin}/api/library`);
+const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
+  new Request(`${origin}${path}`, {
+    method: "POST",
+    headers: { origin, "content-type": "application/json", ...headers },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+const link = { url: "https://example.com/item", option: "", collectionIds: [] };
+
+async function errorOf(response: Response) {
+  return errorResponseSchema.parse(await response.json());
+}
+
+describe("GET /api/library", () => {
+  it("Given 허용한 Google 계정 When 보관함을 읽으면 Then 200과 계약에 맞는 보관함을 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.getLibrary(get());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(libraryReadResponseSchema.parse(await response.json())).toEqual({ products: [product], collections: [collection] });
+    expect(service.snapshot).toHaveBeenCalledOnce();
+  });
+
+  it("Given 세션 없음 When 보관함을 읽으면 Then 401이고 서비스를 호출하지 않는다", async () => {
+    const { handlers, service, signOut } = given({ kind: "signed_out" });
+    const response = await handlers.getLibrary(get());
+    expect(response.status).toBe(401);
+    expect((await errorOf(response)).error).toBe("signed_out");
+    expect(service.snapshot).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 Google 계정 When 보관함을 읽으면 Then 403이고 세션을 한 번 종료한다", async () => {
+    const { handlers, service, signOut } = given({ kind: "forbidden" });
+    const response = await handlers.getLibrary(get());
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("forbidden");
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(service.snapshot).not.toHaveBeenCalled();
+  });
+
+  it("Given 소유자 설정 누락 When 보관함을 읽으면 Then 503이고 데이터에 접근하지 않는다", async () => {
+    const { handlers, service } = given({ kind: "unconfigured" });
+    const response = await handlers.getLibrary(get());
+    expect(response.status).toBe(503);
+    expect((await errorOf(response)).error).toBe("unconfigured");
+    expect(service.snapshot).not.toHaveBeenCalled();
+  });
+
+  it("Given 인증 서버 장애로 요청 정보를 만들 수 없음 When 보관함을 읽으면 Then 503을 돌려준다", async () => {
+    const handlers = createLibraryHandlers(async () => { throw new Error("auth down"); });
+    const response = await handlers.getLibrary(get());
+    expect(response.status).toBe(503);
+    expect((await errorOf(response)).error).toBe("storage_unavailable");
+  });
+
+  it("Given 허용 계정이지만 DB가 소유자를 거절 When 보관함을 읽으면 Then 403이고 세션을 종료한다", async () => {
+    const { handlers, service, signOut } = given(allowed);
+    service.snapshot.mockRejectedValueOnce(new LibraryError("unauthorized", "denied"));
+    const response = await handlers.getLibrary(get());
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("forbidden");
+    expect(signOut).toHaveBeenCalledOnce();
+  });
+});
+
+describe("POST /api/links", () => {
+  it("Given 허용한 Google 계정 When 새 링크를 저장하면 Then 201과 상품을 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.postLink(post("/api/links", link));
+    expect(response.status).toBe(201);
+    expect(linkSaveResponseSchema.parse(await response.json())).toEqual({ kind: "added", product });
+    expect(service.saveLink).toHaveBeenCalledWith(toLinkSaveCommand(link));
+  });
+
+  it("Given 이미 저장한 링크 When 다시 저장하면 Then 200과 기존 상품을 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    service.saveLink.mockResolvedValueOnce({ kind: "duplicate" as never, product });
+    const response = await handlers.postLink(post("/api/links", link));
+    expect(response.status).toBe(200);
+    expect((await response.json()).kind).toBe("duplicate");
+  });
+
+  it.each([
+    ["다른 출처", { origin: "https://evil.test" }],
+    ["Origin 없음", { origin: "" }],
+  ])("Given %s의 쓰기 요청 When 링크를 저장하면 Then 403이고 세션과 서비스를 건드리지 않는다", async (_, headers) => {
+    const { handlers, service, signOut } = given(allowed);
+    const response = await handlers.postLink(post("/api/links", link, headers));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(service.saveLink).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it("Given JSON이 아닌 Content-Type When 링크를 저장하면 Then 415이고 저장하지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.postLink(post("/api/links", link, { "content-type": "text/plain" }));
+    expect(response.status).toBe(415);
+    expect(service.saveLink).not.toHaveBeenCalled();
+  });
+
+  it("Given 16KiB를 넘는 본문 When 링크를 저장하면 Then 413이고 저장하지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.postLink(post("/api/links", { ...link, option: "가".repeat(6000) }));
+    expect(response.status).toBe(413);
+    expect(service.saveLink).not.toHaveBeenCalled();
+  });
+
+  it("Given 형식은 맞지만 업무 규칙에 맞지 않는 링크 When 저장하면 Then 400과 필드를 돌려주고 저장하지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.postLink(post("/api/links", { ...link, url: "javascript:alert(1)" }));
+    expect(response.status).toBe(400);
+    expect(await errorOf(response)).toMatchObject({ error: "invalid_input", field: "url" });
+    expect(service.saveLink).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["깨진 JSON", "{"],
+    ["배열 본문", "[]"],
+    ["알 수 없는 필드", JSON.stringify({ ...link, owner: "someone" })],
+    ["필드 누락", JSON.stringify({ url: link.url })],
+  ])("Given %s When 링크를 저장하면 Then 400이고 저장하지 않는다", async (_, body) => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.postLink(post("/api/links", body));
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).error).toBe("invalid_input");
+    expect(service.saveLink).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 Google 계정 When 링크를 저장하면 Then 본문을 읽기 전에 403으로 거절한다", async () => {
+    const { handlers, service, signOut } = given({ kind: "forbidden" });
+    const response = await handlers.postLink(post("/api/links", "{"));
+    expect(response.status).toBe(403);
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(service.saveLink).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["invalid_input", 400, "url"],
+    ["collection_missing", 422, undefined],
+    ["identity_conflict", 409, undefined],
+    ["storage_unavailable", 503, undefined],
+  ] as const)("Given 서비스가 %s로 실패 When 링크를 저장하면 Then %i을 돌려준다", async (code, status, field) => {
+    const { handlers, service } = given(allowed);
+    service.saveLink.mockRejectedValueOnce(new LibraryError(code, "실패 메시지", field));
+    const response = await handlers.postLink(post("/api/links", link));
+    expect(response.status).toBe(status);
+    const body = await errorOf(response);
+    expect(body).toMatchObject({ error: code, message: "실패 메시지" });
+    expect(body.field).toBe(field);
+  });
+
+  it("Given 예상하지 못한 서비스 오류 When 링크를 저장하면 Then 내부 메시지를 숨기고 503을 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    service.saveLink.mockRejectedValueOnce(new Error("password=secret at db.internal"));
+    const response = await handlers.postLink(post("/api/links", link));
+    expect(response.status).toBe(503);
+    expect(JSON.stringify(await response.json())).not.toContain("secret");
+  });
+});
+
+describe("POST /api/collections", () => {
+  it("Given 허용한 Google 계정 When 컬렉션을 만들면 Then 201과 컬렉션을 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.postCollection(post("/api/collections", { name: "책상" }));
+    expect(response.status).toBe(201);
+    expect(collectionCreateResponseSchema.parse(await response.json())).toEqual(collection);
+    expect(service.createCollection).toHaveBeenCalledWith({ name: "책상" });
+  });
+
+  it("Given 앞뒤 공백이 있는 이름 When 컬렉션을 만들면 Then 정규화한 명령으로 서비스를 호출한다", async () => {
+    const { handlers, service } = given(allowed);
+    await handlers.postCollection(post("/api/collections", { name: " 책상 " }));
+    expect(service.createCollection).toHaveBeenCalledWith({ name: "책상" });
+  });
+
+  it("Given 같은 이름 When 컬렉션을 만들면 Then 409를 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    service.createCollection.mockRejectedValueOnce(new LibraryError("collection_duplicate", "이미 있어요."));
+    const response = await handlers.postCollection(post("/api/collections", { name: "책상" }));
+    expect(response.status).toBe(409);
+    expect((await errorOf(response)).error).toBe("collection_duplicate");
+  });
+
+  it("Given 세션 없음 When 컬렉션을 만들면 Then 401이고 만들지 않는다", async () => {
+    const { handlers, service } = given({ kind: "signed_out" });
+    const response = await handlers.postCollection(post("/api/collections", { name: "책상" }));
+    expect(response.status).toBe(401);
+    expect(service.createCollection).not.toHaveBeenCalled();
+  });
+});
+
+describe("배포 환경의 요청 주소", () => {
+  it("Given 서버 내부 URL과 브라우저 Host가 다름 When 같은 Host에서 쓰기 요청 Then Host 헤더 기준으로 허용한다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.postLink(new Request("http://localhost:3000/api/links", {
+      method: "POST",
+      headers: { host: "127.0.0.1:3000", origin: "http://127.0.0.1:3000", "content-type": "application/json" },
+      body: JSON.stringify(link),
+    }));
+    expect(response.status).toBe(201);
+    expect(service.saveLink).toHaveBeenCalledOnce();
+  });
+
+  it("Given 프록시가 공개 Host를 전달 When 공개 주소에서 쓰기 요청 Then x-forwarded-host 기준으로 허용한다", async () => {
+    const { handlers } = given(allowed);
+    const response = await handlers.postLink(new Request("http://localhost:3000/api/links", {
+      method: "POST",
+      headers: {
+        host: "localhost:3000",
+        "x-forwarded-host": "moti.example.com",
+        origin: "https://moti.example.com",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(link),
+    }));
+    expect(response.status).toBe(201);
+  });
+});
+
+describe("세션 종료 실패", () => {
+  it("Given 다른 Google 계정이고 세션 종료가 실패 When 보관함을 읽으면 Then 그래도 403을 돌려준다", async () => {
+    const { handlers, signOut } = given({ kind: "forbidden" });
+    signOut.mockRejectedValueOnce(new Error("auth down"));
+    const response = await handlers.getLibrary(get());
+    expect(response.status).toBe(403);
+  });
+});

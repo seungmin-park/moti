@@ -17,4 +17,6 @@ Spring의 `@DataJpaTest`에 대응하는 범위는 persistence 슬라이스다. 
 
 동작 변경은 Red → Green → Refactor로 진행한다. Red는 환경이나 문법 오류가 아니라 요구 동작의 부재로 실패해야 한다. API 계약과 문서를 연결하는 도구는 API 구현 단계에서 선택하고, 문서만 별도로 수정해 계약 불일치를 숨기지 않는다.
 
-현재 목업에는 Domain과 브라우저 계층만 구현되어 있다. 영구 저장·서비스·API 테스트는 해당 기능을 연결할 때 위 원칙으로 추가한다. 현재 검증의 실행 방법은 [verify-moti](../tools/verify-moti/SKILL.md), 결과는 [검증 기록](verification.md)에 있다.
+Google 계정이 관련된 테스트는 stub과 mock을 구분한다. 로그인한 세션의 Google subject는 테스트 대상의 입력이므로 stub으로 고정하고 응답(허용·401·403·503·이동 주소)을 검증한다. 허용하지 않은 계정의 세션 종료는 호출 자체가 요구사항이므로 mock으로 호출을 검증한다. OAuth 요청과 code 교환은 Supabase Auth의 책임이라 Google을 흉내 내는 fake를 만들지 않는다. HTTP 계층은 로컬 Auth에 테스트 사용자와 Google identity 행을 만들고 실제 세션 쿠키로 요청한다. 실제 Google 로그인은 배포 전 실제 계정으로 따로 확인한다.
+
+API 계약은 `src/features/library/presentation/library-dto.ts`의 zod 스키마다. Handler 테스트와 HTTP 테스트가 응답을 이 스키마로 검증하고, `docs/api/openapi.json`은 같은 스키마에서 생성한다. 단위 테스트가 커밋한 문서와 생성 결과의 일치를 검사하므로 문서만 고치면 CI가 실패한다. 계약을 바꾼 뒤 `npm run api:doc`으로 다시 생성한다. 현재 검증의 실행 방법은 [verify-moti](../tools/verify-moti/SKILL.md), 결과는 [검증 기록](verification.md)에 있다.

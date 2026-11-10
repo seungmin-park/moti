@@ -15,3 +15,16 @@
 `src/features/wishlist/model.ts`는 React, 브라우저 API와 네트워크에 의존하지 않는다. ESLint가 이 경계를 검사한다. 화면 구성은 `Mockup.tsx`, 대화상자는 `Dialogs.tsx`, 상품 카드는 `ProductCard.tsx`가 담당한다.
 
 `npm run verify`로 전체 검증을 실행한다. 구체적인 명령과 범위는 [검증 스킬](../tools/verify-moti/SKILL.md), 관찰 결과는 [검증 기록](verification.md)을 따른다. 브라우저 선택자는 사용자에게 보이는 역할과 한글 레이블을 사용한다.
+
+## 실제 API (화면 연결 전)
+
+| 경로 | 결과 | 계층 | 검증 |
+| --- | --- | --- | --- |
+| `GET /auth/login` | 소유자 설정이 있으면 Google 인증으로 303 이동한다. | `auth/presentation`, `auth/infrastructure` | handler stub, 실제 HTTP |
+| `GET /auth/callback` | code를 교환하고 소유자만 `/`로 보낸다. 다른 계정은 세션을 종료한다. | 같음 | handler stub·mock |
+| `POST /auth/logout` | 같은 출처에서만 세션을 종료한다. | 같음 | handler, 실제 HTTP |
+| `GET /api/library` | `LibraryReadResponse` | `library/presentation` → `application` → `infrastructure` | handler, 실제 HTTP |
+| `POST /api/links` | `LinkSaveRequest` → 201 새 상품, 200 중복 | 같음 | handler, 실제 HTTP |
+| `POST /api/collections` | `CollectionCreateRequest` → 201 | 같음 | handler, 실제 HTTP |
+
+요청·응답·오류 계약은 [OpenAPI 문서](api/openapi.json)에 있다.

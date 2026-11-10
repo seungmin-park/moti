@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertDatabaseReport } from "../../scripts/assert-test-report.mjs";
+import { assertDatabaseReport, assertHttpReport } from "../../scripts/assert-test-report.mjs";
 
 function completedReport() {
   return {
@@ -37,5 +37,25 @@ describe("DB 검증 완료 판정", () => {
       expect(() => assertDatabaseReport(report)).toThrow();
     }
     expect(() => assertDatabaseReport({ ...completedReport(), numTotalTests: 3 })).toThrow();
+  });
+});
+
+describe("HTTP 검증 완료 판정", () => {
+  const httpReport = () => ({
+    success: true,
+    numTotalTests: 1,
+    numPassedTests: 1,
+    testResults: [{ name: "/workspace/tests/http/library-api.test.ts", assertionResults: [{ status: "passed", title: "reads" }] }],
+  });
+
+  it("HTTP 계층이 실제로 통과한 결과의 개수를 돌려준다", () => {
+    expect(assertHttpReport(httpReport())).toBe(1);
+  });
+
+  it("HTTP 테스트 0개와 skip을 거절한다", () => {
+    expect(() => assertHttpReport({ ...httpReport(), numTotalTests: 0, numPassedTests: 0, testResults: [] })).toThrow();
+    const skipped = httpReport();
+    skipped.testResults[0].assertionResults[0].status = "pending";
+    expect(() => assertHttpReport(skipped)).toThrow();
   });
 });

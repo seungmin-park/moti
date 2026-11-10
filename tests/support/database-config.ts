@@ -8,6 +8,15 @@ const localUrl = z.string().url().refine((value) => {
   return url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port === "56321";
 }, "테스트 전용 로컬 Supabase만 사용할 수 있습니다.");
 
+export const HTTP_APP_PORT = 56380;
+export const HTTP_OWNER_SUBJECT = "moti-http-owner";
+
+const localApp = z.string().url().refine((value) => {
+  const url = new URL(value);
+  return url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port === String(HTTP_APP_PORT) &&
+    url.pathname === "/" && !url.search && !url.hash;
+}, "테스트 전용 로컬 앱만 사용할 수 있습니다.");
+
 const localDatabase = z.string().refine((value) => {
   try {
     const url = new URL(value);
@@ -22,6 +31,7 @@ const localDatabase = z.string().refine((value) => {
 export const databaseConfigSchema = z.object({
   runId: z.uuid(),
   apiUrl: localUrl,
+  appUrl: localApp,
   databaseUrl: localDatabase,
   anonKey: z.string().min(20),
   serviceRoleKey: z.string().min(20),

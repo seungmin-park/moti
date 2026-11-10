@@ -11,3 +11,6 @@ ts	phase	decision	why	evidence	result
 2026-11-10T19:58:13Z	red	fixture 수정 후 실제 RPC 미구현으로 36개 실패·7개 통과를 확인했다. failed 상태 CHECK가 NULL 오류 코드를 통과시키는 결함도 드러났다	요구 동작 부재와 실제 제약 결함으로 실패한 진짜 Red다	https://github.com/seungmin-park/moti/actions/runs/42890323881	VERIFIED Red: 36 failed, 7 passed
 2026-11-10T20:02:51Z	harness	로컬 DB 불가의 원인은 실행기가 /var 임시 경로를, CLI가 /private/var 실제 경로를 기록한 불일치였다	realpath로 맞춘 뒤 로컬 native Supabase에서 실제 DB 테스트가 실행된다	scripts/with-test-database.mjs	VERIFIED: local run
 2026-11-10T20:02:51Z	green	세 RPC·RLS 정책·소유자 확인을 구현했다. moti_rpc가 auth 스키마 권한을 받지 못해 JWT claim과 좁은 identity 확인 함수로 바꿨다	auth 권한 실패가 42501로 unauthorized에 매핑돼 거절 검사가 우연히 통과했다. 원시 M0001 단언을 추가했다	supabase/migrations/20261111000000_library.sql	VERIFIED local: 33 persistence, 10 service
+2026-11-10T20:26:29Z	design	Google 계정은 stub, 거절 계정의 세션 종료만 mock으로 검증하고 Google fake는 만들지 않는다	OAuth 처리는 Supabase Auth의 책임이고 우리 코드의 책임은 허용 판정과 응답이다	docs/testing.md	사용자 확인
+2026-11-10T20:26:29Z	refactor	계층별 데이터 객체와 이름 규칙을 세우고 1단계 코드에 먼저 적용했다	Request·Command·도메인·Row의 책임을 분리하라는 사용자 요청. 동작 보존 리팩터링을 기능과 분리했다	https://github.com/seungmin-park/moti/pull/5	VERIFIED: 43 DB tests, merged
+2026-11-10T20:26:29Z	green	실제 HTTP 테스트가 Next의 request.url 내부 주소 때문에 같은 출처 검사와 리다이렉트가 틀린 것을 발견해 Host 기준으로 고쳤다	Next의 Server Action CSRF 검사와 같은 기준이다	tests/http/library-api.test.ts	VERIFIED local: 9 HTTP

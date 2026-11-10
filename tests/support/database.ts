@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Pool } from "pg";
 import { readDatabaseConfig } from "./database-config";
 
-type TestUser = { id: string; email: string; googleSubject: string; client: SupabaseClient };
+type TestUser = { id: string; email: string; password: string; googleSubject: string; client: SupabaseClient };
 export type DatabaseFixture = {
   owner: TestUser;
   stranger: TestUser;
@@ -13,7 +13,7 @@ export type DatabaseFixture = {
   close: () => Promise<void>;
 };
 
-export async function createDatabaseFixture(): Promise<DatabaseFixture> {
+export async function createDatabaseFixture(options: { ownerGoogleSubject?: string } = {}): Promise<DatabaseFixture> {
   const config = readDatabaseConfig();
   const admin = new Pool({ connectionString: config.databaseUrl, max: 3, connectionTimeoutMillis: 5000 });
   const auth = { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false };
@@ -32,14 +32,14 @@ export async function createDatabaseFixture(): Promise<DatabaseFixture> {
     await admin.query("delete from auth.users where id = any($1::uuid[])", [users]);
   }
 
-  async function createUser(): Promise<TestUser> {
+  async function createUser(googleSubjectOverride?: string): Promise<TestUser> {
     const email = `moti-${randomUUID()}@example.test`;
     const password = `${randomUUID()}aA1!`;
     const created = await administration.auth.admin.createUser({ email, password, email_confirm: true });
     if (created.error || !created.data.user) throw new Error(created.error?.message || "테스트 사용자를 만들지 못했습니다.");
     const id = created.data.user.id;
     users.push(id);
-    const googleSubject = `moti-test-${id}`;
+    const googleSubject = googleSubjectOverride ?? `moti-test-${id}`;
     await admin.query(
       `insert into auth.identities (user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
        values ($1, $2, 'google', $3::jsonb, now(), now(), now())`,
@@ -48,12 +48,12 @@ export async function createDatabaseFixture(): Promise<DatabaseFixture> {
     const client = createClient(config.apiUrl, config.anonKey, { auth });
     const signedIn = await client.auth.signInWithPassword({ email, password });
     if (signedIn.error || !signedIn.data.session) throw new Error(signedIn.error?.message || "테스트 사용자 인증에 실패했습니다.");
-    return { id, email, googleSubject, client };
+    return { id, email, password, googleSubject, client };
   }
 
   try {
     await verifyRun();
-    const owner = await createUser();
+    const owner = await createUser(options.ownerGoogleSubject);
     const stranger = await createUser();
     await admin.query("insert into moti.owner_config (owner_id, google_subject) values ($1, $2)", [owner.id, owner.googleSubject]);
     return {
