@@ -8,3 +8,6 @@ playwright-report/
 .taste-skill/
 *.tsbuildinfo
 .DS_Store
+.test-database.lock/
+supabase/.temp/
+supabase/.branches/

@@ -4,7 +4,7 @@
 
 ## 현재 범위
 
-Next.js와 TypeScript로 만드는 개인 위시리스트의 클릭 가능한 목업이다. 모든 상품, 가격과 저장 결과는 예시다. 계정 인증, 외부 상품 정보 수집, 서버 저장, 정기 가격 추적은 화면 피드백을 받은 뒤 연결한다. 배포에는 별도 승인이 필요하다.
+Next.js와 TypeScript로 만드는 개인 위시리스트다. UI 목업 피드백을 반영했고 사용자가 실제 기능의 연속 구현을 승인했다. Supabase PostgreSQL·Auth·비공개 Storage로 저장·단일 Google 계정 인증·정보 수집·가격 추적을 연결한다. 현재 화면의 예시 데이터와 실제 저장 기능은 구분한다. 배포에는 별도 승인이 필요하다. 다음 작업의 기준선과 남은 범위는 `docs/implementation-checkpoint.md`와 `docs/backend-implementation.md`에 있다.
 
 ## pstack
 
@@ -20,7 +20,7 @@ UI 팔레트는 흰색·중립 회색·차콜을 사용한다. 사용자가 초�
 동작은 Red, Green, Refactor 순서로 구현한다. 사용자 입력과 실패 상태를 검증한다. 단위 테스트는 Vitest, 브라우저 테스트는 Playwright를 사용한다.
 프로젝트 명령과 실제 사용자 경로는 `tools/verify-moti/SKILL.md`와 `docs/feature-map.md`를 따른다.
 기능 단위 PR은 로컬 검사, 현재 head의 CI와 리뷰 확인, 실제 병합 확인까지 진행한다. 보호 규칙이나 검사를 우회하지 않는다.
-실제 iPhone 단축어와 인증, 영구 저장, 수집은 목업의 검증 범위가 아니다.
+실제 iPhone 공유 메뉴·Google OAuth·호스팅 설정 검증과 로컬 테스트의 범위를 구분해 보고한다. 로컬·CI에서 실제 DB를 검증해도 실제 기기나 배포 검증으로 보고하지 않는다.
 
 ## API 연결 시 테스트 원칙
 

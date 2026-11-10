@@ -1,0 +1,7 @@
+ts	phase	decision	why	evidence	result
+2026-11-10T19:24:13Z	frame	UI PR 3을 검증한 head로 병합하고 후속 구현을 새 컨텍스트로 분리했다	기준선과 파일 소유권을 고정해 후속 변경을 검증하기 위해	https://github.com/seungmin-park/moti/pull/3	VERIFIED: 33 unit, 40 browser, matching merge tree
+2026-11-10T19:24:13Z	harness	Docker 소켓 거절 후 독립 네이티브 PostgreSQL 테스트 실행을 검토한다	운영 Supabase 구성을 유지하며 실제 DB 슬라이스를 검증하기 위해	docs/implementation-checkpoint.md	open
+2026-11-10T19:25:39Z	harness	공식 Supabase native runtime을 실제 실행해 데이터 API까지 검증 가능한지 확인한다	Docker 없이 운영과 같은 Supabase 경계를 테스트할 수 있는 공식 기능을 발견했다	https://supabase.com/docs/guides/local-development/docker-and-native-runtimes	open; 별도 PostgreSQL 설치 probe 중단
+2026-11-10T19:33:47Z	design	Supabase SDK와 원자적 RPC 명령을 선택했다	운영과 테스트의 HTTP 저장 경계를 맞추고 별도 DB 연결 풀·자격증명 관리를 줄인다	docs/backend-implementation.md	선택 완료; RPC·RLS 검증 대기
+2026-11-10T19:33:47Z	harness	네이티브 Supabase 기동과 Auth HTTP 200을 확인했으나 직접 DB 연결은 로컬 권한 제한에 막혔다	권한 확대도 거절돼 해당 제한을 우회하지 않고 실제 DB 검증을 CI에 연결한다	docs/implementation-checkpoint.md	INCONCLUSIVE: local DB; CI verification pending
+2026-11-10T19:49:35Z	harness	독립 검토가 발견한 registry 파일 오판·중단 정리 누락·start/stop 경합·skip 성공 판정을 수정했다	환경 오류와 실행하지 않은 테스트를 저장 기능 통과로 세지 않기 위해 재현 후 수정했다	docs/evidence/storage/harness	VERIFIED: 독립 단위 15개 통과; 실제 DB는 CI 대기
