@@ -41,7 +41,8 @@ export async function createDatabaseFixture(): Promise<DatabaseFixture> {
     users.push(id);
     const googleSubject = `moti-test-${id}`;
     await admin.query(
-      "insert into auth.identities (user_id, provider_id, provider, identity_data) values ($1, $2, 'google', $3::jsonb)",
+      `insert into auth.identities (user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+       values ($1, $2, 'google', $3::jsonb, now(), now(), now())`,
       [id, googleSubject, JSON.stringify({ sub: googleSubject, email, email_verified: true })],
     );
     const client = createClient(config.apiUrl, config.anonKey, { auth });
