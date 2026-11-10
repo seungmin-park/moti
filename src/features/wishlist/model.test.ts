@@ -92,7 +92,7 @@ const add = (
   state = empty(),
   url = "https://example.com/item?size=M",
   option = "",
-) => reduceSession(state, { type: "link.add", url, option, at });
+) => reduceSession(state, { type: "link.add", url, option, at, collectionIds: [] });
 const query: ProductQuery = {
   status: "wish",
   query: "",

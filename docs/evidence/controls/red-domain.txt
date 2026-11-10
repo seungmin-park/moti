@@ -1,0 +1,87 @@
+
+> moti@0.1.0 test
+> vitest run src/features/wishlist/collection-add.test.ts
+
+
+ RUN  v5.1.0 <workspace>
+
+ ❯ src/features/wishlist/collection-add.test.ts (4 tests | 2 failed) 9ms
+   ❯ 링크를 담을 컬렉션 선택 (4)
+     × 선택한 여러 컬렉션에 한 번씩 상품을 담는다 4ms
+     × 선택 중 없는 컬렉션이 하나라도 있으면 상품과 ID를 변경하지 않는다 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/wishlist/collection-add.test.ts > 링크를 담을 컬렉션 선택 > 선택한 여러 컬렉션에 한 번씩 상품을 담는다
+AssertionError: expected [] to deeply equal [ 'c-home', 'c-gift' ]
+
+- Expected
++ Received
+
+- [
+-   "c-home",
+-   "c-gift",
+- ]
++ []
+
+ ❯ src/features/wishlist/collection-add.test.ts:23:45
+     21|
+     22|     expect(after.products).toHaveLength(before.products.length + 1);
+     23|     expect(after.products[0].collectionIds).toEqual(ids);
+       |                                             ^
+     24|     expect(after.feedback?.kind).toBe("added");
+     25|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/wishlist/collection-add.test.ts > 링크를 담을 컬렉션 선택 > 선택 중 없는 컬렉션이 하나라도 있으면 상품과 ID를 변경하지 않는다
+AssertionError: expected [ { id: 'p-20', …(12) }, …(9) ] to deeply equal [ { id: 'headphones', …(12) }, …(8) ]
+
+- Expected
++ Received
+
+@@ -1,8 +1,28 @@
+  [
+    {
+      "addedAt": "2026-11-11T06:00:00.000Z",
++     "category": "기타",
++     "collectionIds": [],
++     "id": "p-20",
++     "identityUrl": "https://example.com/collection-choice",
++     "image": null,
++     "metadata": {
++       "attempt": 1,
++       "phase": "collecting",
++     },
++     "note": "",
++     "option": "",
++     "purchase": {
++       "status": "wish",
++     },
++     "shop": "example.com",
++     "sourceUrl": "https://example.com/collection-choice",
++     "title": "새로 담은 상품",
++   },
++   {
++     "addedAt": "2026-11-11T06:00:00.000Z",
+      "category": "디지털",
+      "collectionIds": [
+        "c-gift",
+      ],
+      "id": "headphones",
+
+ ❯ src/features/wishlist/collection-add.test.ts:39:28
+     37|     const after = addToCollections(before, [before.collections[0].id, …
+     38|
+     39|     expect(after.products).toEqual(before.products);
+       |                            ^
+     40|     expect(after.nextId).toBe(before.nextId);
+     41|     expect(after.feedback).toMatchObject({ kind: "invalid", field: "co…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  03:51:55
+   Duration  104ms (transform 45%, tests 29%, import 19%, worker 7%)

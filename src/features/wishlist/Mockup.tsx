@@ -31,6 +31,7 @@ import {
 } from "./model";
 import { ModalContent, type AppAction, type Modal } from "./Dialogs";
 import { ProductCard } from "./ProductCard";
+import { SortMenu } from "./SortMenu";
 
 type View = "wish" | "purchased" | "collections" | "share";
 type AppState = { session: Session; modal: Modal | null };
@@ -343,20 +344,7 @@ export default function Mockup() {
                   </button>
                 )}
               </div>
-              <label className="sort-field">
-                <span className="sr-only">정렬</span>
-                <select
-                  aria-label="정렬"
-                  value={sort}
-                  onChange={(event) =>
-                    setSort(event.target.value as ProductQuery["sort"])
-                  }
-                >
-                  <option value="newest">최근 담은 순</option>
-                  <option value="price-low">낮은 가격순</option>
-                  <option value="price-high">높은 가격순</option>
-                </select>
-              </label>
+              <SortMenu value={sort} onChange={setSort} />
             </div>
             <div className="category-row" aria-label="상품 카테고리">
               <button

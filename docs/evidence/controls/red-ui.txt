@@ -1,0 +1,213 @@
+[WebServer] (node:33762) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:33799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 3 workers
+
+(node:33800) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-chromium] › tests/e2e/controls.spec.ts:15:1 › 정렬 목록에서 현재 선택을 확인하고 클릭으로 가격순을 바꾼다 (5.7s)
+  ✘  2 [desktop-chromium] › tests/e2e/controls.spec.ts:80:1 › 링크 추가에서 여러 컬렉션을 고르고 입력 오류 뒤에도 선택을 유지한다 (5.7s)
+(node:33819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [desktop-chromium] › tests/e2e/controls.spec.ts:130:1 › UI 팔레트와 입력 포커스는 중립 색상이며 키보드 위치를 표시한다 (383ms)
+  ✘  3 [desktop-chromium] › tests/e2e/controls.spec.ts:40:1 › 정렬은 키보드 이동, 확정, 취소와 Tab 이동을 지원한다 (10.2s)
+  ✘  4 [desktop-chromium] › tests/e2e/controls.spec.ts:111:1 › 현재 컬렉션을 기본 선택하되 모두 해제해서 담을 수도 있다 (5.5s)
+
+
+  1) [desktop-chromium] › tests/e2e/controls.spec.ts:15:1 › 정렬 목록에서 현재 선택을 확인하고 클릭으로 가격순을 바꾼다 › Given 최근 담은 순의 위시 목록
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: '정렬: 최근 담은 순', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: '정렬: 최근 담은 순', exact: true }) with timeout 5000ms
+      - waiting for getByRole('button', { name: '정렬: 최근 담은 순', exact: true })
+
+
+      16 |   await test.step("Given 최근 담은 순의 위시 목록", async () => {
+      17 |     await page.goto("/");
+    > 18 |     await expect(page.getByRole("button", { name: "정렬: 최근 담은 순", exact: true })).toBeVisible();
+         |                                                                                  ^
+      19 |   });
+      20 |   await test.step("When 정렬 목록에서 낮은 가격순을 고른다", async () => {
+      21 |     await page.getByRole("button", { name: /^정렬:/ }).click();
+        at <workspace>/tests/e2e/controls.spec.ts:18:82
+        at <workspace>/tests/e2e/controls.spec.ts:16:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/controls-정렬-목록에서-현재-선택을-확인하고-클릭으로-가격순을-바꾼다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/controls-정렬-목록에서-현재-선택을-확인하고-클릭으로-가격순을-바꾼다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/controls-정렬-목록에서-현재-선택을-확인하고-클릭으로-가격순을-바꾼다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/controls-정렬-목록에서-현재-선택을-확인하고-클릭으로-가격순을-바꾼다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop-chromium] › tests/e2e/controls.spec.ts:40:1 › 정렬은 키보드 이동, 확정, 취소와 Tab 이동을 지원한다 › Given 정렬 버튼에 키보드 초점이 있는 상태
+
+    Test timeout of 10000ms exceeded.
+
+    Error: locator.focus: Test timeout of 10000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: /^정렬:/ })
+
+
+      42 |   const trigger = page.getByRole("button", { name: /^정렬:/ });
+      43 |   await test.step("Given 정렬 버튼에 키보드 초점이 있는 상태", async () => {
+    > 44 |     await trigger.focus();
+         |                   ^
+      45 |     await page.keyboard.press("ArrowDown");
+      46 |     await expect(page.getByRole("menuitemradio", { name: "최근 담은 순" })).toBeFocused();
+      47 |   });
+        at <workspace>/tests/e2e/controls.spec.ts:44:19
+        at <workspace>/tests/e2e/controls.spec.ts:43:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/controls-정렬은-키보드-이동-확정-취소와-Tab-이동을-지원한다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/controls-정렬은-키보드-이동-확정-취소와-Tab-이동을-지원한다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/controls-정렬은-키보드-이동-확정-취소와-Tab-이동을-지원한다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/controls-정렬은-키보드-이동-확정-취소와-Tab-이동을-지원한다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [desktop-chromium] › tests/e2e/controls.spec.ts:80:1 › 링크 추가에서 여러 컬렉션을 고르고 입력 오류 뒤에도 선택을 유지한다 › Given 링크 추가 창의 컬렉션 목록
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('dialog').getByRole('checkbox')
+    Expected: 3
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('dialog').getByRole('checkbox') with timeout 5000ms
+      - waiting for getByRole('dialog').getByRole('checkbox')
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      82 |     await page.goto("/");
+      83 |     await page.getByRole("button", { name: "링크 추가", exact: true }).click();
+    > 84 |     await expect(page.getByRole("dialog").getByRole("checkbox")).toHaveCount(3);
+         |                                                                  ^
+      85 |   });
+      86 |   await test.step("When 컬렉션 두 개를 고르고 잘못된 링크를 제출한다", async () => {
+      87 |     const dialog = page.getByRole("dialog");
+        at <workspace>/tests/e2e/controls.spec.ts:84:66
+        at <workspace>/tests/e2e/controls.spec.ts:81:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/controls-링크-추가에서-여러-컬렉션을-고르고-입력-오류-뒤에도-선택을-유지한다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/controls-링크-추가에서-여러-컬렉션을-고르고-입력-오류-뒤에도-선택을-유지한다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/controls-링크-추가에서-여러-컬렉션을-고르고-입력-오류-뒤에도-선택을-유지한다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/controls-링크-추가에서-여러-컬렉션을-고르고-입력-오류-뒤에도-선택을-유지한다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [desktop-chromium] › tests/e2e/controls.spec.ts:111:1 › 현재 컬렉션을 기본 선택하되 모두 해제해서 담을 수도 있다 › Given 컬렉션 안에서 링크 추가 창을 연 상태
+
+    Error: expect(locator).toBeChecked() failed
+
+    Locator: getByRole('checkbox', { name: '집을 더 좋아하게' })
+    Expected: checked
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeChecked" getByRole('checkbox', { name: '집을 더 좋아하게' }) with timeout 5000ms
+      - waiting for getByRole('checkbox', { name: '집을 더 좋아하게' })
+
+
+      115 |     await page.getByRole("button", { name: "집을 더 좋아하게 컬렉션 열기" }).click();
+      116 |     await page.getByRole("button", { name: "링크 추가", exact: true }).click();
+    > 117 |     await expect(page.getByRole("checkbox", { name: "집을 더 좋아하게" })).toBeChecked();
+          |                                                                     ^
+      118 |   });
+      119 |   await test.step("When 기본 선택을 해제하고 링크를 담는다", async () => {
+      120 |     await page.getByRole("checkbox", { name: "집을 더 좋아하게" }).uncheck();
+        at <workspace>/tests/e2e/controls.spec.ts:117:69
+        at <workspace>/tests/e2e/controls.spec.ts:112:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/controls-현재-컬렉션을-기본-선택하되-모두-해제해서-담을-수도-있다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/controls-현재-컬렉션을-기본-선택하되-모두-해제해서-담을-수도-있다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/controls-현재-컬렉션을-기본-선택하되-모두-해제해서-담을-수도-있다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/controls-현재-컬렉션을-기본-선택하되-모두-해제해서-담을-수도-있다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [desktop-chromium] › tests/e2e/controls.spec.ts:130:1 › UI 팔레트와 입력 포커스는 중립 색상이며 키보드 위치를 표시한다 › Given 중립 색상의 브랜드, 버튼과 탐색 메뉴
+
+    Error: rgb(27, 110, 102)
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1
+    Received:    83
+
+       9 |     const channels = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+      10 |     expect(channels, color).toHaveLength(3);
+    > 11 |     expect(Math.max(...channels!) - Math.min(...channels!), color).toBeLessThanOrEqual(1);
+         |                                                                    ^
+      12 |   }
+      13 | }
+      14 |
+        at expectNeutral (<workspace>/tests/e2e/controls.spec.ts:11:68)
+        at <workspace>/tests/e2e/controls.spec.ts:133:5
+        at <workspace>/tests/e2e/controls.spec.ts:132:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/controls-UI-팔레트와-입력-포커스는-중립-색상이며-키보드-위치를-표시한다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/controls-UI-팔레트와-입력-포커스는-중립-색상이며-키보드-위치를-표시한다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/controls-UI-팔레트와-입력-포커스는-중립-색상이며-키보드-위치를-표시한다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/controls-UI-팔레트와-입력-포커스는-중립-색상이며-키보드-위치를-표시한다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [desktop-chromium] › tests/e2e/controls.spec.ts:15:1 › 정렬 목록에서 현재 선택을 확인하고 클릭으로 가격순을 바꾼다 ───────
+    [desktop-chromium] › tests/e2e/controls.spec.ts:40:1 › 정렬은 키보드 이동, 확정, 취소와 Tab 이동을 지원한다 ────────
+    [desktop-chromium] › tests/e2e/controls.spec.ts:80:1 › 링크 추가에서 여러 컬렉션을 고르고 입력 오류 뒤에도 선택을 유지한다 ──
+    [desktop-chromium] › tests/e2e/controls.spec.ts:111:1 › 현재 컬렉션을 기본 선택하되 모두 해제해서 담을 수도 있다 ───────
+    [desktop-chromium] › tests/e2e/controls.spec.ts:130:1 › UI 팔레트와 입력 포커스는 중립 색상이며 키보드 위치를 표시한다 ───

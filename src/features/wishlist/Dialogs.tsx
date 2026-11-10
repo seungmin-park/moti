@@ -115,6 +115,9 @@ function AddLink({
 }) {
   const [url, setUrl] = useState("");
   const [option, setOption] = useState("");
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(
+    collectionId ? [collectionId] : [],
+  );
   return (
     <Dialog title="마음에 든 물건을 담아두세요" onClose={onClose}>
       <p className="dialog-intro">쇼핑하다 발견한 상품 링크 하나면 충분해요.</p>
@@ -129,7 +132,7 @@ function AddLink({
               url,
               option,
               at: new Date().toISOString(),
-              collectionId,
+              collectionIds: selectedCollectionIds,
             },
           });
         }}
@@ -163,6 +166,30 @@ function AddLink({
         <p className="field-help">
           다른 색상이나 사이즈는 따로 담아둘 수 있어요.
         </p>
+        <fieldset className="collection-options add-collections">
+          <legend>
+            담을 컬렉션 <small>선택 · 여러 개 가능</small>
+          </legend>
+          {session.collections.map((collection) => (
+            <label key={collection.id}>
+              <input
+                type="checkbox"
+                checked={selectedCollectionIds.includes(collection.id)}
+                onChange={(event) =>
+                  setSelectedCollectionIds((selected) =>
+                    event.target.checked
+                      ? [...selected, collection.id]
+                      : selected.filter((id) => id !== collection.id),
+                  )
+                }
+              />
+              <span>{collection.name}</span>
+            </label>
+          ))}
+          <p className="collection-help">
+            고르지 않으면 위시리스트에만 담아요.
+          </p>
+        </fieldset>
         <Feedback session={session} />
         <div className="form-note">
           <Bookmark size={17} />
