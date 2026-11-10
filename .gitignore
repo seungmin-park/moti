@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+.env*
+!.env.example
+test-results/
+playwright-report/
+.taste-skill/
+*.tsbuildinfo
+.DS_Store

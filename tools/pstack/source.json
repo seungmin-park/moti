@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/cursor/plugins",
+  "path": "pstack",
+  "commit": "de8ee15dd1194627d21eb5fcd41cb1873208dabb",
+  "skillCount": 58,
+  "scope": "project-local; load through AGENTS.md"
+}
