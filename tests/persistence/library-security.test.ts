@@ -29,6 +29,8 @@ describe("실제 DB 소유자 경계", () => {
         : scenario === "stranger" ? fixture.stranger.client : fixture.owner.client;
       const store = createSupabaseLibraryStore(client);
 
+      const raw = await client.rpc("moti_snapshot");
+      expect(raw.error?.code).toBe(scenario === "anonymous" ? "42501" : "M0001");
       await expect(store.snapshot()).rejects.toMatchObject({ code: "unauthorized" });
       await expect(store.saveLink(prepared())).rejects.toMatchObject({ code: "unauthorized" });
       await expect(store.createCollection("거절할 컬렉션")).rejects.toMatchObject({ code: "unauthorized" });

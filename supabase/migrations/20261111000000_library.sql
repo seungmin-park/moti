@@ -12,7 +12,7 @@ $$;
 
 grant moti_rpc to postgres;
 revoke all on schema moti from public, anon, authenticated, service_role;
-grant usage on schema moti, auth, extensions to moti_rpc;
+grant usage on schema moti, extensions to moti_rpc;
 
 create table moti.owner_config (
   singleton boolean primary key default true check (singleton),
@@ -64,7 +64,7 @@ create table moti.products (
   check (
     (metadata_phase in ('queued', 'running') and metadata_error_code is null and metadata_completed_at is null)
     or (metadata_phase = 'ready' and metadata_error_code is null and metadata_completed_at is not null)
-    or (metadata_phase = 'failed' and char_length(metadata_error_code) > 0 and metadata_completed_at is null)
+    or (metadata_phase = 'failed' and metadata_error_code is not null and char_length(metadata_error_code) > 0 and metadata_completed_at is null)
   ),
   check (
     (last_success_amount_minor is null and last_success_currency is null and last_success_at is null)
@@ -108,13 +108,108 @@ alter table moti.metadata_jobs enable row level security;
 alter table moti.metadata_jobs force row level security;
 
 revoke all on all tables in schema moti from public, anon, authenticated, service_role;
-grant select on moti.owner_config, auth.identities to moti_rpc;
+grant select on moti.owner_config to moti_rpc;
 grant select, insert, update, delete on moti.collections, moti.products, moti.product_collections, moti.metadata_jobs to moti_rpc;
+
+create function moti.current_user_id() returns uuid
+language sql stable set search_path = '' as $$
+  select nullif(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub', '')::uuid
+$$;
+
+-- moti_rpc cannot read the auth schema, so this narrow check runs as the migration owner.
+create function moti.has_google_identity(p_user uuid, p_subject text) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from auth.identities i
+    where i.user_id = p_user and i.provider = 'google' and i.provider_id = p_subject
+  )
+$$;
+
+revoke all on function moti.current_user_id(), moti.has_google_identity(uuid, text) from public;
+grant execute on function moti.current_user_id(), moti.has_google_identity(uuid, text) to moti_rpc;
+
+create policy owner_reads_own_config on moti.owner_config
+  for select to moti_rpc using (owner_id = (select moti.current_user_id()));
+create policy owner_manages_collections on moti.collections
+  for all to moti_rpc using (owner_id = (select moti.current_user_id())) with check (owner_id = (select moti.current_user_id()));
+create policy owner_manages_products on moti.products
+  for all to moti_rpc using (owner_id = (select moti.current_user_id())) with check (owner_id = (select moti.current_user_id()));
+create policy owner_manages_memberships on moti.product_collections
+  for all to moti_rpc using (owner_id = (select moti.current_user_id())) with check (owner_id = (select moti.current_user_id()));
+create policy owner_manages_jobs on moti.metadata_jobs
+  for all to moti_rpc using (owner_id = (select moti.current_user_id())) with check (owner_id = (select moti.current_user_id()));
+
+create function moti.require_owner() returns uuid
+language plpgsql stable set search_path = '' as $$
+declare
+  v_user uuid := moti.current_user_id();
+begin
+  if v_user is null or not exists (
+    select 1 from moti.owner_config c
+    where c.owner_id = v_user and moti.has_google_identity(c.owner_id, c.google_subject)
+  ) then
+    raise exception using errcode = 'M0001', message = 'moti owner required';
+  end if;
+  return v_user;
+end
+$$;
+
+create function moti.is_web_url(p_url text, p_max integer) returns boolean
+language sql immutable set search_path = '' as $$
+  select p_url is not null
+    and char_length(p_url) between 1 and p_max
+    and p_url !~ '[[:cntrl:]]'
+    and p_url ~* '^https?://(\[[0-9a-f:.]+\]|[^/?#@:\[\]]+)(:[0-9]{1,5})?([/?#].*)?$'
+$$;
+
+create function moti.collection_json(p moti.collections) returns jsonb
+language sql stable set search_path = '' as $$
+  select jsonb_build_object(
+    'id', p.id, 'name', p.name, 'revision', p.revision,
+    'created_at', p.created_at, 'updated_at', p.updated_at
+  )
+$$;
+
+create function moti.product_json(p moti.products) returns jsonb
+language sql stable set search_path = '' as $$
+  select jsonb_build_object(
+    'id', p.id, 'source_url', p.source_url, 'identity_url', p.identity_url, 'option', p.option,
+    'shop', p.shop, 'title', p.title, 'note', p.note, 'revision', p.revision,
+    'collection_ids', coalesce((
+      select jsonb_agg(m.collection_id order by m.collection_id)
+      from moti.product_collections m where m.product_id = p.id
+    ), '[]'::jsonb),
+    'created_at', p.created_at, 'updated_at', p.updated_at,
+    'purchase_status', p.purchase_status, 'purchased_on', p.purchased_on,
+    'purchased_amount_minor', p.purchased_amount_minor, 'purchased_currency', p.purchased_currency,
+    'metadata_phase', p.metadata_phase, 'metadata_generation', p.metadata_generation,
+    'metadata_attempts', p.metadata_attempts, 'metadata_error_code', p.metadata_error_code,
+    'metadata_completed_at', p.metadata_completed_at,
+    'last_success_amount_minor', p.last_success_amount_minor,
+    'last_success_currency', p.last_success_currency, 'last_success_at', p.last_success_at
+  )
+$$;
+
+revoke all on function moti.require_owner(), moti.is_web_url(text, integer),
+  moti.collection_json(moti.collections), moti.product_json(moti.products) from public;
+grant execute on function moti.require_owner(), moti.is_web_url(text, integer),
+  moti.collection_json(moti.collections), moti.product_json(moti.products) to moti_rpc;
 
 create function public.moti_snapshot() returns jsonb
 language plpgsql security definer set search_path = '' as $$
+declare
+  v_owner uuid := moti.require_owner();
 begin
-  raise exception using errcode = '0A000', message = 'moti_snapshot is not implemented';
+  return jsonb_build_object(
+    'products', coalesce((
+      select jsonb_agg(moti.product_json(p) order by p.created_at desc, p.id)
+      from moti.products p where p.owner_id = v_owner
+    ), '[]'::jsonb),
+    'collections', coalesce((
+      select jsonb_agg(moti.collection_json(c) order by c.created_at, c.id)
+      from moti.collections c where c.owner_id = v_owner
+    ), '[]'::jsonb)
+  );
 end
 $$;
 
@@ -126,15 +221,66 @@ create function public.moti_save_link(
   p_collection_ids uuid[]
 ) returns jsonb
 language plpgsql security definer set search_path = '' as $$
+declare
+  v_owner uuid := moti.require_owner();
+  v_collections uuid[];
+  v_product moti.products;
 begin
-  raise exception using errcode = '0A000', message = 'moti_save_link is not implemented';
+  if not moti.is_web_url(p_source_url, 4096)
+    or not moti.is_web_url(p_identity_url, 49152)
+    or p_option is null or char_length(p_option) > 120 or p_option <> btrim(p_option)
+    or not (p_option is nfc normalized)
+    or p_shop is null or char_length(p_shop) not between 1 and 255
+    or p_collection_ids is null or cardinality(p_collection_ids) > 100
+    or array_position(p_collection_ids, null) is not null
+  then
+    raise exception using errcode = 'M0002', message = 'invalid link input';
+  end if;
+
+  select coalesce(array_agg(distinct id), '{}') into v_collections from unnest(p_collection_ids) as id;
+  if (select count(*) from moti.collections c where c.owner_id = v_owner and c.id = any(v_collections))
+     <> cardinality(v_collections) then
+    raise exception using errcode = 'M0003', message = 'collection missing';
+  end if;
+
+  insert into moti.products (owner_id, source_url, identity_url, option, shop)
+  values (v_owner, p_source_url, p_identity_url, p_option, p_shop)
+  on conflict (owner_id, identity_hash) do nothing
+  returning * into v_product;
+
+  if v_product.id is null then
+    select * into v_product from moti.products p
+    where p.owner_id = v_owner
+      and p.identity_hash = extensions.digest(char_length(p_identity_url)::text || ':' || p_identity_url || p_option, 'sha256');
+    if v_product.identity_url is distinct from p_identity_url or v_product.option is distinct from p_option then
+      raise exception using errcode = 'M0005', message = 'identity conflict';
+    end if;
+    return jsonb_build_object('kind', 'duplicate', 'product', moti.product_json(v_product));
+  end if;
+
+  insert into moti.product_collections (owner_id, product_id, collection_id)
+  select v_owner, v_product.id, id from unnest(v_collections) as id;
+  insert into moti.metadata_jobs (owner_id, product_id, generation)
+  values (v_owner, v_product.id, v_product.metadata_generation);
+
+  return jsonb_build_object('kind', 'added', 'product', moti.product_json(v_product));
 end
 $$;
 
 create function public.moti_create_collection(p_name text) returns jsonb
 language plpgsql security definer set search_path = '' as $$
+declare
+  v_owner uuid := moti.require_owner();
+  v_collection moti.collections;
 begin
-  raise exception using errcode = '0A000', message = 'moti_create_collection is not implemented';
+  if p_name is null or p_name <> btrim(p_name) or char_length(p_name) not between 1 and 40
+    or not (p_name is nfc normalized) then
+    raise exception using errcode = 'M0002', message = 'invalid collection name';
+  end if;
+  insert into moti.collections (owner_id, name) values (v_owner, p_name) returning * into v_collection;
+  return moti.collection_json(v_collection);
+exception when unique_violation then
+  raise exception using errcode = 'M0004', message = 'collection duplicate';
 end
 $$;
 

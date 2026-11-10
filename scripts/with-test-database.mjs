@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import pg from "pg";
@@ -41,7 +41,7 @@ await mkdir(lock).catch((error) => {
 
 process.exitCode = await withTermination(async (signal) => {
   try {
-    directory = await mkdtemp(join(tmpdir(), "moti-database-"));
+    directory = await realpath(await mkdtemp(join(tmpdir(), "moti-database-")));
     project = join(directory, "project");
     stack = basename(directory);
     const supabaseHome = join(directory, "supabase-home");

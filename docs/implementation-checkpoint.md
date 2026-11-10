@@ -11,7 +11,7 @@
 
 ## 전달 상태
 
-소스 폴더는 `/Users/seungmin/Desktop/repo/moti`다. 이 폴더의 `.git` 생성 권한이 없어 Git 전달은 `/private/tmp/moti-delivery`에서 한다. 소스의 의도한 변경만 전달 체크아웃으로 복사하고 바이트를 비교한다. 루트의 `docs/evidence/delivery.json`에는 병합 뒤 갱신한 로컬 증거가 있으므로 이전 기록을 덮어쓰지 않는다.
+소스 폴더 `/Users/seungmin/Desktop/repo/moti`는 2026-11-11 사용자 요청으로 `origin`(GitHub)에 연결한 Git 작업 트리다. 브랜치 작업과 push를 이 폴더에서 직접 한다. `/private/tmp/moti-delivery`는 이전 복사 전달용 체크아웃이며 더 이상 사용하지 않는다. 루트의 `docs/evidence/delivery.json`에는 병합 뒤 갱신한 로컬 증거가 있어 커밋하지 않은 변경으로 둔다.
 
 - 공개 저장소는 https://github.com/seungmin-park/moti 이다.
 - PR #1은 원본 cursor/plugins/pstack 프로젝트 설치, PR #2는 클릭 가능한 목업이다. 둘 다 병합됐다.
@@ -22,7 +22,7 @@
 - PR #3 당시에는 보호 규칙과 자동 병합 설정이 없었다. 사용자의 명시 요청으로 2026-11-11에 `main` 보호와 GitHub 자동 병합을 적용하고 API로 다시 읽어 확인했다. GitHub Actions app 15368의 `pstack`, `mockup`, `database`가 필수이며 strict base 갱신, 관리자 적용, 대화 해결, 선형 이력을 요구한다. 강제 push·branch 삭제는 금지한다. PR 경로는 필수이고 별도의 사람 승인 인원은 지정하지 않았다. 구현·독립 검토를 마친 각 기능 PR에서 squash 자동 병합을 예약하고 실제 병합을 확인한다.
 - GitHub 연결 도구의 PR 생성은 통합 권한 오류여서 로그인된 `gh`를 사용한다.
 
-첫 저장 기능은 Draft PR https://github.com/seungmin-park/moti/pull/4 에 게시했다. 초기 head `31633341ad1a5b327ed60f50e77a10426ab28bc6`은 실제 DB Red를 확인하기 위한 RPC 미구현 상태다. 이 상태를 병합하지 않는다. 로컬 단위 82개와 headed 브라우저 40개, lint·typecheck·build는 통과했다. CI 실행기 실패와 기능 요구의 Red는 구분한다.
+첫 저장 기능은 PR https://github.com/seungmin-park/moti/pull/4 다. 초기 CI 실패 두 번은 SMTP 설정과 fixture의 identity 시각 누락이라는 환경 오류였다. fixture 수정 뒤 CI에서 RPC 미구현으로 36개 실패·7개 통과하는 실제 Red를 확인했다. 이어서 세 RPC·RLS 정책·소유자 확인을 구현했고 로컬 실제 DB에서 43개가 통과했다.
 
 ## 확인된 UI 검증
 
@@ -55,4 +55,4 @@ lint·typecheck·build 통과. 순수 단위 33개와 최종 headed Playwright 4
 
 프로젝트의 `.env*` 파일과 Supabase·Google·Vercel·DATABASE_URL 환경변수는 없다. Docker CLI는 `/usr/local/bin/docker`에 있다. psql·postgres·pg_ctl·Supabase·Vercel CLI는 경로에 없다. 실제 계정·클라우드 배포·기기 검증에 필요한 정보는 코드와 로컬 검증이 준비된 뒤 구체적으로 정리한다. 비밀 값이나 실제 상품 데이터는 공개 저장소에 넣지 않는다.
 
-Docker API 소켓 연결은 권한 거절로 실패했다. 공식 Supabase CLI 3.1.0 native runtime은 `/private/tmp/moti-native-probe`에서 기동됐고 `http://127.0.0.1:55321/auth/v1/health`가 HTTP 200으로 응답했다. 실제 PostgreSQL 직접 연결은 이 환경의 네트워크 제한에 막혔다. 권한 확대 실행도 승인 정책상 거절됐다. 이를 우회하지 않는다. 로컬 DB 검증 완료로 보고하지 않고 CI에서 실제 저장·RPC·RLS를 검증한다. 설계와 책임 경계는 `backend-implementation.md`에 있다.
+Docker는 사용하지 않는다. 공식 Supabase CLI 3.1.0 native runtime으로 `npm run test:database`가 로컬에서 실제 PostgreSQL·PostgREST·Auth를 띄워 실행된다. 이전의 "직접 연결 불가" 기록은 실행기의 macOS 임시 경로 불일치를 잘못 진단한 것이었다. CI도 같은 명령을 필수로 실행한다. 설계와 책임 경계는 `backend-implementation.md`에 있다.

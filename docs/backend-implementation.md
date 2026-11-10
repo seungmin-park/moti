@@ -31,7 +31,7 @@
 
 초기 두 설계 작업은 대화 이력 없는 새 작업 컨텍스트에서 읽기 전용으로 진행한다. 선택 후 하나의 기능 구현 담당자가 해당 소스·테스트를 소유한다. 조정자는 독립 실행, 문서·CI·Git 전달을 담당한다. 같은 파일이나 DB 데이터를 동시에 수정하지 않는다. 기능 사이에는 실제 병합 상태와 체크포인트를 넘기고 새 구현 컨텍스트를 사용한다.
 
-운영 DB는 원래 계획의 Supabase PostgreSQL이다. 로컬 PostgreSQL은 격리된 테스트를 위한 실행 환경이다. Docker는 필수 의존성이 아니며 현재 소켓 접근 거절을 우회하지 않는다. 공식 Supabase CLI 3.1.0의 native runtime으로 실제 서비스를 기동했고 Auth health의 HTTP 200을 확인했다. 이 실행 환경에서 직접 PostgreSQL 연결과 권한 확대가 거절됐으므로 로컬 DB 테스트는 아직 검증하지 못했다. CI의 실제 Supabase에서 마이그레이션·RPC·권한 검증을 필수로 실행한다. 환경 오류를 Red로 세지 않는다.
+운영 DB는 원래 계획의 Supabase PostgreSQL이다. 로컬 PostgreSQL은 격리된 테스트를 위한 실행 환경이다. Docker는 필수 의존성이 아니며 현재 소켓 접근 거절을 우회하지 않는다. 공식 Supabase CLI 3.1.0의 native runtime으로 실제 서비스를 기동했고 Auth health의 HTTP 200을 확인했다. 로컬 DB 테스트는 실행기의 macOS 경로 수정 뒤 정상 실행된다. CI의 실제 Supabase에서도 마이그레이션·RPC·권한 검증을 필수로 실행한다. 환경 오류를 Red로 세지 않는다.
 
 ## 선택한 저장 경계
 
