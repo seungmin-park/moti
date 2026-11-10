@@ -1,0 +1,35 @@
+[
+  {
+    "name": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "font": "Pretendard, -apple-system, \"system-ui\", sans-serif",
+    "loadedFonts": [
+      "Pretendard"
+    ],
+    "brokenImages": [],
+    "errors": []
+  },
+  {
+    "name": "tablet",
+    "width": 900,
+    "overflow": false,
+    "font": "Pretendard, -apple-system, \"system-ui\", sans-serif",
+    "loadedFonts": [
+      "Pretendard"
+    ],
+    "brokenImages": [],
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "width": 390,
+    "overflow": false,
+    "font": "Pretendard, -apple-system, \"system-ui\", sans-serif",
+    "loadedFonts": [
+      "Pretendard"
+    ],
+    "brokenImages": [],
+    "errors": []
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "pstack": {
+    "pr": "https://github.com/seungmin-park/moti/pull/1",
+    "head": "f01af55f7ef42f8fb57d1095c475e331fd3ff423",
+    "base": "c2ac5780bc3ed0ed43135d2916002a840fb10929",
+    "integration": "f021840987d27f389cb4228a35e7c9bbb95edaa7",
+    "merge": "5aa3c51b621ecce6e4f7035cc4e1bfa81cce3d08",
+    "state": "MERGED",
+    "ci": "https://github.com/seungmin-park/moti/actions/runs/42874105628",
+    "requiredProtection": false,
+    "review": "independent local review; no required GitHub reviews",
+    "method": "squash matched to verified head after CI success"
+  }
+}

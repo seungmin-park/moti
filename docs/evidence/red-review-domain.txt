@@ -1,0 +1,119 @@
+
+> moti@0.1.0 test
+> vitest run --run src/features/wishlist/model.test.ts
+
+
+ RUN  v5.1.0 <repository>
+
+ ❯ src/features/wishlist/model.test.ts (19 tests | 4 failed) 10ms
+   ❯ 사용자에게 보이는 가격 정렬 (4)
+     × 구매완료는 실구매가로 price-low 정렬하며 미입력을 마지막에 둔다 5ms
+     × 구매완료는 실구매가로 price-high 정렬하며 미입력을 마지막에 둔다 1ms
+     × 혼합 컬렉션에서도 카드에 표시하는 가격으로 price-low 정렬한다 0ms
+     × 혼합 컬렉션에서도 카드에 표시하는 가격으로 price-high 정렬한다 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/wishlist/model.test.ts > 사용자에게 보이는 가격 정렬 > 구매완료는 실구매가로 price-low 정렬하며 미입력을 마지막에 둔다
+AssertionError: expected [ 'old-lamp', 'old-bag', 'headphones' ] to deeply equal [ 'old-bag', 'old-lamp', 'headphones' ]
+
+- Expected
++ Received
+
+  [
+-   "old-bag",
+    "old-lamp",
++   "old-bag",
+    "headphones",
+  ]
+
+ ❯ src/features/wishlist/model.test.ts:36:49
+     34|     const products = selectProducts(state, { ...query, status: "purcha…
+     35|
+     36|     expect(products.map(product => product.id)).toEqual(ids);
+       |                                                 ^
+     37|   });
+     38|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/features/wishlist/model.test.ts > 사용자에게 보이는 가격 정렬 > 구매완료는 실구매가로 price-high 정렬하며 미입력을 마지막에 둔다
+AssertionError: expected [ 'headphones', 'old-bag', 'old-lamp' ] to deeply equal [ 'old-lamp', 'old-bag', 'headphones' ]
+
+- Expected
++ Received
+
+  [
+-   "old-lamp",
+-   "old-bag",
+    "headphones",
++   "old-bag",
++   "old-lamp",
+  ]
+
+ ❯ src/features/wishlist/model.test.ts:36:49
+     34|     const products = selectProducts(state, { ...query, status: "purcha…
+     35|
+     36|     expect(products.map(product => product.id)).toEqual(ids);
+       |                                                 ^
+     37|   });
+     38|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/features/wishlist/model.test.ts > 사용자에게 보이는 가격 정렬 > 혼합 컬렉션에서도 카드에 표시하는 가격으로 price-low 정렬한다
+AssertionError: expected [ 'old-lamp', 'lamp', 'speaker', …(2) ] to deeply equal [ 'lamp', 'speaker', 'chair', …(2) ]
+
+- Expected
++ Received
+
+  [
++   "old-lamp",
+    "lamp",
+    "speaker",
+    "chair",
+-   "old-lamp",
+    "headphones",
+  ]
+
+ ❯ src/features/wishlist/model.test.ts:54:49
+     52|     const products = selectProducts(state, { ...query, status: "all", …
+     53|
+     54|     expect(products.map(product => product.id)).toEqual(ids);
+       |                                                 ^
+     55|   });
+     56| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/features/wishlist/model.test.ts > 사용자에게 보이는 가격 정렬 > 혼합 컬렉션에서도 카드에 표시하는 가격으로 price-high 정렬한다
+AssertionError: expected [ 'headphones', 'chair', …(3) ] to deeply equal [ Array(5) ]
+
+- Expected
++ Received
+
+  [
+-   "old-lamp",
++   "headphones",
+    "chair",
+    "speaker",
+    "lamp",
+-   "headphones",
++   "old-lamp",
+  ]
+
+ ❯ src/features/wishlist/model.test.ts:54:49
+     52|     const products = selectProducts(state, { ...query, status: "all", …
+     53|
+     54|     expect(products.map(product => product.id)).toEqual(ids);
+       |                                                 ^
+     55|   });
+     56| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 15 passed (19)
+   Start at  03:29:58
+   Duration  100ms (tests 45%, import 31%, transform 16%, worker 8%)

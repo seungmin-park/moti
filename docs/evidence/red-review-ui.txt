@@ -1,0 +1,182 @@
+[WebServer] (node:26203) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:26240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 3 workers
+
+(node:26242) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26241) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26243) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-chromium] › tests/e2e/review-regressions.spec.ts:38:1 › 실구매가 미입력과 0원을 구매완료 카드에서 구분한다 (5.8s)
+  ✘  2 [desktop-chromium] › tests/e2e/review-regressions.spec.ts:17:1 › 구매 뒤 컬렉션 이름 변경 알림은 이전 구매의 실행 취소를 제공하지 않는다 (5.8s)
+  ✘  3 [desktop-chromium] › tests/e2e/review-regressions.spec.ts:54:1 › 구매완료 가격 정렬은 카드에 보이는 실구매가를 따른다 (5.8s)
+(node:26264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [desktop-chromium] › tests/e2e/review-regressions.spec.ts:71:1 › 허용 길이의 공백 없는 상품 정보가 모바일 화면을 넘지 않는다 (613ms)
+
+
+  1) [desktop-chromium] › tests/e2e/review-regressions.spec.ts:17:1 › 구매 뒤 컬렉션 이름 변경 알림은 이전 구매의 실행 취소를 제공하지 않는다 › Then 컬렉션 변경 알림에는 구매 실행 취소가 없고 구매 상태는 남는다
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('button', { name: '실행 취소', exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('button', { name: '실행 취소', exact: true }) with timeout 5000ms
+      - waiting for getByRole('button', { name: '실행 취소', exact: true })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      30 |   await test.step("Then 컬렉션 변경 알림에는 구매 실행 취소가 없고 구매 상태는 남는다", async () => {
+      31 |     await expect(page.getByRole("status")).toContainText("컬렉션 이름을 바꿨어요");
+    > 32 |     await expect(page.getByRole("button", { name: "실행 취소", exact: true })).toHaveCount(0);
+         |                                                                            ^
+      33 |     await openPurchased(page);
+      34 |     await expect(page.getByRole("button", { name: "무선 헤드폰 상세 보기" })).toBeVisible();
+      35 |   });
+        at <repository>/tests/e2e/review-regressions.spec.ts:32:76
+        at <repository>/tests/e2e/review-regressions.spec.ts:30:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/review-regressions-구매-뒤-컬렉션-이름-변경-알림은-이전-구매의-실행-취소를-제공하지-않는다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/review-regressions-구매-뒤-컬렉션-이름-변경-알림은-이전-구매의-실행-취소를-제공하지-않는다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/review-regressions-구매-뒤-컬렉션-이름-변경-알림은-이전-구매의-실행-취소를-제공하지-않는다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/review-regressions-구매-뒤-컬렉션-이름-변경-알림은-이전-구매의-실행-취소를-제공하지-않는다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop-chromium] › tests/e2e/review-regressions.spec.ts:38:1 › 실구매가 미입력과 0원을 구매완료 카드에서 구분한다 › Then 미입력 상품에는 예시 가격을 구매액으로 표시하지 않는다
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('button', { name: '여행용 백팩 상세 보기' })
+    Expected substring: "실구매가 미입력"
+    Received string:    " 구매완료CARRY ON여행용 백팩블랙99,000원구매 기록가벼운 주말"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" getByRole('button', { name: '여행용 백팩 상세 보기' }) with timeout 5000ms
+      - waiting for getByRole('button', { name: '여행용 백팩 상세 보기' })
+        14 × locator resolved to <button class="product-open" aria-label="여행용 백팩 상세 보기">…</button>
+           - unexpected value " 구매완료CARRY ON여행용 백팩블랙99,000원구매 기록가벼운 주말"
+
+
+      47 |     await expect(page.getByRole("button", { name: "작업실 스탠드 상세 보기" })).toContainText("0원");
+      48 |     const unknown = page.getByRole("button", { name: "여행용 백팩 상세 보기" });
+    > 49 |     await expect(unknown).toContainText("실구매가 미입력");
+         |                           ^
+      50 |     await expect(unknown).not.toContainText("99,000원");
+      51 |   });
+      52 | });
+        at <repository>/tests/e2e/review-regressions.spec.ts:49:27
+        at <repository>/tests/e2e/review-regressions.spec.ts:46:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/review-regressions-실구매가-미입력과-0원을-구매완료-카드에서-구분한다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/review-regressions-실구매가-미입력과-0원을-구매완료-카드에서-구분한다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/review-regressions-실구매가-미입력과-0원을-구매완료-카드에서-구분한다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/review-regressions-실구매가-미입력과-0원을-구매완료-카드에서-구분한다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [desktop-chromium] › tests/e2e/review-regressions.spec.ts:54:1 › 구매완료 가격 정렬은 카드에 보이는 실구매가를 따른다 › Then 2만원 상품이 100만원 상품 앞에 나오고 높은 가격순은 반대다
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: locator('.product-card h2')
+    Timeout: 5000ms
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "여행용 백팩",
+        "작업실 스탠드",
+    +   "여행용 백팩",
+      ]
+
+    Call log:
+      - Expect "toHaveText" locator('.product-card h2') with timeout 5000ms
+      - waiting for locator('.product-card h2')
+        14 × locator resolved to 2 elements
+
+
+      63 |   });
+      64 |   await test.step("Then 2만원 상품이 100만원 상품 앞에 나오고 높은 가격순은 반대다", async () => {
+    > 65 |     await expect(page.locator(".product-card h2")).toHaveText(["여행용 백팩", "작업실 스탠드"]);
+         |                                                    ^
+      66 |     await page.getByRole("combobox", { name: "정렬" }).selectOption("price-high");
+      67 |     await expect(page.locator(".product-card h2")).toHaveText(["작업실 스탠드", "여행용 백팩"]);
+      68 |   });
+        at <repository>/tests/e2e/review-regressions.spec.ts:65:52
+        at <repository>/tests/e2e/review-regressions.spec.ts:64:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/review-regressions-구매완료-가격-정렬은-카드에-보이는-실구매가를-따른다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/review-regressions-구매완료-가격-정렬은-카드에-보이는-실구매가를-따른다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/review-regressions-구매완료-가격-정렬은-카드에-보이는-실구매가를-따른다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/review-regressions-구매완료-가격-정렬은-카드에-보이는-실구매가를-따른다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [desktop-chromium] › tests/e2e/review-regressions.spec.ts:71:1 › 허용 길이의 공백 없는 상품 정보가 모바일 화면을 넘지 않는다 › Then 카드와 컬렉션 제목이 화면 폭 안에서 줄바꿈된다
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 375
+    Received:    1497
+
+      93 |   await test.step("Then 카드와 컬렉션 제목이 화면 폭 안에서 줄바꿈된다", async () => {
+      94 |     await expect(page.getByRole("button", { name: `${title} 상세 보기` })).toBeVisible();
+    > 95 |     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+         |                                                                             ^
+      96 |     await page.getByRole("button", { name: "위시리스트", exact: true }).filter({ visible: true }).click();
+      97 |     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+      98 |   });
+        at <repository>/tests/e2e/review-regressions.spec.ts:95:77
+        at <repository>/tests/e2e/review-regressions.spec.ts:93:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/review-regressions-허용-길이의-공백-없는-상품-정보가-모바일-화면을-넘지-않는다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/review-regressions-허용-길이의-공백-없는-상품-정보가-모바일-화면을-넘지-않는다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/review-regressions-허용-길이의-공백-없는-상품-정보가-모바일-화면을-넘지-않는다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/review-regressions-허용-길이의-공백-없는-상품-정보가-모바일-화면을-넘지-않는다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [desktop-chromium] › tests/e2e/review-regressions.spec.ts:17:1 › 구매 뒤 컬렉션 이름 변경 알림은 이전 구매의 실행 취소를 제공하지 않는다
+    [desktop-chromium] › tests/e2e/review-regressions.spec.ts:38:1 › 실구매가 미입력과 0원을 구매완료 카드에서 구분한다 ──
+    [desktop-chromium] › tests/e2e/review-regressions.spec.ts:54:1 › 구매완료 가격 정렬은 카드에 보이는 실구매가를 따른다 ─
+    [desktop-chromium] › tests/e2e/review-regressions.spec.ts:71:1 › 허용 길이의 공백 없는 상품 정보가 모바일 화면을 넘지 않는다
