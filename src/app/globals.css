@@ -986,7 +986,8 @@ h1 {
   font-weight: 550;
 }
 .field small,
-.collection-options small {
+.collection-options small,
+.collection-picker small {
   color: var(--muted);
   font-weight: 400;
   font-size: 12px;
@@ -1156,22 +1157,140 @@ h1 {
   accent-color: var(--ink);
   margin: 0;
 }
-.add-collections label {
-  min-height: 44px;
-  padding: 9px 12px;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  margin-bottom: 6px;
+.collection-picker {
+  margin: 0 0 20px;
+  min-width: 0;
 }
-.add-collections label:hover {
+.collection-picker-label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 550;
+}
+.collection-picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--control);
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+}
+.collection-picker-trigger > span,
+.collection-picker-options label > span,
+.collection-picker-create > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.collection-picker-trigger > svg,
+.collection-picker-search > svg,
+.collection-picker-create > svg {
+  flex: none;
+}
+.collection-picker-trigger:hover,
+.collection-picker-trigger[aria-expanded="true"] {
   background: var(--surface);
 }
-.add-collections label:has(input:checked) {
+.collection-picker-trigger[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+.collection-picker-panel {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ground);
+  box-shadow: 0 6px 18px #0000000d;
+}
+.collection-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.collection-picker-search:focus-within {
   background: var(--active);
   border-color: var(--control);
+  box-shadow: inset 0 -2px 0 var(--focus);
 }
-.add-collections .collection-help {
+.collection-picker-search input {
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+}
+.collection-picker-search input:focus {
+  background: transparent;
+  box-shadow: none;
+}
+.collection-picker-options {
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 0;
+  margin-top: 5px;
+}
+.collection-picker-options label {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 9px 10px;
+  gap: 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.collection-picker-options label:hover {
+  background: var(--surface);
+}
+.collection-picker-options label:has(input:checked) {
+  background: var(--active);
+}
+.collection-picker-options input {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin: 0;
+  accent-color: var(--ink);
+}
+.collection-picker-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 550;
+}
+.collection-picker-create:hover {
+  background: var(--surface);
+}
+.collection-picker-empty,
+.collection-picker-hint {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.collection-picker-hint {
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.collection-picker-hint.form-error {
+  color: var(--error);
+}
+.collection-picker .collection-help {
   margin-top: 9px;
   color: var(--muted);
   font-size: 12px;
@@ -1506,6 +1625,9 @@ h1 {
     gap: 7px;
   }
   .search-field input {
+    font-size: 16px;
+  }
+  .collection-picker-search input {
     font-size: 16px;
   }
   .sort-trigger {

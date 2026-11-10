@@ -23,55 +23,22 @@ import {
 import {
   categories,
   createDemoSession,
-  reduceSession,
   selectProducts,
   type Category,
   type ProductQuery,
-  type Session,
 } from "./model";
-import { ModalContent, type AppAction, type Modal } from "./Dialogs";
+import { ModalContent } from "./Dialogs";
+import { reduceApp } from "./app-state";
 import { ProductCard } from "./ProductCard";
 import { SortMenu } from "./SortMenu";
 
 type View = "wish" | "purchased" | "collections" | "share";
-type AppState = { session: Session; modal: Modal | null };
 const navigation = [
   { id: "wish", label: "위시리스트", icon: Bookmark },
   { id: "purchased", label: "구매완료", icon: ShoppingBag },
   { id: "collections", label: "컬렉션", icon: Grid2X2 },
   { id: "share", label: "공유 저장", icon: Share2 },
 ] as const;
-
-function appReducer(state: AppState, action: AppAction): AppState {
-  if (action.type === "open")
-    return {
-      session: reduceSession(state.session, { type: "feedback.dismiss" }),
-      modal: action.modal,
-    };
-  if (action.type === "close")
-    return {
-      session: reduceSession(state.session, { type: "feedback.dismiss" }),
-      modal: null,
-    };
-  const session = reduceSession(state.session, action.command);
-  let modal = state.modal;
-  if (
-    session.feedback?.kind === "added" ||
-    session.feedback?.kind === "duplicate"
-  )
-    modal = { kind: "detail", id: session.feedback.productId };
-  if (
-    session.feedback?.kind !== "invalid" &&
-    [
-      "product.purchase",
-      "product.restore",
-      "collection.create",
-      "collection.rename",
-    ].includes(action.command.type)
-  )
-    modal = null;
-  return { session, modal };
-}
 
 function Nav({
   active,
@@ -104,7 +71,7 @@ function Nav({
 
 export default function Mockup() {
   const [{ session, modal }, dispatch] = useReducer(
-    appReducer,
+    reduceApp,
     undefined,
     () => ({ session: createDemoSession(), modal: null }),
   );
@@ -166,9 +133,7 @@ export default function Mockup() {
       type: "open",
       modal: {
         kind: "add",
-        collectionId: isCollectionDetail
-          ? (collectionId ?? undefined)
-          : undefined,
+        collectionIds: isCollectionDetail && collectionId ? [collectionId] : [],
       },
     });
   const title =

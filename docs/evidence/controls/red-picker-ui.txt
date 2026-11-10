@@ -1,0 +1,54 @@
+[WebServer] (node:36342) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:36379) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:36380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-chromium] › tests/e2e/collection-picker.spec.ts:3:1 › 컬렉션 드롭다운에서 검색하고 새 컬렉션을 만들어 함께 담는다 (5.4s)
+
+
+  1) [desktop-chromium] › tests/e2e/collection-picker.spec.ts:3:1 › 컬렉션 드롭다운에서 검색하고 새 컬렉션을 만들어 함께 담는다 › Given 링크와 옵션을 입력한 추가 창
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('dialog').getByRole('checkbox')
+    Expected: 0
+    Received: 3
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('dialog').getByRole('checkbox') with timeout 5000ms
+      - waiting for getByRole('dialog').getByRole('checkbox')
+        14 × locator resolved to 3 elements
+           - unexpected value "3"
+
+
+       7 |     await page.getByLabel("상품 링크").fill("https://example.com/inline-collection");
+       8 |     await page.getByLabel("옵션 선택", { exact: true }).fill("크림 · 250mm");
+    >  9 |     await expect(page.getByRole("dialog").getByRole("checkbox")).toHaveCount(0);
+         |                                                                  ^
+      10 |   });
+      11 |   await test.step("When 기존 컬렉션을 고르고 없는 이름을 만든다", async () => {
+      12 |     await page.getByRole("button", { name: /^담을 컬렉션:/ }).click();
+        at <workspace>/tests/e2e/collection-picker.spec.ts:9:66
+        at <workspace>/tests/e2e/collection-picker.spec.ts:4:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collection-picker-컬렉션-드롭다운에서-검색하고-새-컬렉션을-만들어-함께-담는다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collection-picker-컬렉션-드롭다운에서-검색하고-새-컬렉션을-만들어-함께-담는다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/collection-picker-컬렉션-드롭다운에서-검색하고-새-컬렉션을-만들어-함께-담는다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/collection-picker-컬렉션-드롭다운에서-검색하고-새-컬렉션을-만들어-함께-담는다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium] › tests/e2e/collection-picker.spec.ts:3:1 › 컬렉션 드롭다운에서 검색하고 새 컬렉션을 만들어 함께 담는다

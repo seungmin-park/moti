@@ -1,0 +1,123 @@
+> moti@0.1.0 test
+> vitest run src/features/wishlist/app-state.test.ts
+
+
+ RUN  v5.1.0 <workspace>
+
+ ❯ src/features/wishlist/app-state.test.ts (10 tests | 8 failed) 9ms
+   ❯ 링크 추가 중 컬렉션 생성과 선택 (10)
+     × 생성된 컬렉션을 즉시 선택하고 기존 선택과 추가 창을 유지한다 3ms
+     × 같은 이름의 빠른 연속 생성은 하나만 만들고 이미 선택한 ID를 보존한다 2ms
+     × 잘못된 이름 ""는 컬렉션과 선택을 변경하지 않는다 1ms
+     × 잘못된 이름 "  "는 컬렉션과 선택을 변경하지 않는다 0ms
+     × 잘못된 이름 "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"는 컬렉션과 선택을 변경하지 않는다 0ms
+     × 잘못된 이름 "나를 위한 선물"는 컬렉션과 선택을 변경하지 않는다 0ms
+     × 현재 컬렉션을 추가·해제하고 존재하지 않는 컬렉션은 선택하지 않는다 1ms
+     × 링크 추가를 취소해도 사용자가 이미 만든 컬렉션은 유지한다 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/wishlist/app-state.test.ts > 링크 추가 중 컬렉션 생성과 선택 > 생성된 컬렉션을 즉시 선택하고 기존 선택과 추가 창을 유지한다
+AssertionError: expected undefined to be defined
+ ❯ src/features/wishlist/app-state.test.ts:19:21
+     17|
+     18|     const created = after.session.collections.find((collection) => col…
+     19|     expect(created).toBeDefined();
+       |                     ^
+     20|     expect(after.modal).toEqual({ kind: "add", collectionIds: ["c-gift…
+     21|     expect(after.session.collections).toHaveLength(before.session.coll…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/features/wishlist/app-state.test.ts > 링크 추가 중 컬렉션 생성과 선택 > 같은 이름의 빠른 연속 생성은 하나만 만들고 이미 선택한 ID를 보존한다
+AssertionError: expected [ { id: 'c-home', …(1) }, …(2) ] to have a length of 4 but got 3
+
+- Expected
++ Received
+
+- 4
++ 3
+
+ ❯ src/features/wishlist/app-state.test.ts:32:43
+     30|     const duplicate = reduceApp(created, { type: "add.collection.creat…
+     31|
+     32|     expect(duplicate.session.collections).toHaveLength(before.session.…
+       |                                           ^
+     33|     expect(duplicate.session.collections).toEqual(created.session.coll…
+     34|     expect(duplicate.session.nextId).toBe(created.session.nextId);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/features/wishlist/app-state.test.ts > 링크 추가 중 컬렉션 생성과 선택 > 잘못된 이름 ""는 컬렉션과 선택을 변경하지 않는다
+ FAIL  src/features/wishlist/app-state.test.ts > 링크 추가 중 컬렉션 생성과 선택 > 잘못된 이름 "  "는 컬렉션과 선택을 변경하지 않는다
+ FAIL  src/features/wishlist/app-state.test.ts > 링크 추가 중 컬렉션 생성과 선택 > 잘못된 이름 "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"는 컬렉션과 선택을 변경하지 않는다
+ FAIL  src/features/wishlist/app-state.test.ts > 링크 추가 중 컬렉션 생성과 선택 > 잘못된 이름 "나를 위한 선물"는 컬렉션과 선택을 변경하지 않는다
+AssertionError: expected null to match object { Object (kind, field) }
+
+- Expected:
+{
+  "field": "collection",
+  "kind": "invalid",
+}
+
++ Received:
+null
+
+ ❯ src/features/wishlist/app-state.test.ts:48:36
+     46|     expect(after.session.products).toEqual(before.session.products);
+     47|     expect(after.session.nextId).toBe(before.session.nextId);
+     48|     expect(after.session.feedback).toMatchObject({ kind: "invalid", fi…
+       |                                    ^
+     49|   });
+     50|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/features/wishlist/app-state.test.ts > 링크 추가 중 컬렉션 생성과 선택 > 현재 컬렉션을 추가·해제하고 존재하지 않는 컬렉션은 선택하지 않는다
+AssertionError: expected { kind: 'add', …(1) } to deeply equal { Object (kind, collectionIds) }
+
+- Expected
++ Received
+
+  {
+    "collectionIds": [
+      "c-gift",
+-     "c-home",
+    ],
+    "kind": "add",
+  }
+
+ ❯ src/features/wishlist/app-state.test.ts:63:28
+     61|     const selected = reduceApp(before, { type: "add.collection.toggle"…
+     62|
+     63|     expect(selected.modal).toEqual({ kind: "add", collectionIds: ["c-g…
+       |                            ^
+     64|     expect(reduceApp(selected, { type: "add.collection.toggle", id: "m…
+     65|     expect(reduceApp(selected, { type: "add.collection.toggle", id: "c…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/features/wishlist/app-state.test.ts > 링크 추가 중 컬렉션 생성과 선택 > 링크 추가를 취소해도 사용자가 이미 만든 컬렉션은 유지한다
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/features/wishlist/app-state.test.ts:85:93
+     83|
+     84|     expect(closed.modal).toBeNull();
+     85|     expect(closed.session.collections.some((collection) => collection.…
+       |                                                                                             ^
+     86|   });
+     87| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 2 passed (10)
+   Start at  04:10:02
+   Duration  119ms (tests 41%, import 32%, transform 19%, worker 8%)

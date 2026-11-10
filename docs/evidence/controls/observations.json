@@ -19,6 +19,18 @@
   },
   {
     "name": "desktop",
+    "view": "collection-picker",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
+    "view": "create-collection",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "desktop",
     "view": "add-collections",
     "overflow": false,
     "greens": []
@@ -96,6 +108,18 @@
   {
     "name": "mobile",
     "view": "sort-menu",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "collection-picker",
+    "overflow": false,
+    "greens": []
+  },
+  {
+    "name": "mobile",
+    "view": "create-collection",
     "overflow": false,
     "greens": []
   },

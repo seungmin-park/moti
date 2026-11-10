@@ -1,0 +1,51 @@
+[WebServer] (node:36990) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:37027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:37029) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-chromium] › tests/e2e/collection-picker.spec.ts:38:1 › 검색 Enter와 IME는 링크를 제출하지 않고 Escape는 드롭다운부터 닫는다 (5.6s)
+
+
+  1) [desktop-chromium] › tests/e2e/collection-picker.spec.ts:38:1 › 검색 Enter와 IME는 링크를 제출하지 않고 Escape는 드롭다운부터 닫는다
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator: getByRole('button', { name: /^담을 컬렉션:/ })
+    Expected: focused
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeFocused" getByRole('button', { name: /^담을 컬렉션:/ }) with timeout 5000ms
+      - waiting for getByRole('button', { name: /^담을 컬렉션:/ })
+
+
+      76 |   await page.keyboard.press("Escape");
+      77 |   await expect(search).toHaveCount(0);
+    > 78 |   await expect(trigger).toBeFocused();
+         |                         ^
+      79 |   await expect(page.getByRole("dialog")).toBeVisible();
+      80 |   await page.keyboard.press("Escape");
+      81 |   await expect(page.getByRole("dialog")).toHaveCount(0);
+        at <workspace>/tests/e2e/collection-picker.spec.ts:78:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collection-picker-검색-Enter-1285c--제출하지-않고-Escape는-드롭다운부터-닫는다-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collection-picker-검색-Enter-1285c--제출하지-않고-Escape는-드롭다운부터-닫는다-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/collection-picker-검색-Enter-1285c--제출하지-않고-Escape는-드롭다운부터-닫는다-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/collection-picker-검색-Enter-1285c--제출하지-않고-Escape는-드롭다운부터-닫는다-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop-chromium] › tests/e2e/collection-picker.spec.ts:38:1 › 검색 Enter와 IME는 링크를 제출하지 않고 Escape는 드롭다운부터 닫는다

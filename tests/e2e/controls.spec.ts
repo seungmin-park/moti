@@ -109,6 +109,7 @@ test("링크 추가에서 여러 컬렉션을 고르고 입력 오류 뒤에도 
   await test.step("Given 링크 추가 창의 컬렉션 목록", async () => {
     await page.goto("/");
     await page.getByRole("button", { name: "링크 추가", exact: true }).click();
+    await page.getByRole("button", { name: /^담을 컬렉션:/ }).click();
     await expect(page.getByRole("dialog").getByRole("checkbox")).toHaveCount(3);
   });
   await test.step("When 컬렉션 두 개를 고르고 잘못된 링크를 제출한다", async () => {
@@ -118,6 +119,7 @@ test("링크 추가에서 여러 컬렉션을 고르고 입력 오류 뒤에도 
     await dialog.getByLabel("상품 링크").fill("잘못된 링크");
     await dialog.getByRole("button", { name: "위시에 담기", exact: true }).click();
     await expect(dialog.getByRole("alert")).toBeVisible();
+    await page.getByRole("button", { name: /^담을 컬렉션:/ }).click();
     await expect(dialog.getByRole("checkbox", { name: "나를 위한 선물" })).toBeChecked();
     await expect(dialog.getByRole("checkbox", { name: "가벼운 주말" })).toBeChecked();
   });
@@ -148,6 +150,7 @@ test("현재 컬렉션을 기본 선택하되 모두 해제해서 담을 수도 
       .click();
     await page.getByRole("button", { name: "집을 더 좋아하게 컬렉션 열기" }).click();
     await page.getByRole("button", { name: "링크 추가", exact: true }).click();
+    await page.getByRole("button", { name: /^담을 컬렉션:/ }).click();
     await expect(page.getByRole("checkbox", { name: "집을 더 좋아하게" })).toBeChecked();
   });
   await test.step("When 기본 선택을 해제하고 링크를 담는다", async () => {
@@ -196,6 +199,7 @@ test("UI 팔레트와 입력 포커스는 중립 색상이며 키보드 위치�
     await input.click();
     await expect(input).toHaveCSS("outline-style", "none");
     await expectNeutral(input, ["background-color", "border-bottom-color"]);
+    await page.getByRole("button", { name: /^담을 컬렉션:/ }).click();
     const checkbox = page.getByRole("checkbox", { name: "나를 위한 선물" });
     await checkbox.check();
     await expectNeutral(checkbox, ["accent-color"]);
