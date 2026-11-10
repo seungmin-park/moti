@@ -1,0 +1,57 @@
+{
+  "recordedAt": "2026-11-11",
+  "scope": "Pure link/domain tests and the database test scaffold before SQL implementation",
+  "nodeVersion": "v24.21.0",
+  "runs": [
+    {
+      "phase": "red",
+      "command": "npm test -- src/features/wishlist/link.test.ts",
+      "exitCode": 1,
+      "tests": 11,
+      "passed": 4,
+      "failed": 7,
+      "observedFailure": "Existing reducer saved options longer than 120 code points, URL controls, NUL options, and malformed Unicode. Assertions expected no product and invalid feedback."
+    },
+    {
+      "phase": "red",
+      "command": "npm test -- src/features/library/domain.test.ts",
+      "exitCode": 1,
+      "tests": 23,
+      "passed": 0,
+      "failed": 23,
+      "observedFailure": "Declared parser functions threw explicit not-implemented errors. Required command values and LibraryError validation codes were absent. Imports and the runner succeeded."
+    },
+    {
+      "phase": "green",
+      "command": "npm test -- src/features/library/domain.test.ts src/features/wishlist/link.test.ts src/features/wishlist/model.test.ts src/features/wishlist/app-state.test.ts",
+      "exitCode": 0,
+      "files": 4,
+      "tests": 63,
+      "passed": 63,
+      "failed": 0
+    },
+    { "phase": "validation", "command": "npm run lint", "exitCode": 0 },
+    { "phase": "validation", "command": "npm run typecheck", "exitCode": 0 },
+    {
+      "phase": "validation",
+      "command": "npm test",
+      "exitCode": 0,
+      "files": 9,
+      "tests": 81,
+      "passed": 81,
+      "failed": 0
+    },
+    {
+      "phase": "declaration-list",
+      "command": "npm exec -- vitest list --config vitest.database.config.ts --json",
+      "exitCode": 0,
+      "testBodiesExecuted": false
+    }
+  ],
+  "database": {
+    "command": "npm run test:database",
+    "executedByThisAgent": false,
+    "plannedCases": { "persistence": 33, "service": 10 },
+    "status": "Awaiting CI execution against a fresh Supabase stack. The three SQL RPC bodies deliberately return SQLSTATE 0A000. No local DB Red or Green is claimed."
+  }
+}

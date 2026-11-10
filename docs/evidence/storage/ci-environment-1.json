@@ -1,0 +1,9 @@
+{
+  "head": "31633341ad1a5b327ed60f50e77a10426ab28bc6",
+  "run": "https://github.com/seungmin-park/moti/actions/runs/42889389372",
+  "job": "database",
+  "jobId": 130086160205,
+  "classification": "environment configuration failure, not TDD Red",
+  "observed": "Supabase CLI 3.1.0 rejected [inbucket] before starting the database and required [local_smtp]. No database tests executed.",
+  "correction": "Use the local_smtp section from the pinned CLI's generated configuration. Keep all database assertions unchanged."
+}

@@ -19,8 +19,10 @@
 - 최신 PR head는 `4d3928e005db84cfd4676a2b8f6e312f28c95525`, base는 `617c773c4c3364736fbc57df27d361842b780440`이다.
 - 최신 통합 후보는 `69cc1c5c90fb5f3463cc29a55d64f7ffb93591d1`, tree는 `577e6fe1b04f1bbd88bfe685eab432545aef90e6`이다.
 - CI run `42883787163`에서 단위 33개·브라우저 40개가 통과했다. PR #3은 `2026-11-10T19:20:34Z`에 `b9b0ed063698b7b55ae26943f507bac9bb8d9103`으로 실제 병합됐다. 병합 tree가 검증한 통합 후보와 일치하며 전달 체크아웃 main은 깨끗하다.
-- 저장소 보호 규칙·필수 리뷰가 없고 자동 병합도 꺼져 있다. 현재 head의 CI와 리뷰를 확인한 뒤 `--match-head-commit`을 지정해 squash 병합한다. 정책을 약화하거나 다른 사람의 승인을 대신하지 않는다.
+- PR #3 당시에는 보호 규칙과 자동 병합 설정이 없었다. 사용자의 명시 요청으로 2026-11-11에 `main` 보호와 GitHub 자동 병합을 적용하고 API로 다시 읽어 확인했다. GitHub Actions app 15368의 `pstack`, `mockup`, `database`가 필수이며 strict base 갱신, 관리자 적용, 대화 해결, 선형 이력을 요구한다. 강제 push·branch 삭제는 금지한다. PR 경로는 필수이고 별도의 사람 승인 인원은 지정하지 않았다. 구현·독립 검토를 마친 각 기능 PR에서 squash 자동 병합을 예약하고 실제 병합을 확인한다.
 - GitHub 연결 도구의 PR 생성은 통합 권한 오류여서 로그인된 `gh`를 사용한다.
+
+첫 저장 기능은 Draft PR https://github.com/seungmin-park/moti/pull/4 에 게시했다. 초기 head `31633341ad1a5b327ed60f50e77a10426ab28bc6`은 실제 DB Red를 확인하기 위한 RPC 미구현 상태다. 이 상태를 병합하지 않는다. 로컬 단위 82개와 headed 브라우저 40개, lint·typecheck·build는 통과했다. CI 실행기 실패와 기능 요구의 Red는 구분한다.
 
 ## 확인된 UI 검증
 

@@ -5,3 +5,5 @@ ts	phase	decision	why	evidence	result
 2026-11-10T19:33:47Z	design	Supabase SDK와 원자적 RPC 명령을 선택했다	운영과 테스트의 HTTP 저장 경계를 맞추고 별도 DB 연결 풀·자격증명 관리를 줄인다	docs/backend-implementation.md	선택 완료; RPC·RLS 검증 대기
 2026-11-10T19:33:47Z	harness	네이티브 Supabase 기동과 Auth HTTP 200을 확인했으나 직접 DB 연결은 로컬 권한 제한에 막혔다	권한 확대도 거절돼 해당 제한을 우회하지 않고 실제 DB 검증을 CI에 연결한다	docs/implementation-checkpoint.md	INCONCLUSIVE: local DB; CI verification pending
 2026-11-10T19:49:35Z	harness	독립 검토가 발견한 registry 파일 오판·중단 정리 누락·start/stop 경합·skip 성공 판정을 수정했다	환경 오류와 실행하지 않은 테스트를 저장 기능 통과로 세지 않기 위해 재현 후 수정했다	docs/evidence/storage/harness	VERIFIED: 독립 단위 15개 통과; 실제 DB는 CI 대기
+2026-11-10T19:52:22Z	delivery	사용자 요청대로 main 필수 검사와 관리자 보호를 설정하고 GitHub 자동 병합을 활성화했다	기능 PR의 조건을 저장소가 강제하고 검증 뒤 플랫폼이 병합하도록 한다	https://github.com/seungmin-park/moti/pull/4	VERIFIED: pstack/mockup/database strict checks, enforce admins, auto merge enabled
+2026-11-10T19:53:28Z	ci	최초 DB CI의 구식 inbucket 설정을 고정 CLI의 local_smtp로 수정했다	DB가 시작되지 않은 환경 오류였으며 기능 Red가 아니므로 검증 조건은 그대로 유지한다	docs/evidence/storage/ci-environment-1.json	환경 수정 후 새 CI 대기
