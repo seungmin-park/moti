@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { prepareSaveLink } from "../../src/features/library/domain";
-import { createSupabaseLibraryStore } from "../../src/features/library/server/supabase-store";
+import { toLinkSaveCommand } from "../../src/features/library/application/commands";
+import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
@@ -10,7 +10,7 @@ afterEach(async () => {
   try { await fixture.cleanup(); } finally { await fixture.close(); }
 });
 
-const prepared = () => prepareSaveLink({ url: "https://example.com/item", option: "", collectionIds: [] });
+const prepared = () => toLinkSaveCommand({ url: "https://example.com/item", option: "", collectionIds: [] });
 
 describe("실제 DB 소유자 경계", () => {
   it.each(["anonymous", "stranger", "missing_config", "missing_google", "wrong_subject"])(
@@ -33,7 +33,7 @@ describe("실제 DB 소유자 경계", () => {
       expect(raw.error?.code).toBe(scenario === "anonymous" ? "42501" : "M0001");
       await expect(store.snapshot()).rejects.toMatchObject({ code: "unauthorized" });
       await expect(store.saveLink(prepared())).rejects.toMatchObject({ code: "unauthorized" });
-      await expect(store.createCollection("거절할 컬렉션")).rejects.toMatchObject({ code: "unauthorized" });
+      await expect(store.createCollection({ name: "거절할 컬렉션" })).rejects.toMatchObject({ code: "unauthorized" });
       const result = await fixture.admin.query(
         `select
           (select count(*)::int from moti.products where owner_id = any($1::uuid[])) as products,

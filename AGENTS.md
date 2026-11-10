@@ -26,7 +26,8 @@ UI 팔레트는 흰색·중립 회색·차콜을 사용한다. 사용자가 초�
 ## API 연결 시 테스트 원칙
 
 기존 Next.js API·Supabase 계획을 유지한다. API 계약 테스트와 문서의 일치를 CI에서 검증하고 실제 HTTP 요청으로 통합 동작을 확인한다. 요청 처리 경계의 Mock 테스트는 Given–When–Then으로 입력, 검증 실패, 인증과 오류 응답을 표현한다. Spring 도구를 요청한 사용자의 목적을 현재 스택에 적용한다.
-계층별 상세 규칙은 `docs/testing.md`를 따른다. Domain은 순수 단위 테스트, Persistence는 전체 앱 없이 실제 DB를 쓰는 슬라이스 테스트, Service는 테스트용 트랜잭션 자동 롤백 없이 실제 저장을 검증하고 `afterEach`로 데이터를 정리한다.
+계층별 상세 규칙은 `docs/testing.md`를 따른다.
+코드 계층과 데이터 객체 이름 규칙(`Request/Response`·`Command/Result`·도메인 명사·`Row`)은 `docs/architecture.md`의 "계층과 데이터 객체"를 따른다. import 방향은 ESLint가 검사한다. Domain은 순수 단위 테스트, Persistence는 전체 앱 없이 실제 DB를 쓰는 슬라이스 테스트, Service는 테스트용 트랜잭션 자동 롤백 없이 실제 저장을 검증하고 `afterEach`로 데이터를 정리한다.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

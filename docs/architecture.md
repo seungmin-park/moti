@@ -34,3 +34,18 @@ A를 선택했다. B에서 가격 미상은 정렬의 끝에 두는 규칙과 �
 design-taste-frontend의 Editorial greeting, seed 1304296013을 사용했다. 개인 보관함에 맞는 밝은 배경과 넓은 이미지 영역을 선택했다. 한글 본문은 로컬 Pretendard를 사용한다. 제목은 28px로 제한한다. 카드 그림자는 쓰지 않고, 모바일에서는 두 열과 하단 탐색으로 바뀐다. 브랜드는 작은 moti 워드마크와 북마크 모양을 사용한다.
 
 화면이 먼저 답하는 질문은 내가 담아둔 물건이 무엇인지다. 큰 상품 이미지가 이 질문에 답한다. 다음 행동은 링크 추가다. 예시 가격과 시각은 데이터에서 읽고, 목록 개수는 현재 데이터에서 계산한다.
+
+## 계층과 데이터 객체
+
+실제 저장 기능은 기능 폴더 안을 계층별로 나눈다. 각 계층은 자기 데이터 객체만 소유하고, 경계에서 `to<대상 타입>` 함수로 변환한다. ESLint가 import 방향을 강제한다.
+
+| 계층 | 폴더 | 데이터 객체 | 책임 | import 금지 |
+| --- | --- | --- | --- | --- |
+| Presentation | `presentation/` | `<대상><동작>Request`, `<대상><동작>Response`, 하위 `<대상>Response`, `ErrorResponse` | HTTP 본문의 형태 검증, 상태 코드, 공개 API 계약 | `infrastructure/`, Supabase SDK, `pg` |
+| Application | `application/` | `<대상><동작>Command`, `<대상><동작>Result` | 업무 입력 정규화와 유스케이스 실행, 저장소 포트 정의 | `infrastructure/`, `presentation/`, Next, React, Supabase SDK |
+| Domain | `domain/` | 접미사 없는 명사 (`Product`, `Collection`, `Library`) | 업무 개념과 규칙. 외부 표현과 무관하다. | 다른 모든 계층, 프레임워크, zod |
+| Infrastructure | `infrastructure/` | `<대상>Row` | DB·외부 서비스 응답 형태의 검증과 도메인 변환 | `presentation/`, Next, React |
+
+한 요청은 `LinkSaveRequest → LinkSaveCommand → Product ↔ ProductRow → LinkSaveResult → LinkSaveResponse` 순서로 이름이 바뀐다. 어간(`LinkSave`)을 계층 사이에서 유지해 한 유스케이스의 객체를 이름으로 찾는다. Presentation은 사용자가 정한 `<대상><동작>Request/Response` 형식을 따른다. Infrastructure는 Supabase RPC가 돌려주는 JSON 행이라 `Row`를 쓴다. `Entity`는 도메인 엔티티와 혼동되므로 쓰지 않는다.
+
+계층과 무관한 순수 규칙(`src/features/wishlist/link.ts`)은 기존 목업과 실제 기능이 함께 쓴다. 의존 객체를 조립하는 위치는 `src/app`의 Route Handler다. 같은 이름의 응답 객체가 도메인 객체와 모양이 같아도 직접 반환하지 않고 변환 함수를 거친다. 도메인 변경이 공개 API로 새지 않게 하기 위해서다.

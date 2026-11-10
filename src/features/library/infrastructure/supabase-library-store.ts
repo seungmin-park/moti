@@ -1,29 +1,29 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import type { LibraryStore } from "../application/library-store";
 import {
   LibraryError,
+  type Collection,
   type CollectionId,
-  type LibraryCollection,
   type LibraryErrorCode,
-  type LibraryProduct,
   type MetadataState,
+  type Product,
   type ProductId,
-} from "../domain";
-import type { LibraryStore } from "./library-store";
+} from "../domain/library";
 
 const timestamp = z.iso.datetime({ offset: true }).transform((value) => new Date(value).toISOString());
 const count = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 const revision = count.min(1);
 const money = count.nullable();
 const currency = z.string().regex(/^[A-Z]{3}$/).nullable();
-const collectionRow = z.object({
+const collectionRowSchema = z.object({
   id: z.uuid(),
   name: z.string().min(1),
   revision,
   created_at: timestamp,
   updated_at: timestamp,
 });
-const productRow = z.object({
+const productRowSchema = z.object({
   id: z.uuid(),
   source_url: z.string(),
   identity_url: z.string(),
@@ -64,7 +64,10 @@ const productRow = z.object({
   return purchaseConsistent && priceConsistent && metadataConsistent;
 });
 
-function toCollection(row: z.infer<typeof collectionRow>): LibraryCollection {
+type CollectionRow = z.infer<typeof collectionRowSchema>;
+type ProductRow = z.infer<typeof productRowSchema>;
+
+function toCollection(row: CollectionRow): Collection {
   return {
     id: row.id as CollectionId,
     name: row.name,
@@ -74,7 +77,7 @@ function toCollection(row: z.infer<typeof collectionRow>): LibraryCollection {
   };
 }
 
-function toProduct(row: z.infer<typeof productRow>): LibraryProduct {
+function toProduct(row: ProductRow): Product {
   const generation = { generation: row.metadata_generation, attempts: row.metadata_attempts };
   const metadata: MetadataState =
     row.metadata_phase === "ready"
@@ -146,8 +149,8 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
   return {
     async snapshot() {
       const response = readResponse(z.object({
-        products: z.array(productRow),
-        collections: z.array(collectionRow),
+        products: z.array(productRowSchema),
+        collections: z.array(collectionRowSchema),
       }), await rpc("moti_snapshot"));
       return {
         products: response.products.map(toProduct),
@@ -157,7 +160,7 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
     async saveLink(command) {
       const response = readResponse(z.object({
         kind: z.enum(["added", "duplicate"]),
-        product: productRow,
+        product: productRowSchema,
       }), await rpc("moti_save_link", {
         p_source_url: command.sourceUrl,
         p_identity_url: command.identityUrl,
@@ -167,9 +170,9 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
       }));
       return { kind: response.kind, product: toProduct(response.product) };
     },
-    async createCollection(name) {
-      return toCollection(readResponse(collectionRow, await rpc("moti_create_collection", {
-        p_name: name,
+    async createCollection(command) {
+      return toCollection(readResponse(collectionRowSchema, await rpc("moti_create_collection", {
+        p_name: command.name,
       })));
     },
   };

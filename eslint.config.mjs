@@ -6,10 +6,37 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    files: ["src/features/wishlist/model.ts", "src/features/wishlist/link.ts", "src/features/library/domain.ts"],
+    files: ["src/features/wishlist/model.ts", "src/features/wishlist/link.ts", "src/features/*/domain/**/*.ts"],
+    ignores: ["**/*.test.ts"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: ["react", "react/*", "next", "next/*", "node:*", "@supabase/*", "pg"] }],
+      "no-restricted-imports": ["error", { patterns: [
+        "react", "react/*", "next", "next/*", "node:*", "@supabase/*", "pg", "zod",
+        "**/application/**", "**/infrastructure/**", "**/presentation/**",
+      ] }],
       "no-restricted-globals": ["error", "fetch", "window", "document", "localStorage", "sessionStorage"],
+    },
+  },
+  {
+    files: ["src/features/*/application/**/*.ts"],
+    ignores: ["**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [
+        "react", "react/*", "next", "next/*", "node:*", "@supabase/*", "pg",
+        "**/infrastructure/**", "**/presentation/**",
+      ] }],
+    },
+  },
+  {
+    files: ["src/features/*/infrastructure/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: ["react", "react/*", "next", "next/*", "**/presentation/**"] }],
+    },
+  },
+  {
+    files: ["src/features/*/presentation/**/*.ts"],
+    ignores: ["**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: ["@supabase/*", "pg", "**/infrastructure/**"] }],
     },
   },
   {
