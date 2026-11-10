@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 
-export function assertDatabaseReport(report) {
+function assertLayers(report, layers) {
   assert.equal(report.success, true, "DB 테스트 결과가 실패했습니다.");
   assert.ok(Array.isArray(report.testResults), "DB 테스트 결과 파일이 없습니다.");
-  const counts = { persistence: 0, service: 0 };
+  const counts = Object.fromEntries(layers.map((layer) => [layer, 0]));
   for (const file of report.testResults) {
     assert.ok(Array.isArray(file.assertionResults), "실행한 테스트 결과가 없습니다.");
     for (const assertion of file.assertionResults) {
@@ -15,9 +15,17 @@ export function assertDatabaseReport(report) {
       }
     }
   }
-  assert.ok(counts.persistence > 0 && counts.service > 0, "Persistence와 Service 테스트가 모두 실행되어야 합니다.");
-  const total = counts.persistence + counts.service;
+  assert.ok(layers.every((layer) => counts[layer] > 0), `${layers.join(", ")} 테스트가 모두 실행되어야 합니다.`);
+  const total = layers.reduce((sum, layer) => sum + counts[layer], 0);
   assert.equal(report.numTotalTests, total, "DB 테스트 실행 개수가 일치하지 않습니다.");
   assert.equal(report.numPassedTests, total, "DB 테스트 통과 개수가 일치하지 않습니다.");
   return counts;
+}
+
+export function assertDatabaseReport(report) {
+  return assertLayers(report, ["persistence", "service"]);
+}
+
+export function assertHttpReport(report) {
+  return assertLayers(report, ["http"]).http;
 }

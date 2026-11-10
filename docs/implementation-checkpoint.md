@@ -24,6 +24,8 @@
 
 첫 저장 기능은 PR https://github.com/seungmin-park/moti/pull/4 다. 초기 CI 실패 두 번은 SMTP 설정과 fixture의 identity 시각 누락이라는 환경 오류였다. fixture 수정 뒤 CI에서 RPC 미구현으로 36개 실패·7개 통과하는 실제 Red를 확인했다. 이어서 세 RPC·RLS 정책·소유자 확인을 구현했고 로컬 실제 DB에서 43개가 통과했다.
 
+2026-11-11 기준 1단계(PR #4)와 계층 리팩터링(PR #5)이 병합됐다. 2a단계는 Google 단일 계정 인증과 HTTP API이며 브랜치 `feat/google-owner-auth`에서 진행한다. 로컬 전체 검증에서 단위 143개, 실제 DB 43개, 실제 HTTP 9개, 브라우저 40개가 통과했다. 다음은 2b 화면 연결(`/login`, 보관함 화면의 실제 API 사용, 목업의 `/demo` 보존)이다. 실제 Google OAuth와 운영 Supabase 설정은 아직 검증하지 않았다.
+
 ## 확인된 UI 검증
 
 lint·typecheck·build 통과. 순수 단위 33개와 최종 headed Playwright 40개가 통과했다. PC Chromium과 iPhone 크기 WebKit에서 실행했다. 실제 iPhone·물리 IME는 미검증이다. 두 화면 크기의 28개 상태에서 초록 UI 스타일·가로 넘침·페이지 오류가 없고 정렬 메뉴·컬렉션 선택 창의 axe 위반은 0개다. 상세 증거는 `docs/changes/controls.md`와 `docs/evidence/controls`에 있다.

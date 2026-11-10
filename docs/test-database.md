@@ -16,6 +16,8 @@ npm run test:database
 
 Auth fixture는 로컬 Auth의 관리자 API로 테스트 사용자를 만들고, 테스트 DB에 Google identity를 넣은 뒤 실제 로컬 JWT로 PostgREST를 호출한다. 운영 코드에는 테스트 인증 우회가 없다. 이 검사는 JWT·DB 접근 제한의 통합 검증이며 실제 Google OAuth 로그인을 검증했다는 뜻은 아니다.
 
+실행은 두 단계다. 먼저 Next 없이 persistence와 service를 실행한다. 통과하면 미리 빌드한 앱(`npm run build`)을 `127.0.0.1:56380`에서 시작하고 `tests/http`로 실제 HTTP 요청을 보낸다. 앱은 같은 임시 Supabase에 연결하며 소유자 subject는 `moti-http-owner`로 고정한다. 빌드 결과가 없거나 포트가 사용 중이면 실패한다. 앱은 실행기가 직접 종료한다. 세션 쿠키는 `@supabase/ssr`로 실제 로그인해 만든다. Google 리다이렉트만 거치지 않는다.
+
 Vitest는 persistence와 service 파일을 한 번에 하나씩 실행한다. 소유자 설정이 하나인 앱의 성격에 맞춘 격리다. JSON 결과에서 두 계층의 실제 통과 개수를 확인하고 테스트 0개·skip·todo·실패를 거절한다. DB 시작·마이그레이션·정리가 실패해도 검증은 실패한다. Ctrl-C나 종료 신호에는 시작 프로세스가 실제로 닫힌 뒤 소유한 스택을 정리한다. CI의 `database` 작업이 같은 명령을 실행한다.
 
 macOS의 임시 폴더는 `/var`와 `/private/var` 두 경로로 보인다. CLI는 실제 경로를 기록하므로 실행기도 `realpath`로 만든 경로를 사용한다. 이전에 로컬 DB를 쓸 수 없다고 기록한 원인은 이 경로 불일치였다. 2026-11-11 Apple Silicon macOS에서 `npm run test:database`가 persistence 33개·service 10개를 실제로 통과했다.

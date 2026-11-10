@@ -20,7 +20,8 @@
 | 순서 | 결과 | 검증과 경계 |
 | --- | --- | --- |
 | 1 | 영구 저장 모델·마이그레이션·저장소·서비스 | 실제 PostgreSQL 슬라이스, 고유 제약·원자성·권한·수정 충돌, 서비스 `afterEach` 삭제. 전체 웹 앱 없이 실행한다. |
-| 2 | Google 단일 계정 인증·HTTP API·실제 화면 연결 | 허용·거절·설정 누락, BDD handler Mock, 실제 HTTP 요청, 실행 계약과 API 문서 일치, 재접속 후 데이터 유지. 기존 UI는 `/demo`에서도 검토할 수 있게 보존한다. |
+| 2a | Google 단일 계정 인증·HTTP API | 아래 "인증과 HTTP 경계". 화면 연결은 2b로 분리한다. |
+| 2b | 실제 화면 연결 | 허용·거절·설정 누락, BDD handler Mock, 실제 HTTP 요청, 실행 계약과 API 문서 일치, 재접속 후 데이터 유지. 기존 UI는 `/demo`에서도 검토할 수 있게 보존한다. |
 | 3 | 링크 우선 저장·안전한 비동기 정보 수집·비공개 이미지 | 저장 직후 응답, 지속되는 작업·재시도·실패, SSRF와 리다이렉트/DNS 검증, 크기·시간 제한, 지원 페이지 실제 검증. |
 | 4 | 추가 전용 공유 키·내보내기·복원 | 키 해시·권한 제한·폐기, 로그인 권한과 분리, 잘못된 복원 입력의 원자적 거절과 왕복 보존. |
 | 5 | 일일 가격 확인·인증된 예약 작업 | 동일 옵션·통화·조건 비교, 실패값 유지, 구매완료 중단, DB lease·중복 실행·재시도 제한·실패 기록. 한국 시간 3회 예약 호출 설정. |
@@ -49,3 +50,18 @@
 - Independent workstreams. 구현 담당자는 공유 순수 규칙·저장 소스·마이그레이션·해당 테스트를 소유한다. 조정자는 의존성·CLI 설정·테스트 실행기·CI·문서·Git 전달을 소유한다.
 - Shared mutable state. 테스트 스택은 하나를 순차 사용한다. 테스트는 자신의 fixture만 `afterEach`로 삭제한다. 운영 주소를 받으면 실행기가 거절한다.
 - Smallest safe decomposition. 저장 명령과 제약조건은 하나의 담당자가 구현한다. 부모와 독립 검토자가 실제 결과·권한·동시성을 확인한다. 이 단위를 검증·병합한 뒤 인증·화면 연결로 넘어간다.
+
+## 인증과 HTTP 경계
+
+허용 판정은 `auth/domain/access.ts`의 `decideAccess` 하나가 결정한다. 소유자 subject가 비었으면 누구도 허용하지 않는다(`unconfigured`). 세션이 없으면 `signed_out`, Google identity 중 소유자 subject가 없으면 `forbidden`이다. 앱은 `MOTI_OWNER_GOOGLE_SUBJECT`로 판정하고, DB는 `moti.owner_config`로 데이터 접근을 다시 막는다. 두 값이 어긋나면 DB가 거절하고 API는 403과 세션 종료로 응답한다. 앱 설정만으로 데이터가 열리지 않게 하려는 이중 경계다.
+
+Route Handler는 `src/app`에서 의존 객체를 조립한다. 쓰기 요청은 `Origin`의 host가 `x-forwarded-host` 또는 `Host`와 같아야 한다. Next가 Route Handler에 넘기는 `request.url`은 내부 주소(`localhost`)일 수 있어 쓰지 않는다. 이 차이는 실제 HTTP 테스트에서 발견했다. 본문은 `application/json`, 16KiB 이하만 받는다. 모든 응답은 `no-store`다.
+
+허용하지 않은 계정은 세션을 종료한다. Supabase는 로그인 시 refresh 세션을 폐기하므로 같은 쿠키의 다음 요청은 401이다. 이 동작은 실제 HTTP 테스트가 확인한다.
+
+운영 설정과 남은 위험:
+
+- Supabase Auth에서 Google provider를 켜고 이메일·비밀번호 로그인은 끈다. Redirect URL에 `<배포 주소>/auth/callback`을 등록한다.
+- 처음 로그인한 소유자의 Google subject를 `MOTI_OWNER_GOOGLE_SUBJECT`와 `moti.owner_config`에 넣는다. 운영자가 직접 설정한다.
+- 현재는 다른 Google 계정도 Supabase에 사용자 행이 생긴다. 데이터 접근과 세션은 막지만 행 생성 자체를 막으려면 Auth의 사용자 생성 전 hook이 필요하다. 별도 작업으로 남긴다.
+- `/login` 화면은 2b에서 만든다. 그 전에는 로그인 경로가 `/login`으로 이동해도 화면이 없다. 배포 전이므로 사용자 영향은 없다.
