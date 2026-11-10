@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { prepareSaveLink } from "../../src/features/library/domain";
-import { createSupabaseLibraryStore } from "../../src/features/library/server/supabase-store";
+import { toLinkSaveCommand } from "../../src/features/library/application/commands";
+import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
@@ -12,7 +12,7 @@ afterEach(async () => {
 });
 
 const command = (url = "https://example.com/item?size=M", option = "", collectionIds: string[] = []) =>
-  prepareSaveLink({ url, option, collectionIds });
+  toLinkSaveCommand({ url, option, collectionIds });
 const store = () => createSupabaseLibraryStore(fixture.owner.client);
 
 async function storedCounts() {
@@ -32,8 +32,8 @@ describe("실제 Supabase 저장소", () => {
   });
 
   it("링크, 선택 컬렉션과 초기 수집 작업을 함께 커밋하고 다시 읽는다", async () => {
-    const first = await store().createCollection("책상");
-    const second = await store().createCollection("생일 선물");
+    const first = await store().createCollection({ name: "책상" });
+    const second = await store().createCollection({ name: "생일 선물" });
     const result = await store().saveLink(command(
       "https://example.com/item?size=M&utm_source=one#blue", "블랙", [first.id, second.id],
     ));
@@ -62,8 +62,8 @@ describe("실제 Supabase 저장소", () => {
   });
 
   it("중복은 기존 원문, 메모, 컬렉션과 revision을 바꾸지 않는다", async () => {
-    const first = await store().createCollection("원래 묶음");
-    const second = await store().createCollection("새 묶음");
+    const first = await store().createCollection({ name: "원래 묶음" });
+    const second = await store().createCollection({ name: "새 묶음" });
     const saved = await store().saveLink(command("https://example.com/item?size=M&utm_source=one", "가", [first.id]));
     await fixture.admin.query("update moti.products set note = $1 where id = $2", ["기억할 메모", saved.product.id]);
     const before = (await store().snapshot()).products[0];
@@ -124,7 +124,7 @@ describe("실제 Supabase 저장소", () => {
   });
 
   it("없는 컬렉션을 섞으면 상품과 작업을 일부만 남기지 않는다", async () => {
-    const collection = await store().createCollection("유효한 컬렉션");
+    const collection = await store().createCollection({ name: "유효한 컬렉션" });
     await expect(store().saveLink(command("https://example.com/item", "", [collection.id, randomUUID()])))
       .rejects.toMatchObject({ code: "collection_missing" });
     expect(await storedCounts()).toEqual({ products: 0, memberships: 0, jobs: 0 });
@@ -149,7 +149,7 @@ describe("실제 Supabase 저장소", () => {
   });
 
   it("초기 작업 삽입이 실패하면 앞서 저장한 상품과 소속도 롤백한다", async () => {
-    const collection = await store().createCollection("책상");
+    const collection = await store().createCollection({ name: "책상" });
     await fixture.admin.query(`
       create function moti_test.reject_initial_job() returns trigger language plpgsql as $$
       begin raise exception using errcode = 'M0099', message = 'injected initial job failure'; end $$;
@@ -193,7 +193,7 @@ describe("실제 Supabase 저장소", () => {
   });
 
   it("컬렉션 이름의 대소문자 중복도 동시 생성에서 하나만 커밋한다", async () => {
-    const results = await Promise.allSettled([store().createCollection("Desk"), store().createCollection("desk")]);
+    const results = await Promise.allSettled([store().createCollection({ name: "Desk" }), store().createCollection({ name: "desk" })]);
     expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
     const rejected = results.find((result) => result.status === "rejected");
     expect(rejected).toMatchObject({ status: "rejected", reason: { code: "collection_duplicate" } });

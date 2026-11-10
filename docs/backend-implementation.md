@@ -37,7 +37,7 @@
 
 직접 SQL 방식은 TypeScript에 트랜잭션을 집중할 수 있지만 Vercel의 연결 풀과 별도 런타임 DB 자격증명을 관리해야 한다. Supabase SDK·RPC 방식은 운영과 테스트가 같은 HTTP 저장 경계를 사용하며 원자적인 명령만 SQL 함수에 둔다. 후자를 선택한다. Docker 사용 여부는 선택 근거가 아니다. native runtime의 RPC·RLS 검증은 완료 조건으로 남아 있다.
 
-`src/features/wishlist/link.ts`는 순수 링크·옵션 정규화를 소유하고 기존 목업과 실제 서비스가 함께 사용한다. `src/features/library/domain.ts`는 영구 상품·컬렉션·수집 상태 타입을 소유한다. 실패 상태와 마지막 성공 가격은 서로 독립적이다. `server/supabase-store.ts`는 SDK/RPC와 도메인 사이의 유일한 저장 어댑터다. `server/library-service.ts`는 유효한 명령을 만들고 저장 결과를 반환한다. 화면과 Route Handler에는 테이블 행을 노출하지 않는다.
+`src/features/wishlist/link.ts`는 순수 링크·옵션 정규화를 소유하고 기존 목업과 실제 서비스가 함께 사용한다. `src/features/library/domain/library.ts`는 영구 상품·컬렉션·수집 상태 타입을 소유한다. 실패 상태와 마지막 성공 가격은 서로 독립적이다. `application/commands.ts`가 입력을 검증해 `LinkSaveCommand`·`CollectionCreateCommand`를 만들고, `application/library-service.ts`가 명령을 저장소 포트에 전달한다. `infrastructure/supabase-library-store.ts`는 SDK/RPC와 도메인 사이의 유일한 저장 어댑터다. 화면과 Route Handler에는 DB 행을 노출하지 않는다. 계층과 이름 규칙은 [architecture.md](architecture.md#계층과-데이터-객체)를 따른다.
 
 첫 단위의 공개 연산은 `snapshot()`, `saveLink({ url, option, collectionIds })`, `createCollection(name)`이다. `saveLink`는 `{ kind: "added" | "duplicate", product }`를 반환한다. DB 함수는 상품·선택 컬렉션·수집 대기 작업을 함께 커밋한다. 같은 링크·옵션은 동시 요청에도 하나만 남으며 기존 메모·컬렉션을 변경하지 않는다. 긴 URL은 전체 문자열을 고유 인덱스로 삼지 않고 SHA-256 식별자를 사용하고 충돌 시 원문을 비교한다.
 

@@ -6,7 +6,7 @@
 
 `src/features/wishlist/link.ts`가 목업과 실제 서비스의 링크 규칙을 함께 소유한다. 원문은 양끝 공백만 제거해 보관한다. 중복 판별 URL은 `utm_*`, `gclid`, `fbclid`, `msclkid`를 제거하고 query 키를 정렬한다. 상품 옵션 query와 fragment는 남긴다. 옵션은 trim과 NFC 정규화를 적용한다. URL은 4096자, 옵션은 120자까지 허용하며 Unicode code point로 센다. 잘못된 Unicode, URL 내부 제어문자와 NUL 옵션을 거절한다. 기존 입력 화면의 `maxLength`는 UTF-16 기준이어서 일부 문자에서는 더 보수적으로 제한한다.
 
-`src/features/library/domain.ts`가 상품, 컬렉션, 구매 정보와 저장 명령을 정의한다. 수집 상태와 마지막 성공 가격을 별도 값으로 둔다. 금액은 통화와 최소 단위의 정수로 표현한다. `0`과 미입력 `null`을 구분한다. UUID와 revision을 포함하며 메타데이터 generation은 별도로 보존한다.
+`src/features/library/domain.ts`(현재 `domain/library.ts`와 `application/commands.ts`)가 상품, 컬렉션, 구매 정보와 저장 명령을 정의한다. 수집 상태와 마지막 성공 가격을 별도 값으로 둔다. 금액은 통화와 최소 단위의 정수로 표현한다. `0`과 미입력 `null`을 구분한다. UUID와 revision을 포함하며 메타데이터 generation은 별도로 보존한다.
 
 서비스는 `createLibraryService(store)`로 구성한다. 저장소는 `createSupabaseLibraryStore(client)`로 구성하며 Supabase의 실제 HTTP RPC를 호출한다. DB 행은 어댑터에서 검증하고 도메인 값으로 바꾼다. 화면이나 호출자에게 소유자 ID, 해시와 DB 열 이름을 반환하지 않는다.
 

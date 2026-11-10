@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createLibraryService } from "../../src/features/library/server/library-service";
-import { createSupabaseLibraryStore } from "../../src/features/library/server/supabase-store";
+import { toCollectionCreateCommand, toLinkSaveCommand } from "../../src/features/library/application/commands";
+import { createLibraryService } from "../../src/features/library/application/library-service";
+import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
@@ -11,7 +12,15 @@ afterEach(async () => {
   try { await fixture.cleanup(); } finally { await fixture.close(); }
 });
 
-const service = () => createLibraryService(createSupabaseLibraryStore(fixture.owner.client));
+const libraryService = () => createLibraryService(createSupabaseLibraryStore(fixture.owner.client));
+const service = () => {
+  const library = libraryService();
+  return {
+    snapshot: () => library.snapshot(),
+    saveLink: async (input: unknown) => library.saveLink(toLinkSaveCommand(input)),
+    createCollection: async (name: unknown) => library.createCollection(toCollectionCreateCommand(name)),
+  };
+};
 const link = { url: "https://example.com/item?size=M", option: "", collectionIds: [] as string[] };
 
 describe("실제 저장소를 사용하는 서비스", () => {
@@ -87,7 +96,7 @@ describe("실제 저장소를 사용하는 서비스", () => {
   it("허용하지 않은 사용자는 서비스에서도 데이터에 접근하지 못한다", async () => {
     const denied = createLibraryService(createSupabaseLibraryStore(fixture.stranger.client));
     await expect(denied.snapshot()).rejects.toMatchObject({ code: "unauthorized" });
-    await expect(denied.saveLink(link)).rejects.toMatchObject({ code: "unauthorized" });
-    await expect(denied.createCollection("내 컬렉션 아님")).rejects.toMatchObject({ code: "unauthorized" });
+    await expect(denied.saveLink(toLinkSaveCommand(link))).rejects.toMatchObject({ code: "unauthorized" });
+    await expect(denied.createCollection({ name: "내 컬렉션 아님" })).rejects.toMatchObject({ code: "unauthorized" });
   });
 });
