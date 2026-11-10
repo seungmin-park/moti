@@ -1,0 +1,30 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ × tests/unit/native-test-state.test.ts > native Supabase 상태 읽기 > CLI registry 파일과 구분해 생성한 스택 디렉터리를 읽는다 4ms
+   → promise rejected "Error: 테스트용 Supabase 스택이 하나여야 합니다." instead of resolving
+ ✓ tests/unit/native-test-state.test.ts > native Supabase 상태 읽기 > 다른 프로젝트나 스택의 상태는 사용하지 않는다 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/native-test-state.test.ts > native Supabase 상태 읽기 > CLI registry 파일과 구분해 생성한 스택 디렉터리를 읽는다
+AssertionError: promise rejected "Error: 테스트용 Supabase 스택이 하나여야 합니다." instead of resolving
+ ❯ tests/unit/native-test-state.test.ts:27:83
+     25| describe("native Supabase 상태 읽기", () => {
+     26|   it("CLI registry 파일과 구분해 생성한 스택 디렉터리를 읽는다", async () => {
+     27|     await expect(readNativeTestState(nativeHome(), "/test/project", "t…
+       |                                                                                   ^
+     28|       .resolves.toMatchObject({ identity: { stackName: "test-stack" } …
+     29|   });
+
+Caused by: Error: 테스트용 Supabase 스택이 하나여야 합니다.
+ ❯ readNativeTestState scripts/native-test-state.mjs:7:34
+ ❯ tests/unit/native-test-state.test.ts:27:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  04:47:18
+   Duration  96ms (transform 46%, tests 26%, import 21%, worker 6%)

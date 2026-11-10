@@ -13,7 +13,9 @@ For behavior changes, run a targeted failing test before implementation. `npm te
 
 Run `npm run build` before browser checks. `npm run test:e2e` starts a fresh production server on port 3101 and closes that owned server afterward. It refuses to reuse an existing process. A busy port is an environment failure; identify its owner before changing anything. PC Chromium and iPhone-sized WebKit assertions do not establish behavior on a physical iPhone.
 
-Run `npm run verify` for the final integrated change. Inspect the test count and actual assertions, not just the exit code. The suite must execute tests. CI runs the same checks on the PR's integration candidate.
+Run `npm run test:database` for persistence and service behavior. It starts an isolated native Supabase stack with the committed migrations and runs without Next. See [test-database.md](../../docs/test-database.md) for supported platforms, cleanup and the distinction between local Auth fixtures and real Google OAuth. Never substitute mock repositories for this check or count a startup/permission failure as Red.
+
+Run `npm run verify` for the final integrated change. Inspect the test count and actual assertions, not just the exit code. The suite must execute tests. CI runs the same checks on the PR's integration candidate. If a local runtime is unavailable, record the exact limitation and independently observe that suite in CI before claiming it passed.
 
 For visual review, start `npm run dev` on port 3100, or `npm exec -- next start --hostname 127.0.0.1 --port 3102` after a fresh build. Confirm that the server belongs to this source. Use a visible browser where available; disclose tool unavailability. Headed Playwright is available with `npm exec -- playwright test --headed --workers=1`.
 

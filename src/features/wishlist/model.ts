@@ -1,4 +1,5 @@
 import { demoCollections, demoProducts } from "./demo-data";
+import { parseLink } from "./link";
 
 export const categories = ["디지털", "리빙", "패션", "취미", "기타"] as const;
 export type Category = (typeof categories)[number];
@@ -92,47 +93,17 @@ export function reduceSession(session: Session, command: Command): Session {
   if (command.type === "feedback.dismiss")
     return { ...session, feedback: null };
   if (command.type === "link.add") {
-    let source: URL;
-    try {
-      source = new URL(command.url.trim());
-    } catch {
-      return invalid(
-        session,
-        "url",
-        "http:// 또는 https://로 시작하는 상품 링크를 입력해 주세요.",
-      );
-    }
-    if (
-      !["http:", "https:"].includes(source.protocol) ||
-      !source.hostname ||
-      source.username ||
-      source.password ||
-      command.url.length > 4096
-    ) {
-      return invalid(
-        session,
-        "url",
-        "로그인 정보가 없는 http:// 또는 https:// 링크를 입력해 주세요.",
-      );
-    }
+    const parsed = parseLink(command.url, command.option);
+    if (!parsed.ok) return invalid(session, parsed.field, parsed.message);
     if (
       command.collectionIds.some(
         (id) => !session.collections.some((collection) => collection.id === id),
       )
     )
       return invalid(session, "collection", "컬렉션을 다시 선택해 주세요.");
-    const identity = new URL(source);
-    for (const key of [...identity.searchParams.keys()]) {
-      if (
-        /^utm_/i.test(key) ||
-        ["gclid", "fbclid", "msclkid"].includes(key.toLowerCase())
-      )
-        identity.searchParams.delete(key);
-    }
-    identity.searchParams.sort();
-    const option = command.option.trim().normalize("NFC");
+    const { sourceUrl, identityUrl, option, shop } = parsed.link;
     const existing = session.products.find(
-      (p) => p.identityUrl === identity.href && p.option === option,
+      (p) => p.identityUrl === identityUrl && p.option === option,
     );
     if (existing)
       return {
@@ -142,11 +113,11 @@ export function reduceSession(session: Session, command: Command): Session {
     const id = `p-${session.nextId}`;
     const product: Product = {
       id,
-      sourceUrl: command.url.trim(),
-      identityUrl: identity.href,
+      sourceUrl,
+      identityUrl,
       option,
       title: "새로 담은 상품",
-      shop: source.hostname.replace(/^www\./, ""),
+      shop,
       image: null,
       category: "기타",
       note: "",

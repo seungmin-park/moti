@@ -1,0 +1,60 @@
+project_id = "moti-tests"
+
+[api]
+enabled = true
+port = 56321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+auto_expose_new_tables = false
+
+[db]
+port = 56322
+shadow_port = 56320
+major_version = 17
+health_timeout = "3m"
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3101"
+additional_redirect_urls = ["http://127.0.0.1:3101/auth/callback"]
+enable_signup = false
+enable_anonymous_sign_ins = false
+minimum_password_length = 12
+
+[auth.email]
+enabled = true
+enable_confirmations = false
+
+[auth.rate_limit]
+sign_in_sign_ups = 1000
+token_refresh = 1000
+
+[storage]
+enabled = false
+file_size_limit = "5MiB"
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+
+[local_smtp]
+enabled = false
+
+[analytics]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[experimental]
+stack = true

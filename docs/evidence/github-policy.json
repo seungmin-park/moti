@@ -1,0 +1,24 @@
+{
+  "observedAt": "2026-11-10T19:53:28.987Z",
+  "repository": "https://github.com/seungmin-park/moti",
+  "branch": "main",
+  "allowAutoMerge": true,
+  "requiredChecks": {
+    "strict": true,
+    "appId": 15368,
+    "contexts": [
+      "pstack",
+      "mockup",
+      "database"
+    ]
+  },
+  "enforceAdmins": true,
+  "pullRequestsRequired": true,
+  "requiredApprovingReviewCount": 0,
+  "dismissStaleReviews": true,
+  "conversationResolutionRequired": true,
+  "linearHistoryRequired": true,
+  "allowForcePushes": false,
+  "allowDeletions": false,
+  "verification": "Repository settings PATCH and branch protection PUT were followed by independent GET reads."
+}

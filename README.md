@@ -24,7 +24,7 @@ npx playwright install chromium webkit
 npm run verify
 ```
 
-`verify`는 원본 pstack 파일, ESLint, TypeScript, Vitest, 프로덕션 빌드와 Playwright를 확인합니다. 브라우저 검사는 PC Chromium과 iPhone 크기의 WebKit에서 실행합니다. 실제 iPhone 기기나 iOS 공유 메뉴 검증을 뜻하지 않습니다.
+`verify`는 원본 pstack 파일, ESLint, TypeScript, Vitest, 실제 Supabase 저장 테스트, 프로덕션 빌드와 Playwright를 확인합니다. DB 검증은 Docker 없이 공식 native runtime을 사용합니다. 실행 환경과 데이터 정리는 [실제 저장 테스트](docs/test-database.md)를 따릅니다. 브라우저 검사는 PC Chromium과 iPhone 크기의 WebKit에서 실행합니다. 실제 iPhone 기기나 iOS 공유 메뉴 검증을 뜻하지 않습니다.
 
 Playwright는 개발 서버와 별개인 3101 포트에 프로덕션 서버를 시작합니다. [기능 지도](docs/feature-map.md)와 [프로젝트 검증 스킬](tools/verify-moti/SKILL.md)에 사용자 흐름과 재실행 방법이 있습니다.
 Domain·Persistence·Service·API의 검증 범위와 데이터 정리는 [테스트 지침](docs/testing.md)을 따릅니다.
@@ -37,4 +37,4 @@ Domain·Persistence·Service·API의 검증 범위와 데이터 정리는 [테�
 
 ## 다음 단계
 
-화면 피드백을 반영한 뒤 실제 저장과 인증을 연결합니다. 현재는 외부 쇼핑몰에 요청하지 않으며, Google 로그인, Supabase, 가격 추적과 실제 단축어 연결은 제공하지 않습니다. [후속 계획](docs/roadmap.md)에 연결 순서를 기록했습니다. 배포는 별도 승인 후 진행합니다.
+화면 피드백을 반영했고 실제 저장과 인증을 연결하는 중입니다. 현재 화면은 예시이며 외부 쇼핑몰 수집·Google 로그인·실제 단축어 저장은 아직 연결하지 않았습니다. [구현 순서](docs/backend-implementation.md)와 [체크포인트](docs/implementation-checkpoint.md)에 상태를 기록합니다. 배포는 별도 승인 후 진행합니다.

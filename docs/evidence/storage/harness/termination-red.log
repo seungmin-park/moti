@@ -1,0 +1,35 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ × tests/unit/process-lifecycle.test.ts > DB 실행기의 종료 정리 > SIGINT가 와도 실행을 중단하고 비동기 정리를 마친다 32ms
+   → 종료 신호 뒤에도 정리 callback이 실행되어야 한다: expected false to be true // Object.is equality
+ × tests/unit/process-lifecycle.test.ts > DB 실행기의 종료 정리 > SIGTERM가 와도 실행을 중단하고 비동기 정리를 마친다 29ms
+   → 종료 신호 뒤에도 정리 callback이 실행되어야 한다: expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/process-lifecycle.test.ts > DB 실행기의 종료 정리 > SIGINT가 와도 실행을 중단하고 비동기 정리를 마친다
+ FAIL  tests/unit/process-lifecycle.test.ts > DB 실행기의 종료 정리 > SIGTERM가 와도 실행을 중단하고 비동기 정리를 마친다
+AssertionError: 종료 신호 뒤에도 정리 callback이 실행되어야 한다: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/process-lifecycle.test.ts:43:71
+     41|         child.kill(signal);
+     42|         const [code] = await closed;
+     43|         expect(existsSync(marker), "종료 신호 뒤에도 정리 callback이 실행되어야 한다").…
+       |                                                                       ^
+     44|         expect(code).toBe(exitCode);
+     45|       } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  04:45:16
+   Duration  144ms (tests 78%, transform 13%, import 7%, worker 2%)
