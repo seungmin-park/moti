@@ -8,7 +8,7 @@ import { pipeline } from "node:stream/promises";
 import { createBrotliDecompress, createGunzip, createInflate } from "node:zlib";
 import type { PageRead, PageSource } from "../application/collection";
 import type { CollectionErrorCode } from "../domain/collection-error";
-import { toFetchTarget, type FetchPolicy } from "./address-policy";
+import { toFetchTarget, type FetchPolicy, type FetchTarget } from "./address-policy";
 
 export type FetchLimits = {
   connectMs: number;
@@ -97,11 +97,11 @@ export function createSafePageSource({ policy, resolve = systemResolve, limits: 
     }).catch((error: Error) => callback(error, ""));
   }
 
-  function request(url: URL, host: string, port: number, signal: AbortSignal): Promise<IncomingMessage> {
+  function request(url: URL, target: FetchTarget & { ok: true }, signal: AbortSignal): Promise<IncomingMessage> {
     const secure = url.protocol === "https:";
     const options: RequestOptions = {
-      host,
-      port,
+      host: target.address ?? target.host,
+      port: target.port,
       path: `${url.pathname}${url.search}`,
       method: "GET",
       headers,
@@ -109,7 +109,8 @@ export function createSafePageSource({ policy, resolve = systemResolve, limits: 
       agent: secure ? new HttpsAgent({ keepAlive: false }) : new HttpAgent({ keepAlive: false }),
       lookup: pinnedLookup as RequestOptions["lookup"],
       signal,
-      ...(secure && { servername: url.hostname.startsWith("[") ? undefined : url.hostname }),
+      // SNI carries names only; an IP literal is checked against the certificate without it.
+      ...(secure && target.address === null && { servername: target.host }),
     };
     return new Promise((settle, reject) => {
       const outgoing = (secure ? httpsRequest : httpRequest)(options);
@@ -180,7 +181,7 @@ export function createSafePageSource({ policy, resolve = systemResolve, limits: 
         for (let hops = 0; ; hops += 1) {
           const target = toFetchTarget(url, policy);
           if (!target.ok) return { ok: false, code: target.code, status };
-          const response = await request(url, target.address ?? target.host, target.port, deadline.signal);
+          const response = await request(url, target, deadline.signal);
           status = response.statusCode ?? 0;
           const location = response.headers.location;
           if (redirects.has(status) && location) {
