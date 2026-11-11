@@ -1,5 +1,5 @@
 
- RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+ RUN  v5.1.0 <workspace>
 
  ❯ tests/unit/test-report.test.ts (9 tests | 1 failed) 6ms
    ❯ 브라우저 검증 완료 판정 (3)
@@ -19,10 +19,9 @@ Error: not implemented
  ❯ tests/unit/test-report.test.ts:78:12
 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
-
+(remaining failure blocks omitted: same error)
 
  Test Files  1 failed (1)
       Tests  1 failed | 8 passed (9)
    Start at  18:13:22
    Duration  100ms (transform 59%, tests 18%, import 17%, worker 5%)
-
