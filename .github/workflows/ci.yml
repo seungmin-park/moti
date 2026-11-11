@@ -22,8 +22,6 @@ jobs:
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-      - name: Fall back to the main Ubuntu archive when the runner mirror does not resolve
-        run: getent hosts azure.archive.ubuntu.com || echo 'http://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
       - run: npx playwright install --with-deps chromium webkit
         timeout-minutes: 10
       - run: npm run test:database
@@ -57,8 +55,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: Fall back to the main Ubuntu archive when the runner mirror does not resolve
-        run: getent hosts azure.archive.ubuntu.com || echo 'http://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
       - run: npx playwright install --with-deps chromium webkit
         timeout-minutes: 10
       - run: npm run test:e2e
