@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Check, CheckCheck, CircleAlert, Link2, LoaderCircle } from "lucide-react";
+import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Link2, LoaderCircle } from "lucide-react";
 import { Dialog } from "../../wishlist/Dialog";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
 import { toProductDetailView } from "./product-view";
@@ -54,6 +54,8 @@ export function ProductDetailDialog({
               <CircleAlert size={20} aria-hidden="true" />
             ) : phase === "ready" ? (
               <Check size={20} aria-hidden="true" />
+            ) : phase === "queued" ? (
+              <Clock size={20} aria-hidden="true" />
             ) : (
               <LoaderCircle size={20} aria-hidden="true" />
             )}
