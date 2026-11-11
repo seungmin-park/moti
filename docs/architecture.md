@@ -45,7 +45,29 @@ design-taste-frontend의 Editorial greeting, seed 1304296013을 사용했다. �
 | Application | `application/` | `<대상><동작>Command`, `<대상><동작>Result` | 업무 입력 정규화와 유스케이스 실행, 저장소 포트 정의 | `infrastructure/`, `presentation/`, Next, React, Supabase SDK |
 | Domain | `domain/` | 접미사 없는 명사 (`Product`, `Collection`, `Library`) | 업무 개념과 규칙. 외부 표현과 무관하다. | 다른 모든 계층, 프레임워크, zod |
 | Infrastructure | `infrastructure/` | `<대상>Row` | DB·외부 서비스 응답 형태의 검증과 도메인 변환 | `presentation/`, Next, React |
+| Screen | `screen/` | 화면 상태(`LibraryScreenState`, `ScreenEvent`)와 표시 값(`ProductCardView`) | 브라우저에서 공개 API를 호출하는 클라이언트. 응답을 계약 스키마로 검증하고 오류 코드를 화면 결과로 바꾼다. | `application/`, `domain/`, `infrastructure/`, `_server`, Supabase, `next/headers`, 공개 계약이 아닌 `presentation/`, 목업 상태 |
 
 한 요청은 `LinkSaveRequest → LinkSaveCommand → Product ↔ ProductRow → LinkSaveResult → LinkSaveResponse` 순서로 이름이 바뀐다. 어간(`LinkSave`)을 계층 사이에서 유지해 한 유스케이스의 객체를 이름으로 찾는다. Presentation은 사용자가 정한 `<대상><동작>Request/Response` 형식을 따른다. Infrastructure는 Supabase RPC가 돌려주는 JSON 행이라 `Row`를 쓴다. `Entity`는 도메인 엔티티와 혼동되므로 쓰지 않는다.
 
-계층과 무관한 순수 규칙(`src/features/wishlist/link.ts`)은 기존 목업과 실제 기능이 함께 쓴다. 의존 객체를 조립하는 위치는 `src/app`의 Route Handler다. 같은 이름의 응답 객체가 도메인 객체와 모양이 같아도 직접 반환하지 않고 변환 함수를 거친다. 도메인 변경이 공개 API로 새지 않게 하기 위해서다.
+계층과 무관한 순수 규칙(`src/features/wishlist/link.ts`, `collection-name.ts`)은 목업, 서버 명령과 실제 화면이 함께 쓴다. 규칙을 화면에 복사하지 않는다. 의존 객체를 조립하는 위치는 `src/app`의 Route Handler다. 같은 이름의 응답 객체가 도메인 객체와 모양이 같아도 직접 반환하지 않고 변환 함수를 거친다. 도메인 변경이 공개 API로 새지 않게 하기 위해서다.
+
+## 실제 보관함 화면
+
+`/`는 정적 화면을 보낸 뒤 브라우저에서 `GET /api/library`를 호출한다. Server Component는 쿠키를 쓸 수 없다. Supabase는 만료된 접근 토큰을 갱신할 때 쿠키를 쓰므로, 화면 렌더링 중 세션을 읽으면 갱신 결과를 잃는다. Route Handler는 갱신 쿠키를 응답에 싣는다. 실제 HTTP 테스트가 이 동작을 확인한다. 접근 판정, 출처 검사와 오류 계약은 API 한 곳에 남는다.
+
+화면 상태는 `screen-state.ts`의 순수 `transition(state, event) → { state, call }`이 소유한다. 단계는 `loading`, `failed`, `ready`, `leaving`이다. 저장 중인 대화상자는 닫히지 않고 두 번 제출되지 않는다. `leaving`은 로그인 이동을 시작한 뒤 늦게 도착한 응답을 무시한다. `useLibraryScreen`은 호출 결과를 다시 사건으로 넣는 얇은 연결이다.
+
+```text
+화면 사건 → transition → 새 상태 + API 호출 → library-api(계약 검증·오류 대응표) → 결과 사건 → transition
+```
+
+| 기준 | A. 별도 화면 모듈 | B. 목업과 공유하는 화면 틀 |
+| --- | --- | --- |
+| 변경 크기(후보 추정) | 약 1,700줄 추가, 목업 변경 거의 없음 | 약 2,400줄 추가·1,000줄 이동 |
+| 목업 회귀 위험 | 낮음. `Dialog` 분리만 | 중간. 목업 화면 세 파일 재구성 |
+| 없는 기능 처리 | 실제 화면에 만들지 않음 | 빈 slot으로 생략 |
+| 이후 단위 | 이미지·가격·구매가 붙을 때 표시 코드가 일부 겹칠 수 있음 | 어댑터와 slot으로 추가 |
+
+A를 선택했다. 2b의 실제 화면은 조회·링크 담기·컬렉션 만들기만 제공하므로 공유 틀의 이득이 비용보다 작다. B를 설계한 후보도 2b만 보면 더 비싸다고 평가했다. 일반 대화상자 틀은 복사하지 않고 `wishlist/Dialog.tsx`로 분리해 함께 쓴다. 3~5단위에서 실제 화면에 이미지·가격·구매가 붙을 때 공유 틀을 다시 검토한다.
+
+두 후보는 같은 모델 계열에서 독립적으로 작성했다. 다른 계열 심사는 제공되지 않아 생략했다. 두 후보는 브라우저 호출, Server Component 로그인 화면, 순수 전환, 오류 코드 대응표와 실제 스택 브라우저 검사에 동의했다.

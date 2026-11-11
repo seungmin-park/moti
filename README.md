@@ -1,8 +1,12 @@
 # moti
 
-갖고 싶은 물건을 모아두는 개인 위시리스트입니다. 링크를 담고, 컬렉션으로 묶고, 구매한 물건을 기록하는 흐름을 먼저 검토합니다.
+갖고 싶은 물건을 모아두는 개인 위시리스트입니다. 링크를 담고, 컬렉션으로 묶고, 구매한 물건을 기록합니다.
 
-현재 결과물은 Next.js와 TypeScript로 만든 클릭 가능한 목업입니다. 모든 상품과 가격은 예시입니다. 변경은 현재 화면의 메모리에만 남으며 새로고침하면 초기 예시로 돌아갑니다.
+Next.js와 TypeScript로 만들고 Supabase에 저장합니다. 화면은 세 경로입니다.
+
+- `/`: 허용한 Google 계정 하나의 실제 보관함입니다. 링크와 컬렉션을 저장하고 다시 읽습니다. Supabase 설정(`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `MOTI_OWNER_GOOGLE_SUBJECT`)이 없으면 로그인 화면의 설정 누락 안내로 이동합니다.
+- `/login`: Google 로그인 진입과 실패 안내입니다.
+- `/demo`: 예시 데이터 목업입니다. 모든 상품과 가격은 예시이며 새로고침하면 처음으로 돌아갑니다.
 
 ## 실행
 
@@ -13,7 +17,7 @@ npm ci
 npm run dev
 ```
 
-[http://localhost:3100](http://localhost:3100)을 엽니다. 위시리스트, 구매완료, 컬렉션과 공유 저장 안내를 조작할 수 있습니다.
+[http://localhost:3100/demo](http://localhost:3100/demo)에서 위시리스트, 구매완료, 컬렉션과 공유 저장 안내를 조작할 수 있습니다. 실제 보관함은 Supabase와 Google 로그인 설정이 필요합니다.
 
 ## 검증
 
@@ -24,7 +28,7 @@ npx playwright install chromium webkit
 npm run verify
 ```
 
-`verify`는 원본 pstack 파일, ESLint, TypeScript, Vitest, 실제 Supabase 저장 테스트, 프로덕션 빌드와 Playwright를 확인합니다. DB 검증은 Docker 없이 공식 native runtime을 사용합니다. 실행 환경과 데이터 정리는 [실제 저장 테스트](docs/test-database.md)를 따릅니다. 브라우저 검사는 PC Chromium과 iPhone 크기의 WebKit에서 실행합니다. 실제 iPhone 기기나 iOS 공유 메뉴 검증을 뜻하지 않습니다.
+`verify`는 원본 pstack 파일, ESLint, TypeScript, Vitest, 실제 Supabase 저장·HTTP·화면 테스트, 프로덕션 빌드와 Playwright를 확인합니다. DB 검증은 Docker 없이 공식 native runtime을 사용합니다. 실행 환경과 데이터 정리는 [실제 저장 테스트](docs/test-database.md)를 따릅니다. 브라우저 검사는 PC Chromium과 iPhone 크기의 WebKit에서 실행합니다. 실제 iPhone 기기나 iOS 공유 메뉴 검증을 뜻하지 않습니다.
 
 Playwright는 개발 서버와 별개인 3101 포트에 프로덕션 서버를 시작합니다. [기능 지도](docs/feature-map.md)와 [프로젝트 검증 스킬](tools/verify-moti/SKILL.md)에 사용자 흐름과 재실행 방법이 있습니다.
 Domain·Persistence·Service·API의 검증 범위와 데이터 정리는 [테스트 지침](docs/testing.md)을 따릅니다.
@@ -37,4 +41,4 @@ Domain·Persistence·Service·API의 검증 범위와 데이터 정리는 [테�
 
 ## 다음 단계
 
-화면 피드백을 반영했고 실제 저장과 인증을 연결하는 중입니다. 현재 화면은 예시이며 외부 쇼핑몰 수집·Google 로그인·실제 단축어 저장은 아직 연결하지 않았습니다. [구현 순서](docs/backend-implementation.md)와 [체크포인트](docs/implementation-checkpoint.md)에 상태를 기록합니다. 배포는 별도 승인 후 진행합니다.
+실제 저장·단일 계정 인증·보관함 화면을 연결했습니다. 외부 쇼핑몰 정보 수집, 가격 추적, 실제 단축어 저장, 내보내기·복원은 아직 연결하지 않았습니다. 실제 Google 로그인과 운영 Supabase는 배포 전에 따로 확인합니다. [구현 순서](docs/backend-implementation.md)와 [체크포인트](docs/implementation-checkpoint.md)에 상태를 기록합니다. 배포는 별도 승인 후 진행합니다.

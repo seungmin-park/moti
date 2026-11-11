@@ -14,3 +14,6 @@ ts	phase	decision	why	evidence	result
 2026-11-10T20:26:29Z	design	Google 계정은 stub, 거절 계정의 세션 종료만 mock으로 검증하고 Google fake는 만들지 않는다	OAuth 처리는 Supabase Auth의 책임이고 우리 코드의 책임은 허용 판정과 응답이다	docs/testing.md	사용자 확인
 2026-11-10T20:26:29Z	refactor	계층별 데이터 객체와 이름 규칙을 세우고 1단계 코드에 먼저 적용했다	Request·Command·도메인·Row의 책임을 분리하라는 사용자 요청. 동작 보존 리팩터링을 기능과 분리했다	https://github.com/seungmin-park/moti/pull/5	VERIFIED: 43 DB tests, merged
 2026-11-10T20:26:29Z	green	실제 HTTP 테스트가 Next의 request.url 내부 주소 때문에 같은 출처 검사와 리다이렉트가 틀린 것을 발견해 Host 기준으로 고쳤다	Next의 Server Action CSRF 검사와 같은 기준이다	tests/http/library-api.test.ts	VERIFIED local: 9 HTTP
+2026-11-11T11:55:22Z	design	실제 화면은 브라우저에서 기존 API를 호출한다. Server Component 조회와 proxy 세션 갱신은 쓰지 않는다	Server Component는 쿠키를 쓸 수 없어 Supabase 토큰 갱신 결과를 잃는다. proxy는 세션 관리 용도가 아니다. 접근 판정·출처 검사·오류 계약을 API 한 곳에 둔다	docs/architecture.md	두 설계 후보가 같은 결론. 갱신은 tests/http의 refresh guard로 확인
+2026-11-11T11:55:22Z	design	실제 화면을 별도 screen 모듈로 만들고 목업과는 Dialog·CollectionPicker·순수 규칙만 공유한다	공유 화면 틀은 2b에서 변경과 목업 회귀 위험이 더 크다. 3~5단위에서 재검토한다	docs/architecture.md	같은 모델 계열 후보 2개 비교, 다른 계열 심사 생략
+2026-11-11T11:55:22Z	refactor	컬렉션 이름 규칙을 wishlist/collection-name.ts 하나로 모아 서버 명령과 화면이 함께 쓴다	화면이 규칙을 복사하면 서버와 어긋날 수 있다	src/features/wishlist/collection-name.ts	조정자 검토 요청으로 반영

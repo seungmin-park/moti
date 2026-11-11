@@ -64,4 +64,4 @@ Route Handler는 `src/app`에서 의존 객체를 조립한다. 쓰기 요청은
 - Supabase Auth에서 Google provider를 켜고 이메일·비밀번호 로그인은 끈다. Redirect URL에 `<배포 주소>/auth/callback`을 등록한다.
 - 처음 로그인한 소유자의 Google subject를 `MOTI_OWNER_GOOGLE_SUBJECT`와 `moti.owner_config`에 넣는다. 운영자가 직접 설정한다.
 - 현재는 다른 Google 계정도 Supabase에 사용자 행이 생긴다. 데이터 접근과 세션은 막지만 행 생성 자체를 막으려면 Auth의 사용자 생성 전 hook이 필요하다. 별도 작업으로 남긴다.
-- `/login` 화면은 2b에서 만든다. 그 전에는 로그인 경로가 `/login`으로 이동해도 화면이 없다. 배포 전이므로 사용자 영향은 없다.
+- `/login` 화면과 실제 보관함 화면은 2b에서 연결했다. 화면 구조와 선택 근거는 [architecture.md](architecture.md#실제-보관함-화면)에 있다.
