@@ -47,8 +47,40 @@ export default defineConfig([
   {
     files: ["src/features/wishlist/**/*.tsx"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: ["**/server/**", "@supabase/*", "pg", "node:*"] }],
+      "no-restricted-imports": ["error", { patterns: [
+        "**/server/**", "@supabase/*", "pg", "node:*", "**/screen/**", "**/library/**", "**/auth/**",
+      ] }],
     },
   },
-  globalIgnores([".next/**", "tools/**", "next-env.d.ts", "playwright-report/**", "test-results/**"]),
+  {
+    files: ["src/features/*/screen/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [
+        {
+          group: ["@supabase/*", "pg", "node:*", "next/headers", "next/server", "server-only"],
+          message: "화면은 API 계약만 쓰는 HTTP 클라이언트다.",
+        },
+        { regex: "(^|/)(application|domain|infrastructure)(/|$)", message: "화면은 내부 계층을 가져오지 않는다." },
+        { regex: "/presentation/(?!(library-dto|login-error)$)", message: "공개 계약만 가져온다." },
+        { regex: "(^@/app/|/_server/)", message: "조립 위치(Route Handler)에 의존하지 않는다." },
+        {
+          regex: "/wishlist/(?!(link|collection-name|CollectionPicker|Dialog)$)",
+          message: "목업 상태·예시 데이터·예시 가격을 실제 화면에 들이지 않는다.",
+        },
+      ] }],
+    },
+  },
+  {
+    files: ["src/app/**/page.tsx"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [
+        "@supabase/*", "pg", "**/infrastructure/**", "**/application/**", "**/_server/**",
+      ] }],
+    },
+  },
+  globalIgnores([
+    ".next/**", "tools/**", "next-env.d.ts", "playwright-report/**", "test-results/**",
+    "playwright-report-database/**", "test-results-database/**",
+  ]),
 ]);

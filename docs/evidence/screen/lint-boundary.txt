@@ -1,0 +1,84 @@
+# ESLint import-boundary probe for the real screen (eslint.config.mjs). Non-zero exit = rule fired.
+## Required by the design
+$ printf 'import "@supabase/ssr";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/features/library/screen/x.ts
+
+/Users/seungmin/Desktop/repo/moti/src/features/library/screen/x.ts
+  1:1  error  '@supabase/ssr' import is restricted from being used by a pattern. 화면은 API 계약만 쓰는 HTTP 클라이언트다  no-restricted-imports
+
+✖ 1 problem (1 error, 0 warnings)
+
+exit=1
+
+$ printf 'import "../../wishlist/demo-data";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/features/library/screen/x.ts
+
+/Users/seungmin/Desktop/repo/moti/src/features/library/screen/x.ts
+  1:1  error  '../../wishlist/demo-data' import is restricted from being used by a pattern. 목업 상태·예시 데이터·예시 가격을 실제 화면에 들이지 않는다  no-restricted-imports
+
+✖ 1 problem (1 error, 0 warnings)
+
+exit=1
+
+## Other restricted imports
+$ printf 'import "../domain/library";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/features/library/screen/x.ts
+
+/Users/seungmin/Desktop/repo/moti/src/features/library/screen/x.ts
+  1:1  error  '../domain/library' import is restricted from being used by a pattern. 화면은 내부 계층을 가져오지 않는다  no-restricted-imports
+
+✖ 1 problem (1 error, 0 warnings)
+
+exit=1
+
+$ printf 'import "../presentation/library-handlers";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/features/library/screen/x.ts
+
+/Users/seungmin/Desktop/repo/moti/src/features/library/screen/x.ts
+  1:1  error  '../presentation/library-handlers' import is restricted from being used by a pattern. 공개 계약만 가져온다  no-restricted-imports
+
+✖ 1 problem (1 error, 0 warnings)
+
+exit=1
+
+$ printf 'import "@/app/_server/context";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/features/library/screen/x.ts
+
+/Users/seungmin/Desktop/repo/moti/src/features/library/screen/x.ts
+  1:1  error  '@/app/_server/context' import is restricted from being used by a pattern. 조립 위치(Route Handler)에 의존하지 않는다  no-restricted-imports
+
+✖ 1 problem (1 error, 0 warnings)
+
+exit=1
+
+$ printf 'import "next/headers";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/features/library/screen/x.tsx
+
+/Users/seungmin/Desktop/repo/moti/src/features/library/screen/x.tsx
+  1:1  error  'next/headers' import is restricted from being used by a pattern. 화면은 API 계약만 쓰는 HTTP 클라이언트다  no-restricted-imports
+
+✖ 1 problem (1 error, 0 warnings)
+
+exit=1
+
+$ printf 'import "../library/screen/LibraryScreen";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/features/wishlist/X.tsx
+
+/Users/seungmin/Desktop/repo/moti/src/features/wishlist/X.tsx
+  1:1  error  '../library/screen/LibraryScreen' import is restricted from being used by a pattern  no-restricted-imports
+
+✖ 1 problem (1 error, 0 warnings)
+
+exit=1
+
+$ printf 'import "@/features/library/infrastructure/supabase-library-store";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/app/x/page.tsx
+
+/Users/seungmin/Desktop/repo/moti/src/app/x/page.tsx
+  1:1  error  '@/features/library/infrastructure/supabase-library-store' import is restricted from being used by a pattern  no-restricted-imports
+
+✖ 1 problem (1 error, 0 warnings)
+
+exit=1
+
+## Allowed public contracts (expect exit=0)
+$ printf 'import "../presentation/library-dto";
+import "../../auth/presentation/login-error";
+import "../../wishlist/link";
+import "../../wishlist/collection-name";
+import "../../wishlist/CollectionPicker";
+import "../../wishlist/Dialog";' | npx eslint --max-warnings 0 --stdin --stdin-filename src/features/library/screen/x.ts
+exit=0
+
