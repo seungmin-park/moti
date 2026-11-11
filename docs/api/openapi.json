@@ -159,12 +159,16 @@
                                     "type": "integer",
                                     "minimum": -9007199254740991,
                                     "maximum": 9007199254740991
+                                  },
+                                  "stalled": {
+                                    "type": "boolean"
                                   }
                                 },
                                 "required": [
                                   "phase",
                                   "generation",
-                                  "attempts"
+                                  "attempts",
+                                  "stalled"
                                 ],
                                 "additionalProperties": false
                               },
@@ -217,7 +221,23 @@
                                     "maximum": 9007199254740991
                                   },
                                   "errorCode": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "enum": [
+                                      "invalid_url",
+                                      "blocked_address",
+                                      "dns_failed",
+                                      "connect_failed",
+                                      "timeout",
+                                      "too_many_redirects",
+                                      "blocked_by_site",
+                                      "http_status",
+                                      "unsupported_content",
+                                      "too_large",
+                                      "decode_failed",
+                                      "no_product_data",
+                                      "attempts_exhausted",
+                                      "internal"
+                                    ]
                                   }
                                 },
                                 "required": [
@@ -354,6 +374,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -395,6 +417,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -436,6 +460,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -650,12 +676,16 @@
                                   "type": "integer",
                                   "minimum": -9007199254740991,
                                   "maximum": 9007199254740991
+                                },
+                                "stalled": {
+                                  "type": "boolean"
                                 }
                               },
                               "required": [
                                 "phase",
                                 "generation",
-                                "attempts"
+                                "attempts",
+                                "stalled"
                               ],
                               "additionalProperties": false
                             },
@@ -708,7 +738,23 @@
                                   "maximum": 9007199254740991
                                 },
                                 "errorCode": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "enum": [
+                                    "invalid_url",
+                                    "blocked_address",
+                                    "dns_failed",
+                                    "connect_failed",
+                                    "timeout",
+                                    "too_many_redirects",
+                                    "blocked_by_site",
+                                    "http_status",
+                                    "unsupported_content",
+                                    "too_large",
+                                    "decode_failed",
+                                    "no_product_data",
+                                    "attempts_exhausted",
+                                    "internal"
+                                  ]
                                 }
                               },
                               "required": [
@@ -937,12 +983,16 @@
                                   "type": "integer",
                                   "minimum": -9007199254740991,
                                   "maximum": 9007199254740991
+                                },
+                                "stalled": {
+                                  "type": "boolean"
                                 }
                               },
                               "required": [
                                 "phase",
                                 "generation",
-                                "attempts"
+                                "attempts",
+                                "stalled"
                               ],
                               "additionalProperties": false
                             },
@@ -995,7 +1045,23 @@
                                   "maximum": 9007199254740991
                                 },
                                 "errorCode": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "enum": [
+                                    "invalid_url",
+                                    "blocked_address",
+                                    "dns_failed",
+                                    "connect_failed",
+                                    "timeout",
+                                    "too_many_redirects",
+                                    "blocked_by_site",
+                                    "http_status",
+                                    "unsupported_content",
+                                    "too_large",
+                                    "decode_failed",
+                                    "no_product_data",
+                                    "attempts_exhausted",
+                                    "internal"
+                                  ]
                                 }
                               },
                               "required": [
@@ -1090,6 +1156,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1131,6 +1199,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1172,6 +1242,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1213,6 +1285,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1254,6 +1328,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1295,6 +1371,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1336,6 +1414,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1377,6 +1457,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1491,6 +1573,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1532,6 +1616,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1573,6 +1659,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1614,6 +1702,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1655,6 +1745,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1696,6 +1788,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },
@@ -1737,6 +1831,8 @@
                         "collection_missing",
                         "collection_duplicate",
                         "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
                         "storage_unavailable"
                       ]
                     },

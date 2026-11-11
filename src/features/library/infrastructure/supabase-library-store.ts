@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { collectionErrorCodes } from "../../metadata/domain/collection-error";
 import type { LibraryStore } from "../application/library-store";
 import {
   LibraryError,
@@ -23,7 +24,7 @@ const collectionRowSchema = z.object({
   created_at: timestamp,
   updated_at: timestamp,
 });
-const productRowSchema = z.object({
+export const productRowSchema = z.object({
   id: z.uuid(),
   source_url: z.string(),
   identity_url: z.string(),
@@ -42,7 +43,8 @@ const productRowSchema = z.object({
   metadata_phase: z.enum(["queued", "running", "ready", "failed"]),
   metadata_generation: revision,
   metadata_attempts: count,
-  metadata_error_code: z.string().min(1).nullable(),
+  metadata_error_code: z.enum(collectionErrorCodes).nullable(),
+  metadata_stalled: z.boolean(),
   metadata_completed_at: timestamp.nullable(),
   last_success_amount_minor: money,
   last_success_currency: currency,
@@ -65,7 +67,7 @@ const productRowSchema = z.object({
 });
 
 type CollectionRow = z.infer<typeof collectionRowSchema>;
-type ProductRow = z.infer<typeof productRowSchema>;
+export type ProductRow = z.infer<typeof productRowSchema>;
 
 function toCollection(row: CollectionRow): Collection {
   return {
@@ -77,14 +79,14 @@ function toCollection(row: CollectionRow): Collection {
   };
 }
 
-function toProduct(row: ProductRow): Product {
+export function toProduct(row: ProductRow): Product {
   const generation = { generation: row.metadata_generation, attempts: row.metadata_attempts };
   const metadata: MetadataState =
     row.metadata_phase === "ready"
       ? { ...generation, phase: "ready", completedAt: row.metadata_completed_at! }
       : row.metadata_phase === "failed"
         ? { ...generation, phase: "failed", errorCode: row.metadata_error_code! }
-        : { ...generation, phase: row.metadata_phase };
+        : { ...generation, phase: row.metadata_phase, stalled: row.metadata_stalled };
   return {
     id: row.id as ProductId,
     sourceUrl: row.source_url,
@@ -114,7 +116,7 @@ function toProduct(row: ProductRow): Product {
   };
 }
 
-function readResponse<T>(schema: z.ZodType<T>, value: unknown): T {
+export function readResponse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (!result.success) {
     throw new LibraryError("storage_unavailable", "저장 응답을 확인할 수 없어요.");
@@ -128,23 +130,27 @@ const databaseErrors: Record<string, LibraryErrorCode> = {
   M0003: "collection_missing",
   M0004: "collection_duplicate",
   M0005: "identity_conflict",
+  M0006: "product_missing",
+  M0007: "metadata_not_retryable",
   "42501": "unauthorized",
   "23514": "invalid_input",
   "22023": "invalid_input",
   "22P02": "invalid_input",
 };
 
-export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore {
-  async function rpc(name: string, parameters?: Record<string, unknown>): Promise<unknown> {
-    const { data, error } = await client.rpc(name, parameters);
-    if (error) {
-      throw new LibraryError(
-        databaseErrors[error.code] ?? "storage_unavailable",
-        "보관함 요청을 처리하지 못했어요.",
-      );
-    }
-    return data;
+export async function callRpc(client: SupabaseClient, name: string, parameters?: Record<string, unknown>): Promise<unknown> {
+  const { data, error } = await client.rpc(name, parameters);
+  if (error) {
+    throw new LibraryError(
+      databaseErrors[error.code] ?? "storage_unavailable",
+      "보관함 요청을 처리하지 못했어요.",
+    );
   }
+  return data;
+}
+
+export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore {
+  const rpc = (name: string, parameters?: Record<string, unknown>) => callRpc(client, name, parameters);
 
   return {
     async snapshot() {

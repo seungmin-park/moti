@@ -32,7 +32,7 @@ const product = {
   addedAt: "2026-11-11T00:00:00.000Z",
   updatedAt: "2026-11-11T00:00:00.000Z",
   purchase: { status: "wish" },
-  metadata: { phase: "queued", generation: 1, attempts: 0 },
+  metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
 } satisfies Product;
 

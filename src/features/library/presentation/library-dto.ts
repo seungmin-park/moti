@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { LinkSaveResult } from "../application/commands";
+import { collectionErrorCodes } from "../../metadata/domain/collection-error";
 import type { Collection, Library, Product } from "../domain/library";
 
 const timestamp = z.iso.datetime();
@@ -33,9 +34,19 @@ export const productResponseSchema = z.object({
     z.object({ status: z.literal("purchased"), date: z.iso.date().nullable(), price: moneyResponseSchema.nullable() }).strict(),
   ]),
   metadata: z.discriminatedUnion("phase", [
-    z.object({ phase: z.enum(["queued", "running"]), generation: z.number().int(), attempts: z.number().int() }).strict(),
+    z.object({
+      phase: z.enum(["queued", "running"]),
+      generation: z.number().int(),
+      attempts: z.number().int(),
+      stalled: z.boolean(),
+    }).strict(),
     z.object({ phase: z.literal("ready"), generation: z.number().int(), attempts: z.number().int(), completedAt: timestamp }).strict(),
-    z.object({ phase: z.literal("failed"), generation: z.number().int(), attempts: z.number().int(), errorCode: z.string() }).strict(),
+    z.object({
+      phase: z.literal("failed"),
+      generation: z.number().int(),
+      attempts: z.number().int(),
+      errorCode: z.enum(collectionErrorCodes),
+    }).strict(),
   ]),
   lastSuccessfulPrice: moneyResponseSchema.extend({ checkedAt: timestamp }).strict().nullable(),
 }).strict();
@@ -70,6 +81,8 @@ export const errorCodes = [
   "collection_missing",
   "collection_duplicate",
   "identity_conflict",
+  "product_missing",
+  "metadata_not_retryable",
   "storage_unavailable",
 ] as const;
 export type ErrorCode = (typeof errorCodes)[number];

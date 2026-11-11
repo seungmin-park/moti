@@ -30,6 +30,8 @@ const errorStatus: Record<ErrorCode, number> = {
   collection_missing: 422,
   collection_duplicate: 409,
   identity_conflict: 409,
+  product_missing: 404,
+  metadata_not_retryable: 409,
   storage_unavailable: 503,
 };
 
@@ -44,6 +46,8 @@ const errorMessages: Record<ErrorCode, string> = {
   collection_missing: "선택한 컬렉션을 찾을 수 없어요.",
   collection_duplicate: "같은 이름의 컬렉션이 이미 있어요.",
   identity_conflict: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요.",
+  product_missing: "상품을 찾을 수 없어요.",
+  metadata_not_retryable: "지금은 정보를 다시 가져올 수 없어요.",
   storage_unavailable: "잠시 뒤 다시 시도해 주세요.",
 };
 
@@ -53,6 +57,8 @@ const fromLibraryError: Record<LibraryErrorCode, ErrorCode> = {
   collection_missing: "collection_missing",
   collection_duplicate: "collection_duplicate",
   identity_conflict: "identity_conflict",
+  product_missing: "product_missing",
+  metadata_not_retryable: "metadata_not_retryable",
   storage_unavailable: "storage_unavailable",
 };
 

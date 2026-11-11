@@ -22,7 +22,7 @@ const product: ProductResponse = {
   addedAt: "2026-11-11T00:00:00.000Z",
   updatedAt: "2026-11-11T00:00:00.000Z",
   purchase: { status: "wish" },
-  metadata: { phase: "queued", generation: 1, attempts: 0 },
+  metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
 };
 const link = { url: "https://example.com/item", option: "", collectionIds: [collection.id] };
@@ -43,6 +43,8 @@ const status: Record<ErrorCode, number> = {
   collection_missing: 422,
   collection_duplicate: 409,
   identity_conflict: 409,
+  product_missing: 404,
+  metadata_not_retryable: 409,
   storage_unavailable: 503,
 };
 
@@ -63,6 +65,8 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     collection_missing: { kind: "unavailable", message: readFailed },
     collection_duplicate: { kind: "unavailable", message: readFailed },
     identity_conflict: { kind: "unavailable", message: readFailed },
+    product_missing: { kind: "unavailable", message: readFailed },
+    metadata_not_retryable: { kind: "unavailable", message: readFailed },
   },
   "link.save": {
     ...signedIn,
@@ -74,6 +78,8 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     collection_missing: { kind: "stale", message: "선택한 컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요." },
     collection_duplicate: { kind: "unavailable", message: retryLater },
     identity_conflict: { kind: "unavailable", message: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요." },
+    product_missing: { kind: "unavailable", message: retryLater },
+    metadata_not_retryable: { kind: "unavailable", message: retryLater },
   },
   "collection.create": {
     ...signedIn,
@@ -85,6 +91,8 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     collection_missing: { kind: "unavailable", message: retryLater },
     collection_duplicate: { kind: "stale", message: "같은 이름의 컬렉션이 이미 있어요." },
     identity_conflict: { kind: "unavailable", message: retryLater },
+    product_missing: { kind: "unavailable", message: retryLater },
+    metadata_not_retryable: { kind: "unavailable", message: retryLater },
   },
 };
 

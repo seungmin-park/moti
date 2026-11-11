@@ -46,7 +46,7 @@ describe("실제 Supabase 저장소", () => {
       revision: 1,
       note: "",
       purchase: { status: "wish" },
-      metadata: { phase: "queued", generation: 1, attempts: 0 },
+      metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
       lastSuccessfulPrice: null,
     });
     expect(result.product.id).toMatch(/^[0-9a-f-]{36}$/);
@@ -175,7 +175,7 @@ describe("실제 Supabase 저장소", () => {
   it("수집 실패, 마지막 성공 가격과 0원 구매 정보를 서로 독립적으로 읽는다", async () => {
     const saved = await store().saveLink(command());
     await fixture.admin.query(
-      `update moti.products set metadata_phase = 'failed', metadata_error_code = 'fetch_timeout',
+      `update moti.products set metadata_phase = 'failed', metadata_error_code = 'timeout',
        metadata_attempts = 2, last_success_amount_minor = 79000, last_success_currency = 'KRW',
        last_success_at = '2026-11-10T03:00:00Z', purchase_status = 'purchased',
        purchased_on = '2026-11-11', purchased_amount_minor = 0, purchased_currency = 'KRW', revision = 2
@@ -184,7 +184,7 @@ describe("실제 Supabase 저장소", () => {
     const product = (await store().snapshot()).products[0];
     expect(product).toMatchObject({
       revision: 2,
-      metadata: { phase: "failed", generation: 1, attempts: 2, errorCode: "fetch_timeout" },
+      metadata: { phase: "failed", generation: 1, attempts: 2, errorCode: "timeout" },
       lastSuccessfulPrice: { amountMinor: 79000, currency: "KRW", checkedAt: "2026-11-10T03:00:00.000Z" },
       purchase: { status: "purchased", date: "2026-11-11", price: { amountMinor: 0, currency: "KRW" } },
     });

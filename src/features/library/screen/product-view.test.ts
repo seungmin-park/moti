@@ -25,14 +25,14 @@ const queued: ProductResponse = {
   addedAt: "2026-11-10T16:00:00.000Z",
   updatedAt: "2026-11-10T16:00:00.000Z",
   purchase: { status: "wish" },
-  metadata: { phase: "queued", generation: 1, attempts: 0 },
+  metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
 };
 
 const everyPhase: ProductResponse["metadata"][] = [
-  { phase: "queued", generation: 1, attempts: 0 },
-  { phase: "running", generation: 1, attempts: 1 },
-  { phase: "failed", generation: 1, attempts: 3, errorCode: "blocked" },
+  { phase: "queued", generation: 1, attempts: 0, stalled: false },
+  { phase: "running", generation: 1, attempts: 1, stalled: false },
+  { phase: "failed", generation: 1, attempts: 3, errorCode: "blocked_address" },
   { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
 ];
 

@@ -1,3 +1,4 @@
+import type { CollectionErrorCode } from "../../metadata/domain/collection-error";
 import type { SavedLink } from "../../wishlist/link";
 
 export type ProductId = string & { readonly __productId: unique symbol };
@@ -7,9 +8,9 @@ export type Purchase =
   | { status: "wish" }
   | { status: "purchased"; date: string | null; price: Money | null };
 export type MetadataState = { generation: number; attempts: number } & (
-  | { phase: "queued" | "running" }
+  | { phase: "queued" | "running"; stalled: boolean }
   | { phase: "ready"; completedAt: string }
-  | { phase: "failed"; errorCode: string }
+  | { phase: "failed"; errorCode: CollectionErrorCode }
 );
 export type Product = SavedLink & {
   id: ProductId;
@@ -40,6 +41,8 @@ export type LibraryErrorCode =
   | "collection_missing"
   | "collection_duplicate"
   | "identity_conflict"
+  | "product_missing"
+  | "metadata_not_retryable"
   | "storage_unavailable";
 
 export class LibraryError extends Error {
