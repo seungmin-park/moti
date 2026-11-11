@@ -17,7 +17,7 @@ describe("가격의 최소 단위 변환", () => {
     expect(toMinorUnits(amount, currency)).toEqual({ amountMinor: minor, currency: currency.trim().toUpperCase() });
   });
 
-  it.each([
+  it.each<[string, string | null, string]>([
     ["19.999", "USD", "통화보다 긴 0이 아닌 소수"],
     ["289000.5", "KRW", "원화의 0이 아닌 소수"],
     ["0", "KRW", "0원"],
