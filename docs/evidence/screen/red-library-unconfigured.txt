@@ -1,0 +1,17 @@
+# npx playwright test tests/e2e/library-unconfigured.spec.ts --timeout=10000 (/ still renders the mockup)
+  ✘  1 [desktop-chromium] › tests/e2e/library-unconfigured.spec.ts:5:1 › 소유자 설정이 없는 서버에서 보관함을 열면 예시 상품 없이 설정 누락 안내로 간다 (5.4s)
+  ✘  2 [iphone-webkit] › tests/e2e/library-unconfigured.spec.ts:5:1 › 소유자 설정이 없는 서버에서 보관함을 열면 예시 상품 없이 설정 누락 안내로 간다 (5.6s)
+    Error: expect(page).toHaveURL(expected) failed
+    Expected pattern: /\/login\?error=unconfigured$/
+    Received string:  "http://127.0.0.1:3101/"
+    Error: expect(page).toHaveURL(expected) failed
+    Expected pattern: /\/login\?error=unconfigured$/
+    Received string:  "http://127.0.0.1:3101/"
+  2 failed
+# page snapshot (desktop-chromium):
+  - heading "나의 위시리스트" [level=1]
+    - button "무선 헤드폰 상세 보기":
+      - heading "무선 헤드폰" [level=2]
+    - button "무선 헤드폰 구매완료로 이동"
+      - heading "패브릭 라운지 체어" [level=2]
+      - heading "데스크 램프" [level=2]

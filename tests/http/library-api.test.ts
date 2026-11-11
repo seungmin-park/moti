@@ -7,7 +7,7 @@ import {
 } from "../../src/features/library/presentation/library-dto";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 import { HTTP_OWNER_SUBJECT, readDatabaseConfig } from "../support/database-config";
-import { cookieHeader, signInCookies } from "../support/session";
+import { cookieHeader, readSession, signInCookies, updatedJar, withExpiredAccessToken } from "../support/session";
 
 const { appUrl } = readDatabaseConfig();
 const origin = new URL(appUrl).origin;
@@ -150,5 +150,28 @@ describe("실제 HTTP 로그인 경로", () => {
     const cleared = response.headers.getSetCookie().filter((value) => [...jar.keys()].some((name) => value.startsWith(`${name}=`)));
     expect(cleared.length).toBeGreaterThan(0);
     expect(cleared.every((value) => /max-age=0/i.test(value))).toBe(true);
+  });
+});
+
+describe("실제 HTTP 세션 갱신", () => {
+  it("접근 토큰이 만료된 세션의 조회는 Route Handler가 refresh token으로 갱신하고 새 인증 쿠키를 내려준다", async () => {
+    const signedIn = await signInCookies(fixture.owner);
+    const before = readSession(signedIn);
+    const expired = withExpiredAccessToken(signedIn);
+    expect(readSession(expired).expires_at * 1000).toBeLessThan(Date.now());
+
+    const response = await request("/api/library", { cookie: cookieHeader(expired) });
+    expect(response.status).toBe(200);
+    libraryReadResponseSchema.parse(await response.json());
+    const renewedCookies = response.headers.getSetCookie()
+      .filter((value) => /^sb-[^=]+-auth-token(\.\d+)?=[^;]+/.test(value) && !/max-age=0/i.test(value));
+    expect(renewedCookies.length).toBeGreaterThan(0);
+
+    const renewed = readSession(updatedJar(expired, response.headers.getSetCookie()));
+    expect(renewed.expires_at * 1000).toBeGreaterThan(Date.now());
+    expect(renewed.refresh_token).not.toBe(before.refresh_token);
+
+    const next = await request("/api/library", { cookie: cookieHeader(updatedJar(expired, response.headers.getSetCookie())) });
+    expect(next.status).toBe(200);
   });
 });

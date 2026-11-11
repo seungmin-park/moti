@@ -23,7 +23,7 @@ test("구매 뒤 컬렉션 이름 변경 알림은 이전 구매의 실행 취�
   page,
 }) => {
   await test.step("Given 상품을 구매완료로 옮긴 상태", async () => {
-    await page.goto("/");
+    await page.goto("/demo");
     await page
       .getByRole("button", { name: "무선 헤드폰 구매완료로 이동", exact: true })
       .click();
@@ -61,7 +61,7 @@ test("구매 뒤 컬렉션 이름 변경 알림은 이전 구매의 실행 취�
 
 test("실구매가 미입력과 0원을 구매완료 카드에서 구분한다", async ({ page }) => {
   await test.step("Given 구매완료 상품의 가격이 미입력된 상태", async () => {
-    await page.goto("/");
+    await page.goto("/demo");
     await openPurchased(page);
   });
   await test.step("When 다른 상품의 실구매가로 0원을 기록한다", async () => {
@@ -83,7 +83,7 @@ test("구매완료 가격 정렬은 카드에 보이는 실구매가를 따른�
   page,
 }) => {
   await test.step("Given 예시 가격과 순서가 다른 실구매가를 기록한 상태", async () => {
-    await page.goto("/");
+    await page.goto("/demo");
     await openPurchased(page);
     await recordPrice(page, "작업실 스탠드", "1000000");
     await recordPrice(page, "여행용 백팩", "20000");
@@ -113,7 +113,7 @@ test("허용 길이의 공백 없는 상품 정보가 모바일 화면을 넘지
   const collection = "C".repeat(40);
   await test.step("Given 375px 화면에서 긴 이름의 빈 컬렉션을 만든 상태", async () => {
     await page.setViewportSize({ width: 375, height: 844 });
-    await page.goto("/");
+    await page.goto("/demo");
     await page
       .getByRole("button", { name: "컬렉션", exact: true })
       .filter({ visible: true })
@@ -164,7 +164,7 @@ test("허용 길이의 공백 없는 상품 정보가 모바일 화면을 넘지
 });
 
 test("위시 목록과 상세는 기본 접근성 검사에 통과한다", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   for (const view of ["wishlist", "detail"]) {
     await test.step(view, async () => {
       if (view === "detail")

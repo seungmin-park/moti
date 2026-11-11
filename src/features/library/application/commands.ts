@@ -1,3 +1,4 @@
+import { parseCollectionName } from "../../wishlist/collection-name";
 import { parseLink, type SavedLink } from "../../wishlist/link";
 import { LibraryError, type CollectionId, type Product } from "../domain/library";
 
@@ -30,12 +31,7 @@ export function toLinkSaveCommand(input: unknown): LinkSaveCommand {
 }
 
 export function toCollectionCreateCommand(input: unknown): CollectionCreateCommand {
-  if (typeof input !== "string" || !input.isWellFormed() || input.includes("\u0000")) {
-    throw new LibraryError("invalid_input", "컬렉션 이름을 확인해 주세요.", "collection");
-  }
-  const name = input.trim().normalize("NFC");
-  if (!name || [...name].length > 40) {
-    throw new LibraryError("invalid_input", "컬렉션 이름은 1~40자로 입력해 주세요.", "collection");
-  }
-  return { name };
+  const parsed = parseCollectionName(input);
+  if (!parsed.ok) throw new LibraryError("invalid_input", parsed.message, "collection");
+  return { name: parsed.name };
 }

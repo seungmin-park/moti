@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("검색, 필터, 빈 목록과 초기화", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(
     page.getByRole("heading", { name: "나의 위시리스트", exact: true }),
   ).toBeVisible();
@@ -26,7 +26,7 @@ test("검색, 필터, 빈 목록과 초기화", async ({ page }) => {
 test("링크 저장 실패에도 원본 링크를 보존하고 중복을 방지한다", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   const requests: string[] = [];
   page.on("request", (request) => {
     if (request.url().startsWith("https://example.com"))
@@ -62,7 +62,7 @@ test("링크 저장 실패에도 원본 링크를 보존하고 중복을 방지�
 test("메모와 컬렉션을 유지하며 구매완료와 실행 취소를 한다", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   await page.getByRole("button", { name: "무선 헤드폰 상세 보기" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("메모").fill("다음 생일에 꼭");
@@ -93,7 +93,7 @@ test("메모와 컬렉션을 유지하며 구매완료와 실행 취소를 한�
 });
 
 test("컬렉션 생성, 이름 변경, 빈 상태와 상품 묶기", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   await page
     .getByRole("button", { name: "컬렉션", exact: true })
     .filter({ visible: true })
@@ -132,7 +132,7 @@ test("컬렉션 생성, 이름 변경, 빈 상태와 상품 묶기", async ({ pa
 });
 
 test("공유 저장 안내와 세 가지 결과는 예시임을 표시한다", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   await page
     .getByRole("button", { name: "공유 저장", exact: true })
     .filter({ visible: true })
@@ -159,7 +159,7 @@ test("공유 저장 안내와 세 가지 결과는 예시임을 표시한다", a
 test("대화상자를 키보드로 닫으면 초점이 돌아오고 가로 넘침이 없다", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   const add = page.getByRole("button", { name: "링크 추가", exact: true });
   await add.focus();
   await page.keyboard.press("Enter");

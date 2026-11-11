@@ -1,0 +1,40 @@
+
+ RUN  v5.1.0 <workspace>
+
+ ❯ src/features/auth/screen/login-notice.test.ts (10 tests | 10 failed) 4ms
+   ❯ 로그인 안내 (10)
+     × Given ?error=forbidden When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다 2ms
+     × Given ?error=unconfigured When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다 0ms
+     × Given ?error=unavailable When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다 0ms
+     × Given ?error=cancelled When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다 0ms
+     × Given ?error=callback When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다 0ms
+     × Given 모든 로그인 오류 코드 When 안내를 고르면 Then 각 코드가 서로 다른 안내를 가진다 0ms
+     × Given 알 수 없는 코드 When 안내를 고르면 Then 일반 실패 안내를 보여준다 0ms
+     × Given 오류 파라미터 없음 When 안내를 고르면 Then 안내가 없다 0ms
+     × Given 같은 파라미터가 여러 번 When 안내를 고르면 Then 첫 값을 따른다 0ms
+     × Given 스크립트를 담은 값 When 안내를 고르면 Then 받은 값을 화면 문구에 옮기지 않는다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/auth/screen/login-notice.test.ts > 로그인 안내 > Given ?error=forbidden When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다
+ FAIL  src/features/auth/screen/login-notice.test.ts > 로그인 안내 > Given ?error=unconfigured When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다
+ FAIL  src/features/auth/screen/login-notice.test.ts > 로그인 안내 > Given ?error=unavailable When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다
+ FAIL  src/features/auth/screen/login-notice.test.ts > 로그인 안내 > Given ?error=cancelled When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다
+ FAIL  src/features/auth/screen/login-notice.test.ts > 로그인 안내 > Given ?error=callback When 안내를 고르면 Then 원인에 맞는 제목과 설명을 보여준다
+Error: not implemented
+ ❯ loginNotice src/features/auth/screen/login-notice.ts:5:9
+      3| export function loginNotice(value: string | string[] | undefined): Log…
+      4|   void value;
+      5|   throw new Error("not implemented");
+       |         ^
+      6| }
+      7|
+ ❯ src/features/auth/screen/login-notice.test.ts:13:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+(remaining failure blocks omitted: same error)
+
+ Test Files  1 failed (1)
+      Tests  10 failed (10)
+   Start at  18:13:53
+   Duration  108ms (transform 55%, import 23%, tests 15%, worker 7%)

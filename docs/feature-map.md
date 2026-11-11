@@ -1,6 +1,23 @@
 # 기능 지도
 
-현재 목업의 상태는 새로고침할 때 초기화된다. 영구 저장, 외부 수집과 인증은 아직 연결하지 않았다. 모든 경로는 `/`의 버튼으로 이동한다.
+세 화면 경로가 있다. `/`는 허용한 Google 계정의 실제 보관함이다. `/login`은 로그인 진입과 실패 안내다. `/demo`는 예시 데이터 목업이며 상태가 새로고침할 때 초기화된다. 외부 정보 수집, 가격 추적, 공유 저장은 아직 연결하지 않았다.
+
+## 실제 보관함 (`/`, `/login`)
+
+| 사용자 동작 | 진입점과 관찰 결과 | 상태 소유자 | 검증 |
+| --- | --- | --- | --- |
+| 로그인 | `/login` → Google 계정으로 계속하기(`/auth/login`). 오류 코드(`forbidden`, `unconfigured`, `unavailable`, `cancelled`, `callback`)마다 원인과 다음 행동을 보여준다. 알 수 없는 값은 원문을 출력하지 않는다. | `auth/presentation/login-error.ts`의 코드, `auth/screen/login-notice.ts` | Vitest, Playwright(설정 없음) |
+| 보관함 열기 | `/`가 브라우저에서 `GET /api/library`를 호출한다. 세션 없음은 `/login`, 허용하지 않은 계정은 `/login?error=forbidden`, 소유자 설정 없음은 `/login?error=unconfigured`로 이동한다. 저장소 오류는 다시 불러오기를 제공한다. | `library/screen/screen-state.ts`의 `transition`, `library-api.ts`의 오류 대응표 | Vitest, Playwright(설정 없음), 실제 Supabase 브라우저 |
+| 링크 담기 | 링크 추가 → 링크·옵션·컬렉션 선택 → 위시에 담기. 선택 창에서 없는 컬렉션을 바로 만든다. 저장 뒤 상세가 열리고 새 링크는 "정보 수집 대기"로 보인다. 같은 링크는 기존 상품을 열어 이미 담았다고 알린다. 선택한 컬렉션이 사라졌으면 안내 후 목록을 새로 불러오고 입력을 유지한다. | 같음. 링크와 컬렉션 이름 규칙은 `wishlist/link.ts`, `wishlist/collection-name.ts`를 서버와 함께 쓴다. | Vitest, 실제 Supabase 브라우저(재접속·새 세션 유지 포함) |
+| 컬렉션 만들기와 거르기 | 사이드바 또는 모바일 칩의 컬렉션 만들기. 만든 컬렉션으로 바로 거른다. 거르기 상태는 화면 안에만 있어 새로고침하면 전체로 돌아간다. | 같음 | Vitest, 실제 Supabase 브라우저 |
+| 상품 보기 | 카드 → 읽기 전용 상세. 원본 링크(http·https만), 옵션, 컬렉션, 담은 날, 메모를 보여준다. 가격이 없으면 "가격 확인 전"이다. 예시 가격과 수정·구매 기능은 실제 화면에 없다. | `library/screen/product-view.ts` | Vitest, 실제 Supabase 브라우저 |
+| 로그아웃 | 사이드바 또는 모바일 상단의 로그아웃 → 같은 출처 POST `/auth/logout` → `/login`. | 서버 세션 | 실제 Supabase 브라우저 |
+
+화면 모듈(`src/features/*/screen/`)은 API 계약(`presentation/library-dto.ts`, `login-error.ts`)과 공유 순수 규칙만 가져온다. 다른 계층, `_server`, Supabase와 목업 상태를 가져오면 ESLint가 실패한다.
+
+## 예시 데이터 목업 (`/demo`)
+
+모든 목업 경로는 `/demo`의 버튼으로 이동한다.
 
 | 사용자 동작 | 진입점과 관찰 결과 | 상태 소유자 | 검증 |
 | --- | --- | --- | --- |
@@ -16,7 +33,7 @@
 
 `npm run verify`로 전체 검증을 실행한다. 구체적인 명령과 범위는 [검증 스킬](../tools/verify-moti/SKILL.md), 관찰 결과는 [검증 기록](verification.md)을 따른다. 브라우저 선택자는 사용자에게 보이는 역할과 한글 레이블을 사용한다.
 
-## 실제 API (화면 연결 전)
+## 실제 API
 
 | 경로 | 결과 | 계층 | 검증 |
 | --- | --- | --- | --- |

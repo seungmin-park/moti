@@ -5,6 +5,8 @@ out/
 !.env.example
 test-results/
 playwright-report/
+test-results-database/
+playwright-report-database/
 .taste-skill/
 *.tsbuildinfo
 .DS_Store

@@ -1,4 +1,5 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { expectNeutral } from "../support/neutral";
 
 function controlTab(browserName: string) {
   return browserName === "webkit" && process.platform === "darwin"
@@ -6,24 +7,9 @@ function controlTab(browserName: string) {
     : "Tab";
 }
 
-async function expectNeutral(locator: Locator, properties: string[]) {
-  const colors = await locator.evaluate((element, names) => {
-    const style = getComputedStyle(element);
-    return names.map((name) => style.getPropertyValue(name));
-  }, properties);
-  for (const color of colors) {
-    const channels = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
-    expect(channels, color).toHaveLength(3);
-    expect(
-      Math.max(...channels!) - Math.min(...channels!),
-      color,
-    ).toBeLessThanOrEqual(1);
-  }
-}
-
 test("정렬 목록에서 현재 선택을 확인하고 클릭으로 가격순을 바꾼다", async ({ page }) => {
   await test.step("Given 최근 담은 순의 위시 목록", async () => {
-    await page.goto("/");
+    await page.goto("/demo");
     await expect(
       page.getByRole("button", { name: "정렬: 최근 담은 순", exact: true }),
     ).toBeVisible();
@@ -61,7 +47,7 @@ test("정렬은 키보드 이동, 확정, 취소와 Tab 이동을 지원한다",
   page,
   browserName,
 }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   const trigger = page.getByRole("button", { name: /^정렬:/ });
   await test.step("Given 정렬 버튼에 키보드 초점이 있는 상태", async () => {
     await trigger.focus();
@@ -107,7 +93,7 @@ test("정렬은 키보드 이동, 확정, 취소와 Tab 이동을 지원한다",
 
 test("링크 추가에서 여러 컬렉션을 고르고 입력 오류 뒤에도 선택을 유지한다", async ({ page }) => {
   await test.step("Given 링크 추가 창의 컬렉션 목록", async () => {
-    await page.goto("/");
+    await page.goto("/demo");
     await page.getByRole("button", { name: "링크 추가", exact: true }).click();
     await page.getByRole("button", { name: /^담을 컬렉션:/ }).click();
     await expect(page.getByRole("dialog").getByRole("checkbox")).toHaveCount(3);
@@ -143,7 +129,7 @@ test("링크 추가에서 여러 컬렉션을 고르고 입력 오류 뒤에도 
 
 test("현재 컬렉션을 기본 선택하되 모두 해제해서 담을 수도 있다", async ({ page }) => {
   await test.step("Given 컬렉션 안에서 링크 추가 창을 연 상태", async () => {
-    await page.goto("/");
+    await page.goto("/demo");
     await page
       .getByRole("button", { name: "컬렉션", exact: true })
       .filter({ visible: true })
@@ -170,7 +156,7 @@ test("UI 팔레트와 입력 포커스는 중립 색상이며 키보드 위치�
   page,
   browserName,
 }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   await test.step("Given 중립 색상의 브랜드, 버튼과 탐색 메뉴", async () => {
     await expectNeutral(page.locator(".brand-mark").first(), [
       "color",

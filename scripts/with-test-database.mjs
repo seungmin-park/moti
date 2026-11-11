@@ -6,7 +6,7 @@ import { basename, join, resolve } from "node:path";
 import pg from "pg";
 import { databaseConfigSchema, HTTP_APP_PORT, HTTP_OWNER_SUBJECT } from "../tests/support/database-config.ts";
 import { executeUntilClosed, withTermination } from "./process-lifecycle.mjs";
-import { assertDatabaseReport, assertHttpReport } from "./assert-test-report.mjs";
+import { assertBrowserReport, assertDatabaseReport, assertHttpReport } from "./assert-test-report.mjs";
 import { readNativeTestState } from "./native-test-state.mjs";
 
 const root = resolve(import.meta.dirname, "..");
@@ -101,6 +101,20 @@ process.exitCode = await withTermination(async (signal) => {
     const http = await vitest("http", ["tests/http"]);
     if (http.exitCode !== 0) return http.exitCode;
     console.log(`Verified ${assertHttpReport(http.report)} HTTP tests against the running app with no skipped assertions.`);
+
+    console.log("Running browser checks on desktop Chromium and iPhone WebKit against the same app and stack.");
+    const browserReport = join(directory, "browser-results.json");
+    const browserExit = await new Promise((resolveExit, reject) => {
+      const child = spawn(process.execPath, [join(root, "node_modules/@playwright/test/cli.js"), "test",
+        "--config", "playwright.database.config.ts"], {
+        cwd: root, stdio: "inherit", signal, env: { ...testEnvironment, MOTI_BROWSER_REPORT: browserReport },
+      });
+      child.on("error", (error) => { if (!signal.aborted) reject(error); });
+      child.on("close", (code) => resolveExit(code ?? 1));
+    });
+    if (browserExit !== 0) return 1;
+    const browser = assertBrowserReport(JSON.parse(await readFile(browserReport, "utf8")));
+    console.log(`Verified ${browser} browser tests against the running app with no skipped assertions.`);
     return 0;
   } catch (error) {
     console.error(safeFailure(error));

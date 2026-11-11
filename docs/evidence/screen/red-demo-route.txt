@@ -1,0 +1,31 @@
+# npx playwright test tests/e2e/mockup.spec.ts --project=desktop-chromium (specs retargeted to /demo, no /demo route yet)
+# page snapshot from error-context.md:
+    - heading "404" [level=1] [ref=e4]
+    - heading "This page could not be found." [level=2] [ref=e6]
+
+  ✘  2 [desktop-chromium] › tests/e2e/mockup.spec.ts:3:1 › 검색, 필터, 빈 목록과 초기화 (5.4s)
+  ✘  3 [desktop-chromium] › tests/e2e/mockup.spec.ts:62:1 › 메모와 컬렉션을 유지하며 구매완료와 실행 취소를 한다 (30.1s)
+  ✘  1 [desktop-chromium] › tests/e2e/mockup.spec.ts:26:1 › 링크 저장 실패에도 원본 링크를 보존하고 중복을 방지한다 (30.1s)
+  ✘  4 [desktop-chromium] › tests/e2e/mockup.spec.ts:95:1 › 컬렉션 생성, 이름 변경, 빈 상태와 상품 묶기 (30.1s)
+  ✘  5 [desktop-chromium] › tests/e2e/mockup.spec.ts:159:1 › 대화상자를 키보드로 닫으면 초점이 돌아오고 가로 넘침이 없다 (9.7m)
+  ✘  6 [desktop-chromium] › tests/e2e/mockup.spec.ts:134:1 › 공유 저장 안내와 세 가지 결과는 예시임을 표시한다 (9.7m)
+    Error: expect(locator).toBeVisible() failed
+    Error: element(s) not found
+      - waiting for getByRole('heading', { name: '나의 위시리스트', exact: true })
+    Error: locator.click: Test timeout of 30000ms exceeded.
+      - waiting for getByRole('button', { name: '링크 추가', exact: true })
+    Error: locator.click: Test timeout of 30000ms exceeded.
+      - waiting for getByRole('button', { name: '무선 헤드폰 상세 보기' })
+    Error: locator.click: Test timeout of 30000ms exceeded.
+      - waiting for getByRole('button', { name: '컬렉션', exact: true }).visible()
+    Error: locator.click: Test timeout of 30000ms exceeded.
+      - waiting for getByRole('button', { name: '공유 저장', exact: true }).visible()
+    Error: locator.focus: Test timeout of 30000ms exceeded.
+      - waiting for getByRole('button', { name: '링크 추가', exact: true })
+  6 failed
+    [desktop-chromium] › tests/e2e/mockup.spec.ts:3:1 › 검색, 필터, 빈 목록과 초기화 ──────────────────────────
+    [desktop-chromium] › tests/e2e/mockup.spec.ts:26:1 › 링크 저장 실패에도 원본 링크를 보존하고 중복을 방지한다 ───────────
+    [desktop-chromium] › tests/e2e/mockup.spec.ts:62:1 › 메모와 컬렉션을 유지하며 구매완료와 실행 취소를 한다 ─────────────
+    [desktop-chromium] › tests/e2e/mockup.spec.ts:95:1 › 컬렉션 생성, 이름 변경, 빈 상태와 상품 묶기 ────────────────
+    [desktop-chromium] › tests/e2e/mockup.spec.ts:134:1 › 공유 저장 안내와 세 가지 결과는 예시임을 표시한다 ─────────────
+    [desktop-chromium] › tests/e2e/mockup.spec.ts:159:1 › 대화상자를 키보드로 닫으면 초점이 돌아오고 가로 넘침이 없다 ────────
