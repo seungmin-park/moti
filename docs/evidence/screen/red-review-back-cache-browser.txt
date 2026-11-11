@@ -1,0 +1,7 @@
+Not Red. The back step was run before the pageshow resume listener existed and passed on both projects.
+Without the fix a back/forward cache restore would stay on / with the product visible. The step passed, so in both Playwright browsers the back navigation loaded / again instead of restoring it from that cache (inferred from the result; the cause was not inspected). The step stays as a guard.
+
+Running 14 tests using 1 worker
+
+  ✓   5 [desktop-chromium] › tests/browser/library-screen.spec.ts:196:1 › 로그아웃하면 안내 없는 로그인 화면으로 가고 뒤로 가거나 보관함을 다시 열어도 로그인으로 돌아간다 (714ms)
+  ✓  12 [iphone-webkit] › tests/browser/library-screen.spec.ts:196:1 › 로그아웃하면 안내 없는 로그인 화면으로 가고 뒤로 가거나 보관함을 다시 열어도 로그인으로 돌아간다 (961ms)

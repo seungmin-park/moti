@@ -22,6 +22,15 @@ export function useLibraryScreen() {
   }, [send]);
 
   useEffect(() => {
+    // A page restored from the back/forward cache still holds the library read before a logout.
+    const resume = (event: PageTransitionEvent) => {
+      if (event.persisted) send({ type: "resume" });
+    };
+    window.addEventListener("pageshow", resume);
+    return () => window.removeEventListener("pageshow", resume);
+  }, [send]);
+
+  useEffect(() => {
     if (state.phase === "leaving") window.location.replace(state.to);
   }, [state]);
 

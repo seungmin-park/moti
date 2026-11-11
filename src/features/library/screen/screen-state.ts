@@ -27,6 +27,7 @@ export type ApiCall =
   | { type: "collection.create"; body: CollectionCreateRequest; from: "picker" | "dialog" };
 export type ScreenEvent =
   | { type: "retry" }
+  | { type: "resume" }
   | { type: "filter"; collectionId: string | null }
   | { type: "add.open" }
   | { type: "add.edit"; url?: string; option?: string }
@@ -250,9 +251,9 @@ export function transition(state: LibraryScreenState, event: ScreenEvent): Trans
       return failure.kind === "redirect" ? leave(failure.to) : stay({ phase: "failed", message: failure.message });
     }
     case "failed":
-      return event.type === "retry" ? initialScreen : stay(state);
+      return event.type === "retry" || event.type === "resume" ? initialScreen : stay(state);
     case "ready":
-      return onReady(state, event);
+      return event.type === "resume" ? initialScreen : onReady(state, event);
   }
 }
 

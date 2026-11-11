@@ -444,6 +444,26 @@ describe("로그인으로 떠나기", () => {
   });
 });
 
+describe("뒤로 가기 캐시에서 돌아온 화면", () => {
+  it("Given 보관함이나 실패 안내 When 페이지가 캐시에서 다시 보이면 Then 불러오는 중으로 돌아가 보관함을 다시 요청한다", () => {
+    for (const state of [
+      ready(),
+      ready({ collectionId: desk.id, refreshing: true }),
+      adding({}, { saving: true }),
+      ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null } }),
+      { phase: "failed", message: unavailable.message },
+    ] satisfies LibraryScreenState[]) {
+      expect(transition(state, { type: "resume" })).toEqual(initialScreen);
+    }
+  });
+
+  it("Given 불러오는 중이거나 떠나는 중 When 페이지가 캐시에서 다시 보이면 Then 아무것도 바꾸지 않는다", () => {
+    for (const state of [{ phase: "loading" }, { phase: "leaving", to: "/login" }] satisfies LibraryScreenState[]) {
+      expect(transition(state, { type: "resume" })).toEqual({ state, call: null });
+    }
+  });
+});
+
 describe("요청 실행", () => {
   it("Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다", async () => {
     const created = { ...desk, name: "주방" };

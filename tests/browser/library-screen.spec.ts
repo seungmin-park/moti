@@ -193,14 +193,25 @@ test("대화상자에서 만든 컬렉션으로 바로 거르고 다시 불러�
   expect(rows).toEqual([{ name: "주방" }]);
 });
 
-test("로그아웃하면 안내 없는 로그인 화면으로 가고 보관함을 다시 열어도 로그인으로 돌아간다", async ({ page, context }) => {
-  await signIn(context, fixture().owner);
+test("로그아웃하면 안내 없는 로그인 화면으로 가고 뒤로 가거나 보관함을 다시 열어도 로그인으로 돌아간다", async ({ page, context }) => {
+  const jar = await signIn(context, fixture().owner);
+  const option = "뒤로 가기 확인";
+  const saved = await fetch(new URL("/api/links", appUrl), {
+    method: "POST",
+    headers: { cookie: cookieHeader(jar), origin, "content-type": "application/json" },
+    body: JSON.stringify({ url: "https://shop.example/back", option, collectionIds: [] }),
+  });
+  expect(saved.status).toBe(201);
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("나의 위시리스트");
+  await expect(cards(page)).toContainText(option);
 
   await page.getByRole("button", { name: "로그아웃", exact: true }).filter({ visible: true }).click();
   await expect(page).toHaveURL(`${origin}/login`);
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+
+  await page.goBack({ waitUntil: "commit" });
+  await expect(page).toHaveURL(`${origin}/login`);
+  await expect(page.getByText(option)).toBeHidden();
 
   await page.goto("/");
   await expect(page).toHaveURL(`${origin}/login`);
