@@ -1,6 +1,6 @@
 # 목업 검증 기록
 
-실제 보관함 화면·로그인·`/demo` 이동(2b)의 검증은 [변경 기록](changes/screen.md)에 있다. 단위 262개, 실제 DB 43개, 실제 HTTP 10개, 실제 스택 브라우저 14개, 브라우저 e2e 50개가 통과했다. 목업은 이제 `/demo`에서 검토한다.
+실제 보관함 화면·로그인·`/demo` 이동(2b)의 검증은 [변경 기록](changes/screen.md)에 있다. 단위 267개, 실제 DB 43개, 실제 HTTP 10개, 실제 스택 브라우저 14개, 브라우저 e2e 50개가 통과했다. 목업은 이제 `/demo`에서 검토한다.
 
 최신 정렬·입력·컬렉션 개선 검증은 [변경 기록](changes/controls.md)에 있다. 중립 팔레트와 컬렉션 드롭다운·즉시 생성까지 반영한 뒤 순수 단위 33개와 PC·모바일 브라우저 40개를 통과했다. 최신 화면은 [정렬 메뉴](evidence/controls/desktop-sort.png)와 [컬렉션 생성](evidence/controls/mobile-create.png), 미리보기 주소는 `http://localhost:3105`다. 아래는 최초 목업 구현 시점의 기록이다.
 
