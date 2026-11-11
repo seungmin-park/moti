@@ -1,0 +1,87 @@
+$ npx vitest run src/features/metadata/infrastructure/address-policy.test.ts
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 0.0.0.0 (현재 네트워크 0/8) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 0.255.255.255 (현재 네트워크 0/8 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 10.0.0.1 (사설 10/8) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 10.255.255.255 (사설 10/8 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 100.64.0.1 (CGNAT 100.64/10) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 100.127.255.255 (CGNAT 100.64/10 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 127.0.0.1 (루프백 127/8) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 127.255.255.254 (루프백 127/8 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 169.254.169.254 (클라우드 메타데이터 169.254/16) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 169.254.0.1 (링크 로컬 169.254/16) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 172.16.0.1 (사설 172.16/12) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 172.31.255.255 (사설 172.16/12 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 192.0.0.1 (IETF 192.0.0/24) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 192.0.2.1 (문서 192.0.2/24) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 192.88.99.1 (6to4 중계 192.88.99/24) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 192.168.0.1 (사설 192.168/16) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 198.18.0.1 (벤치마크 198.18/15) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 198.19.255.255 (벤치마크 198.18/15 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 198.51.100.1 (문서 198.51.100/24) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 203.0.113.1 (문서 203.0.113/24) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 224.0.0.1 (멀티캐스트 224/4) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 239.255.255.255 (멀티캐스트 224/4 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 240.0.0.1 (예약 240/4) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given IPv4 255.255.255.255 (브로드캐스트) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 8.8.8.8 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 1.1.1.1 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 100.63.255.255 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 100.128.0.0 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 172.15.255.255 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 172.32.0.0 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 192.0.1.255 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 192.88.98.255 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 198.17.255.255 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 198.20.0.0 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 223.255.255.255 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv4 11.0.0.1 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given :: (미지정) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given ::1 (루프백) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given fe80::1 (링크 로컬) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given fc00::1 (고유 로컬) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given fd12:3456::1 (고유 로컬) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given ff02::1 (멀티캐스트) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 64:ff9b::7f00:1 (NAT64 루프백) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 64:ff9b::808:808 (NAT64 공인) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 64:ff9b:1::1 (로컬 NAT64) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 2001::1 (Teredo 2001::/23) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 2001:1ff::1 (2001::/23 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 2001:db8::1 (문서 2001:db8::/32) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 2002::1 (6to4 2002::/16) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 2002:7f00:1:: (6to4 루프백) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 3fff::1 (문서 3fff::/20) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 3fff:fff::1 (3fff::/20 끝) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given ::127.0.0.1 (IPv4 호환) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given ::ffff:127.0.0.1 (IPv4 매핑 루프백) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given ::ffff:7f00:1 (16진 IPv4 매핑 루프백) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given ::ffff:169.254.169.254 (IPv4 매핑 메타데이터) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given ::ffff:10.0.0.1 (IPv4 매핑 사설) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 4000::1 (2000::/3 밖) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given not-an-ip (주소가 아님) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given  (빈 값) When 확인하면 Then 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv6 2606:4700:4700::1111 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv6 2404:6800:4004:80a::200e When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv6 2001:200::1 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv6 3ffe::1 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 외부 주소 차단표 > Given 공인 IPv6 ::ffff:8.8.8.8 When 확인하면 Then 허용한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given 기본 포트의 도메인 When 확인하면 Then DNS 확인이 필요한 대상이다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given 공인 IP 주소 When 확인하면 Then 그 주소로 바로 연결한다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://127.0.0.1/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://2130706433/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://0x7f.1/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://017700000001/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://[::1]/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://[::ffff:7f00:1]/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://[::ffff:127.0.0.1]/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://169.254.169.254/latest/meta-data/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://[64:ff9b::a9fe:a9fe]/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://shop.example:8080/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given https://shop.example:80/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://8.8.8.8:22/ When 확인하면 Then 연결 전에 막는다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given ftp://shop.example/ When 확인하면 Then 열 수 없는 주소다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given file:///etc/passwd When 확인하면 Then 열 수 없는 주소다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://user:secret@shop.example/ When 확인하면 Then 열 수 없는 주소다
+ × src/features/metadata/infrastructure/address-policy.test.ts > 요청 대상 확인 > Given http://user@shop.example/ When 확인하면 Then 열 수 없는 주소다
+Error: not implemented
+ Test Files  1 failed (1)
+      Tests  83 failed (83)
