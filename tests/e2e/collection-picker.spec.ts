@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("컬렉션 드롭다운에서 검색하고 새 컬렉션을 만들어 함께 담는다", async ({ page }) => {
   await test.step("Given 링크와 옵션을 입력한 추가 창", async () => {
-    await page.goto("/");
+    await page.goto("/demo");
     await page.getByRole("button", { name: "링크 추가", exact: true }).click();
     await page.getByLabel("상품 링크").fill("https://example.com/inline-collection");
     await page.getByLabel("옵션 선택", { exact: true }).fill("크림 · 250mm");
@@ -36,7 +36,7 @@ test("컬렉션 드롭다운에서 검색하고 새 컬렉션을 만들어 함�
 });
 
 test("검색 Enter와 IME는 링크를 제출하지 않고 Escape는 드롭다운부터 닫는다", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   await page.getByRole("button", { name: "링크 추가", exact: true }).click();
   await page.getByLabel("상품 링크").fill("https://example.com/picker-keyboard");
   const trigger = page.getByRole("button", { name: /^담을 컬렉션:/ });
@@ -82,7 +82,7 @@ test("검색 Enter와 IME는 링크를 제출하지 않고 Escape는 드롭다�
 });
 
 test("이름의 공백·중복·길이를 처리하고 바깥 클릭 후에도 선택을 유지한다", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/demo");
   await page.getByRole("button", { name: "링크 추가", exact: true }).click();
   const trigger = page.getByRole("button", { name: /^담을 컬렉션:/ });
   await trigger.click();
@@ -110,7 +110,7 @@ test("이름의 공백·중복·길이를 처리하고 바깥 클릭 후에도 �
 
 test("많은 컬렉션과 긴 이름도 좁은 추가 창 안에서 선택할 수 있다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/demo");
   await page.getByRole("button", { name: "링크 추가", exact: true }).click();
   const trigger = page.getByRole("button", { name: /^담을 컬렉션:/ });
   await trigger.click();

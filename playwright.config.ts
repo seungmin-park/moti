@@ -21,5 +21,6 @@ export default defineConfig({
     url: "http://127.0.0.1:3101",
     reuseExistingServer: false,
     timeout: 60000,
+    env: { SUPABASE_URL: "", SUPABASE_ANON_KEY: "" },
   },
 });
