@@ -6,25 +6,37 @@ import type {
   LibraryReadResponse,
   LinkSaveRequest,
   LinkSaveResponse,
+  MetadataRetryRequest,
+  MetadataRetryResponse,
   ProductResponse,
 } from "../presentation/library-dto";
 import type { ApiFailure, ApiOutcome, FieldName, LibraryApi } from "./library-api";
+import { canRetry } from "./product-view";
 
 export type LinkDraft = { url: string; option: string; collectionIds: string[] };
 export type FormError = { field: FieldName | null; message: string };
 export type ScreenDialog =
   | { kind: "add"; draft: LinkDraft; saving: boolean; creating: string | null; error: FormError | null }
   | { kind: "collection"; name: string; saving: boolean; error: FormError | null }
-  | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null };
+  | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; error: string | null };
 export type LibraryScreenState =
   | { phase: "loading" }
   | { phase: "failed"; message: string }
-  | { phase: "ready"; library: LibraryReadResponse; collectionId: string | null; dialog: ScreenDialog | null; refreshing: boolean }
+  | {
+    phase: "ready";
+    library: LibraryReadResponse;
+    collectionId: string | null;
+    dialog: ScreenDialog | null;
+    refreshing: boolean;
+    retrying: string | null;
+  }
   | { phase: "leaving"; to: string };
 export type ApiCall =
   | { type: "library.read" }
   | { type: "link.save"; body: LinkSaveRequest }
-  | { type: "collection.create"; body: CollectionCreateRequest; from: "picker" | "dialog" };
+  | { type: "collection.create"; body: CollectionCreateRequest; from: "picker" | "dialog" }
+  | { type: "metadata.retry"; productId: string; body: MetadataRetryRequest }
+  | { type: "library.poll" };
 export type ScreenEvent =
   | { type: "retry" }
   | { type: "resume" }
@@ -41,7 +53,11 @@ export type ScreenEvent =
   | { type: "dialog.close" }
   | { type: "library.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "link.settled"; outcome: ApiOutcome<LinkSaveResponse> }
-  | { type: "collection.settled"; from: "picker" | "dialog"; outcome: ApiOutcome<CollectionCreateResponse> };
+  | { type: "collection.settled"; from: "picker" | "dialog"; outcome: ApiOutcome<CollectionCreateResponse> }
+  | { type: "metadata.retry"; productId: string }
+  | { type: "metadata.settled"; productId: string; outcome: ApiOutcome<MetadataRetryResponse> }
+  | { type: "poll" }
+  | { type: "poll.settled"; outcome: ApiOutcome<LibraryReadResponse> };
 export type Transition = { state: LibraryScreenState; call: ApiCall | null };
 
 export const initialScreen: Transition = { state: { phase: "loading" }, call: { type: "library.read" } };
@@ -72,6 +88,52 @@ function including(ids: string[], id: string): string[] {
 
 function upsert(products: ProductResponse[], product: ProductResponse): ProductResponse[] {
   return [product, ...products.filter((item) => item.id !== product.id)];
+}
+
+function replace(products: ProductResponse[], product: ProductResponse): ProductResponse[] {
+  return products.map((item) => (item.id === product.id ? product : item));
+}
+
+const phaseOrder: Record<ProductResponse["metadata"]["phase"], number> = { queued: 0, running: 1, ready: 2, failed: 2 };
+
+// A poll can arrive after a newer save or retry; only collection progress moves forward on screen.
+function isLater(polled: ProductResponse["metadata"], shown: ProductResponse["metadata"]): boolean {
+  if (polled.generation !== shown.generation) return polled.generation > shown.generation;
+  return phaseOrder[polled.phase] >= phaseOrder[shown.phase];
+}
+
+function withProgress(products: ProductResponse[], polled: ProductResponse[]): ProductResponse[] {
+  const latest = new Map(polled.map((product) => [product.id, product]));
+  return products.map((product) => {
+    const next = latest.get(product.id);
+    if (!next || !isLater(next.metadata, product.metadata)) return product;
+    return { ...product, title: next.title, metadata: next.metadata, lastSuccessfulPrice: next.lastSuccessfulPrice };
+  });
+}
+
+function withDetailError(dialog: ScreenDialog | null, error: string | null): ScreenDialog | null {
+  return dialog?.kind === "detail" ? { ...dialog, error } : dialog;
+}
+
+function onRetry(state: Ready, productId: string): Transition {
+  const product = state.library.products.find((item) => item.id === productId);
+  if (state.retrying !== null || state.refreshing || !product || !canRetry(product)) return stay(state);
+  return {
+    state: { ...state, retrying: productId, dialog: withDetailError(state.dialog, null) },
+    call: { type: "metadata.retry", productId, body: { generation: product.metadata.generation } },
+  };
+}
+
+function onRetried(state: Ready, outcome: ApiOutcome<MetadataRetryResponse>): Transition {
+  const next: Ready = { ...state, retrying: null };
+  if (outcome.ok) {
+    return stay({ ...next, library: { ...next.library, products: replace(next.library.products, outcome.value.product) } });
+  }
+  const { failure } = outcome;
+  if (failure.kind === "redirect") return leave(failure.to);
+  const dialog = withDetailError(next.dialog, failure.message);
+  if (failure.kind === "stale") return { state: { ...next, dialog, refreshing: true }, call: refresh };
+  return stay({ ...next, dialog });
 }
 
 function withCollection(library: LibraryReadResponse, collection: CollectionCreateResponse): LibraryReadResponse {
@@ -187,7 +249,7 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       return stay({ ...state, dialog: { kind: "collection", name: "", saving: false, error: null } });
     case "detail.open":
       if (busy(dialog)) return stay(state);
-      return stay({ ...state, dialog: { kind: "detail", productId: event.productId, arrival: null } });
+      return stay({ ...state, dialog: { kind: "detail", productId: event.productId, arrival: null, error: null } });
     case "dialog.close":
       return busy(dialog) ? stay(state) : stay({ ...state, dialog: null });
     case "library.settled":
@@ -199,12 +261,23 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
         return stay({
           ...state,
           library: { ...state.library, products: upsert(state.library.products, product) },
-          dialog: dialog?.kind === "add" ? { kind: "detail", productId: product.id, arrival: kind } : dialog,
+          dialog: dialog?.kind === "add" ? { kind: "detail", productId: product.id, arrival: kind, error: null } : dialog,
         });
       }
       if (dialog?.kind !== "add") return leaveOrStay(state, event.outcome.failure);
       return failForm(state, event.outcome.failure, null, (error) => ({ ...dialog, saving: false, error }));
     }
+    case "metadata.retry":
+      return onRetry(state, event.productId);
+    case "metadata.settled":
+      return onRetried(state, event.outcome);
+    case "poll":
+      return { state, call: { type: "library.poll" } };
+    case "poll.settled":
+      if (event.outcome.ok) {
+        return stay({ ...state, library: { ...state.library, products: withProgress(state.library.products, event.outcome.value.products) } });
+      }
+      return leaveOrStay(state, event.outcome.failure);
     case "collection.settled": {
       if (event.outcome.ok) {
         const collection = event.outcome.value;
@@ -245,7 +318,7 @@ export function transition(state: LibraryScreenState, event: ScreenEvent): Trans
     case "loading": {
       if (event.type !== "library.settled") return stay(state);
       if (event.outcome.ok) {
-        return stay({ phase: "ready", library: event.outcome.value, collectionId: null, dialog: null, refreshing: false });
+        return stay({ phase: "ready", library: event.outcome.value, collectionId: null, dialog: null, refreshing: false, retrying: null });
       }
       const { failure } = event.outcome;
       return failure.kind === "redirect" ? leave(failure.to) : stay({ phase: "failed", message: failure.message });
@@ -265,7 +338,21 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       return { type: "link.settled", outcome: await api.saveLink(call.body) };
     case "collection.create":
       return { type: "collection.settled", from: call.from, outcome: await api.createCollection(call.body) };
+    case "metadata.retry":
+      return { type: "metadata.settled", productId: call.productId, outcome: await api.retryMetadata(call.productId, call.body) };
+    case "library.poll":
+      return { type: "poll.settled", outcome: await api.read() };
   }
+}
+
+export const MAX_POLLS = 40;
+const pollDelays = [1500, 2000, 3000, 5000, 8000];
+
+export function pollDelay(state: LibraryScreenState, polls: number): number | null {
+  if (state.phase !== "ready" || polls >= MAX_POLLS) return null;
+  const waiting = state.library.products.some(({ metadata }) =>
+    (metadata.phase === "queued" || metadata.phase === "running") && !metadata.stalled);
+  return waiting ? pollDelays[Math.min(polls, pollDelays.length - 1)] : null;
 }
 
 export function visibleProducts(library: LibraryReadResponse, collectionId: string | null): ProductResponse[] {

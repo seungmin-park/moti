@@ -5,6 +5,7 @@ import {
   errorResponseSchema,
   libraryReadResponseSchema,
   linkSaveResponseSchema,
+  metadataRetryResponseSchema,
   type CollectionCreateRequest,
   type CollectionCreateResponse,
   type ErrorCode,
@@ -12,6 +13,8 @@ import {
   type LibraryReadResponse,
   type LinkSaveRequest,
   type LinkSaveResponse,
+  type MetadataRetryRequest,
+  type MetadataRetryResponse,
 } from "../presentation/library-dto";
 
 export type FieldName = "url" | "option" | "collection";
@@ -21,11 +24,12 @@ export type ApiFailure =
   | { kind: "stale"; message: string }
   | { kind: "unavailable"; message: string };
 export type ApiOutcome<T> = { ok: true; value: T } | { ok: false; failure: ApiFailure };
-export type Endpoint = "library.read" | "link.save" | "collection.create";
+export type Endpoint = "library.read" | "link.save" | "collection.create" | "metadata.retry";
 export type LibraryApi = {
   read(): Promise<ApiOutcome<LibraryReadResponse>>;
   saveLink(body: LinkSaveRequest): Promise<ApiOutcome<LinkSaveResponse>>;
   createCollection(body: CollectionCreateRequest): Promise<ApiOutcome<CollectionCreateResponse>>;
+  retryMetadata(productId: string, body: MetadataRetryRequest): Promise<ApiOutcome<MetadataRetryResponse>>;
 };
 
 const connection: ApiFailure = { kind: "unavailable", message: "연결을 확인하고 다시 시도해 주세요." };
@@ -94,6 +98,19 @@ const failures: Record<Endpoint, Mapping> = {
     product_missing: retryLater,
     metadata_not_retryable: retryLater,
   },
+  "metadata.retry": {
+    ...session,
+    storage_unavailable: retryLater,
+    cross_origin: reload,
+    unsupported_media_type: retryLater,
+    payload_too_large: retryLater,
+    invalid_input: reload,
+    collection_missing: retryLater,
+    collection_duplicate: retryLater,
+    identity_conflict: retryLater,
+    product_missing: stale("상품을 찾을 수 없어요. 목록을 새로 불러왔어요."),
+    metadata_not_retryable: stale("상품 상태가 바뀌었어요. 목록을 새로 불러왔어요."),
+  },
 };
 
 export function toApiFailure(endpoint: Endpoint, status: number, body: unknown): ApiFailure {
@@ -141,6 +158,9 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
     ]),
     createCollection: (body) => request("collection.create", "/api/collections", post(body), [
       { status: 201, parse: parsed(collectionCreateResponseSchema) },
+    ]),
+    retryMetadata: (productId, body) => request("metadata.retry", `/api/products/${encodeURIComponent(productId)}/metadata`, post(body), [
+      { status: 202, parse: parsed(metadataRetryResponseSchema) },
     ]),
   };
 }

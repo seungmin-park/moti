@@ -67,6 +67,9 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
         product={product}
         collections={library.collections}
         arrival={dialog.arrival}
+        retrying={state.retrying === product.id}
+        error={dialog.error}
+        onRetry={() => send({ type: "metadata.retry", productId: product.id })}
         onClose={() => send({ type: "dialog.close" })}
       />
     ) : null;

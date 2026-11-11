@@ -94,6 +94,19 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     product_missing: { kind: "unavailable", message: retryLater },
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
   },
+  "metadata.retry": {
+    ...signedIn,
+    storage_unavailable: { kind: "unavailable", message: retryLater },
+    cross_origin: { kind: "unavailable", message: reload },
+    unsupported_media_type: { kind: "unavailable", message: retryLater },
+    payload_too_large: { kind: "unavailable", message: retryLater },
+    invalid_input: { kind: "unavailable", message: reload },
+    collection_missing: { kind: "unavailable", message: retryLater },
+    collection_duplicate: { kind: "unavailable", message: retryLater },
+    identity_conflict: { kind: "unavailable", message: retryLater },
+    product_missing: { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." },
+    metadata_not_retryable: { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." },
+  },
 };
 
 function errorBody(endpoint: Endpoint, code: ErrorCode) {
@@ -183,6 +196,27 @@ describe("보관함 API 클라이언트", () => {
     expect(init?.method).toBe("POST");
     expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
     expect(JSON.parse(String(init?.body))).toEqual({ name: "책상" });
+  });
+
+  it("Given 다시 가져오기 When 요청하면 Then 상품 경로에 세대를 보내고 202 상품을 돌려준다", async () => {
+    const { fetcher, api } = respond({ product }, { status: 202 });
+    await expect(api.retryMetadata(product.id, { generation: 1 })).resolves.toEqual({ ok: true, value: { product } });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe(`/api/products/${product.id}/metadata`);
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({ generation: 1 });
+  });
+
+  it("Given 다시 가져오기에 202가 아닌 성공 코드 When 요청하면 Then 연결 안내로 실패한다", async () => {
+    const { api } = respond({ product }, { status: 200 });
+    await expect(api.retryMetadata(product.id, { generation: 1 })).resolves.toEqual({ ok: false, failure: { kind: "unavailable", message: connection } });
+  });
+
+  it("Given 경로에 쓸 수 없는 문자가 섞인 id When 다시 가져오면 Then 경로 조각으로 인코딩한다", async () => {
+    const { fetcher, api } = respond({ product }, { status: 202 });
+    await api.retryMetadata("../library", { generation: 1 });
+    expect(fetcher.mock.calls[0][0]).toBe("/api/products/..%2Flibrary/metadata");
   });
 
   it("Given 계약과 다른 200 본문 When 보관함을 읽으면 Then 연결 안내로 실패한다", async () => {
