@@ -1,17 +1,26 @@
 import { cookies } from "next/headers";
+import { after } from "next/server";
 import { decideAccess } from "@/features/auth/domain/access";
 import {
+  createAccessTokenClient,
   createSupabaseServerClient,
   exchangeCode,
+  readAccessToken,
   readAuthConfig,
   readGoogleSession,
   signOut,
   startGoogleLogin,
+  type AuthConfig,
 } from "@/features/auth/infrastructure/supabase-auth";
 import type { AuthRequestContext } from "@/features/auth/presentation/auth-handlers";
 import { createLibraryService } from "@/features/library/application/library-service";
 import { createSupabaseLibraryStore } from "@/features/library/infrastructure/supabase-library-store";
 import type { LibraryRequestContext } from "@/features/library/presentation/library-handlers";
+import { createCollectionRunner, type CollectionRequest } from "@/features/metadata/application/collection";
+import { strictFetchPolicy } from "@/features/metadata/infrastructure/address-policy";
+import { readProductPage } from "@/features/metadata/infrastructure/html-reader";
+import { createSafePageSource } from "@/features/metadata/infrastructure/safe-fetch";
+import { createSupabaseCollectionStore } from "@/features/metadata/infrastructure/supabase-collection-store";
 
 async function connect() {
   const config = readAuthConfig(process.env);
@@ -24,6 +33,17 @@ function unavailable(): never {
   throw new Error("Supabase 설정이 없습니다.");
 }
 
+// Cookie writes throw once the response is sent, so the collection run never reuses the cookie client.
+function scheduleCollection(config: AuthConfig, accessToken: string | null, request: CollectionRequest) {
+  if (!accessToken) return;
+  const runner = createCollectionRunner({
+    store: createSupabaseCollectionStore(createAccessTokenClient(config, accessToken)),
+    source: createSafePageSource({ policy: strictFetchPolicy }),
+    read: readProductPage,
+  });
+  after(() => runner.run(request));
+}
+
 export async function libraryContext(): Promise<LibraryRequestContext> {
   const connection = await connect();
   if (!connection) {
@@ -31,13 +51,19 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
       access: { kind: "unconfigured" },
       service: createLibraryService({ snapshot: unavailable, saveLink: unavailable, createCollection: unavailable }),
       signOut: async () => {},
+      collect: () => {},
+      retry: unavailable,
     };
   }
   const { config, client } = connection;
+  const access = decideAccess(await readGoogleSession(client), config.ownerSubject);
+  const accessToken = access.kind === "allowed" ? await readAccessToken(client) : null;
   return {
-    access: decideAccess(await readGoogleSession(client), config.ownerSubject),
+    access,
     service: createLibraryService(createSupabaseLibraryStore(client)),
     signOut: () => signOut(client),
+    collect: (request) => scheduleCollection(config, accessToken, request),
+    retry: (command) => createSupabaseCollectionStore(client).retry(command),
   };
 }
 

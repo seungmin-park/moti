@@ -2,12 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 import type { Access } from "../../auth/domain/access";
 import { toLinkSaveCommand } from "../application/commands";
 import { LibraryError, type Collection, type CollectionId, type Product, type ProductId } from "../domain/library";
+import type { CollectionRequest } from "../../metadata/application/collection";
+import type { MetadataRetryCommand, MetadataRetryResult } from "../../metadata/application/commands";
 import { createLibraryHandlers } from "./library-handlers";
 import {
   collectionCreateResponseSchema,
   errorResponseSchema,
   libraryReadResponseSchema,
   linkSaveResponseSchema,
+  metadataRetryResponseSchema,
 } from "./library-dto";
 
 const origin = "https://moti.test";
@@ -43,8 +46,14 @@ function given(access: Access) {
     createCollection: vi.fn(async () => collection),
   };
   const signOut = vi.fn(async () => {});
-  const handlers = createLibraryHandlers(async () => ({ access, service, signOut }));
-  return { handlers, service, signOut };
+  // collect is a mock: scheduling the collection is itself the requirement, its work happens after the response.
+  const collect = vi.fn<(request: CollectionRequest) => void>();
+  const retry = vi.fn(async (command: MetadataRetryCommand): Promise<MetadataRetryResult> => ({
+    kind: "requeued",
+    product: { ...product, id: command.productId, metadata: { phase: "queued", generation: 2, attempts: 0, stalled: false } },
+  }));
+  const handlers = createLibraryHandlers(async () => ({ access, service, signOut, collect, retry }));
+  return { handlers, service, signOut, collect, retry };
 }
 
 const get = () => new Request(`${origin}/api/library`);
@@ -120,6 +129,39 @@ describe("POST /api/links", () => {
     expect(response.status).toBe(201);
     expect(linkSaveResponseSchema.parse(await response.json())).toEqual({ kind: "added", product });
     expect(service.saveLink).toHaveBeenCalledWith(toLinkSaveCommand(link));
+  });
+
+  it("Given 수집 대기인 새 상품 When 링크를 저장하면 Then 응답 뒤에 그 세대의 수집을 한 번 예약한다", async () => {
+    const { handlers, collect } = given(allowed);
+    const response = await handlers.postLink(post("/api/links", link));
+    expect(response.status).toBe(201);
+    expect(collect).toHaveBeenCalledExactlyOnceWith({ productId: product.id, generation: 1 });
+  });
+
+  it("Given 아직 수집 대기인 중복 상품 When 다시 저장하면 Then 수집을 다시 예약한다", async () => {
+    const { handlers, service, collect } = given(allowed);
+    service.saveLink.mockResolvedValueOnce({ kind: "duplicate" as never, product });
+    await handlers.postLink(post("/api/links", link));
+    expect(collect).toHaveBeenCalledExactlyOnceWith({ productId: product.id, generation: 1 });
+  });
+
+  it.each<Product["metadata"]>([
+    { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
+    { phase: "failed", generation: 1, attempts: 1, errorCode: "timeout" },
+    { phase: "running", generation: 1, attempts: 1, stalled: false },
+  ])("Given 수집 단계가 $phase인 중복 상품 When 다시 저장하면 Then 수집을 예약하지 않는다", async (metadata) => {
+    const { handlers, service, collect } = given(allowed);
+    service.saveLink.mockResolvedValueOnce({ kind: "duplicate" as never, product: { ...product, metadata } as never });
+    const response = await handlers.postLink(post("/api/links", link));
+    expect(response.status).toBe(200);
+    expect(collect).not.toHaveBeenCalled();
+  });
+
+  it("Given 저장 실패 When 링크를 저장하면 Then 수집을 예약하지 않는다", async () => {
+    const { handlers, service, collect } = given(allowed);
+    service.saveLink.mockRejectedValueOnce(new LibraryError("collection_missing", "없어요."));
+    await handlers.postLink(post("/api/links", link));
+    expect(collect).not.toHaveBeenCalled();
   });
 
   it("Given 이미 저장한 링크 When 다시 저장하면 Then 200과 기존 상품을 돌려준다", async () => {
@@ -237,6 +279,94 @@ describe("POST /api/collections", () => {
     const response = await handlers.postCollection(post("/api/collections", { name: "책상" }));
     expect(response.status).toBe(401);
     expect(service.createCollection).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/products/{productId}/metadata", () => {
+  const productId = product.id;
+  const retryRequest = (body: unknown = { generation: 1 }, headers: Record<string, string> = {}, id: string = productId) =>
+    [post(`/api/products/${id}/metadata`, body, headers), { params: Promise.resolve({ productId: id }) }] as const;
+
+  it("Given 실패한 상품 When 다시 가져오면 Then 202와 새 세대 상품을 돌려주고 그 세대의 수집을 예약한다", async () => {
+    const { handlers, retry, collect } = given(allowed);
+    const response = await handlers.postMetadataRetry(...retryRequest({ generation: 1 }, {}, productId.toUpperCase()));
+    expect(response.status).toBe(202);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const body = metadataRetryResponseSchema.parse(await response.json());
+    expect(body.product).toMatchObject({ id: productId, metadata: { phase: "queued", generation: 2, stalled: false } });
+    expect(retry).toHaveBeenCalledExactlyOnceWith({ productId, expectedGeneration: 1 });
+    expect(collect).toHaveBeenCalledExactlyOnceWith({ productId, generation: 2 });
+  });
+
+  it("Given 멈춘 작업 When 다시 가져오면 Then 같은 세대의 수집을 다시 예약한다", async () => {
+    const { handlers, retry, collect } = given(allowed);
+    retry.mockResolvedValueOnce({ kind: "resumed", product: { ...product, metadata: { phase: "queued", generation: 1, attempts: 1, stalled: true } } });
+    const response = await handlers.postMetadataRetry(...retryRequest());
+    expect(response.status).toBe(202);
+    expect(collect).toHaveBeenCalledExactlyOnceWith({ productId, generation: 1 });
+  });
+
+  it.each([
+    ["product_missing", 404],
+    ["metadata_not_retryable", 409],
+    ["storage_unavailable", 503],
+  ] as const)("Given 저장소가 %s로 거절 When 다시 가져오면 Then %i이고 수집을 예약하지 않는다", async (code, status) => {
+    const { handlers, retry, collect } = given(allowed);
+    retry.mockRejectedValueOnce(new LibraryError(code, "거절"));
+    const response = await handlers.postMetadataRetry(...retryRequest());
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(collect).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["UUID가 아닌 상품", { generation: 1 }, "not-a-uuid"],
+    ["0 세대", { generation: 0 }, productId],
+    ["소수 세대", { generation: 1.5 }, productId],
+    ["문자열 세대", { generation: "1" }, productId],
+    ["세대 누락", {}, productId],
+    ["알 수 없는 필드", { generation: 1, force: true }, productId],
+    ["깨진 JSON", "{", productId],
+  ])("Given %s When 다시 가져오면 Then 400이고 저장소를 부르지 않는다", async (_, body, id) => {
+    const { handlers, retry, collect } = given(allowed);
+    const response = await handlers.postMetadataRetry(...retryRequest(body, {}, id));
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).error).toBe("invalid_input");
+    expect(retry).not.toHaveBeenCalled();
+    expect(collect).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 출처의 요청 When 다시 가져오면 Then 403이고 세션과 저장소를 건드리지 않는다", async () => {
+    const { handlers, retry, signOut } = given(allowed);
+    const response = await handlers.postMetadataRetry(...retryRequest({ generation: 1 }, { origin: "https://evil.test" }));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(retry).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it("Given 세션 없음 When 다시 가져오면 Then 401이고 저장소를 부르지 않는다", async () => {
+    const { handlers, retry } = given({ kind: "signed_out" });
+    const response = await handlers.postMetadataRetry(...retryRequest());
+    expect(response.status).toBe(401);
+    expect(retry).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 Google 계정 When 다시 가져오면 Then 403이고 세션을 한 번 종료한다", async () => {
+    const { handlers, retry, signOut, collect } = given({ kind: "forbidden" });
+    const response = await handlers.postMetadataRetry(...retryRequest());
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("forbidden");
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(retry).not.toHaveBeenCalled();
+    expect(collect).not.toHaveBeenCalled();
+  });
+
+  it("Given JSON이 아닌 본문 When 다시 가져오면 Then 415다", async () => {
+    const { handlers, retry } = given(allowed);
+    const response = await handlers.postMetadataRetry(...retryRequest({ generation: 1 }, { "content-type": "text/plain" }));
+    expect(response.status).toBe(415);
+    expect(retry).not.toHaveBeenCalled();
   });
 });
 

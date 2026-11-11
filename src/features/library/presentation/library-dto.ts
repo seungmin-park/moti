@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { MetadataRetryResult } from "../../metadata/application/commands";
 import type { LinkSaveResult } from "../application/commands";
 import { collectionErrorCodes } from "../../metadata/domain/collection-error";
 import type { Collection, Library, Product } from "../domain/library";
@@ -68,6 +69,8 @@ export const linkSaveResponseSchema = z.object({
 }).strict();
 
 export const collectionCreateRequestSchema = z.object({ name: z.string() }).strict();
+export const metadataRetryRequestSchema = z.object({ generation: z.number().int().min(1) }).strict();
+export const metadataRetryResponseSchema = z.object({ product: productResponseSchema }).strict();
 export const collectionCreateResponseSchema = collectionResponseSchema;
 
 export const errorCodes = [
@@ -100,6 +103,8 @@ export type LinkSaveRequest = z.infer<typeof linkSaveRequestSchema>;
 export type LinkSaveResponse = z.infer<typeof linkSaveResponseSchema>;
 export type CollectionCreateRequest = z.infer<typeof collectionCreateRequestSchema>;
 export type CollectionCreateResponse = z.infer<typeof collectionCreateResponseSchema>;
+export type MetadataRetryRequest = z.infer<typeof metadataRetryRequestSchema>;
+export type MetadataRetryResponse = z.infer<typeof metadataRetryResponseSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 export function toCollectionResponse(collection: Collection): CollectionResponse {
@@ -146,4 +151,8 @@ export function toLibraryReadResponse(library: Library): LibraryReadResponse {
 
 export function toLinkSaveResponse(result: LinkSaveResult): LinkSaveResponse {
   return { kind: result.kind, product: toProductResponse(result.product) };
+}
+
+export function toMetadataRetryResponse(result: MetadataRetryResult): MetadataRetryResponse {
+  return { product: toProductResponse(result.product) };
 }

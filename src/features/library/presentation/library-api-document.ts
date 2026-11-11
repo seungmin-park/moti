@@ -7,12 +7,15 @@ import {
   libraryReadResponseSchema,
   linkSaveRequestSchema,
   linkSaveResponseSchema,
+  metadataRetryRequestSchema,
+  metadataRetryResponseSchema,
 } from "./library-dto";
 
 type Route = {
   method: "get" | "post";
   path: string;
   summary: string;
+  parameters?: { name: string; description: string; schema: z.ZodType }[];
   request?: z.ZodType;
   responses: Record<number, { description: string; schema: z.ZodType }>;
 };
@@ -61,6 +64,20 @@ export const libraryRoutes: Route[] = [
       409: { description: "대소문자를 무시한 같은 이름이 있다.", schema: errorResponseSchema },
     },
   },
+  {
+    method: "post",
+    path: "/api/products/{productId}/metadata",
+    summary: "수집에 실패했거나 멈춘 상품의 정보를 다시 가져온다. 수집은 응답 뒤에 실행한다.",
+    parameters: [{ name: "productId", description: "상품 ID", schema: z.uuid() }],
+    request: metadataRetryRequestSchema,
+    responses: {
+      202: { description: "MetadataRetryResponse. 실패했거나 시도를 다 쓴 상품은 다음 세대로 대기하고, 시도가 남은 멈춘 작업은 같은 세대로 다시 시작한다.", schema: metadataRetryResponseSchema },
+      ...writeFailures,
+      ...denied,
+      404: { description: "상품이 없다.", schema: errorResponseSchema },
+      409: { description: "화면의 세대가 다르거나 이미 수집 중·대기 중·완료 상태다.", schema: errorResponseSchema },
+    },
+  },
 ];
 
 export function buildApiDocument() {
@@ -69,6 +86,15 @@ export function buildApiDocument() {
     paths[route.path] ??= {};
     paths[route.path][route.method] = {
       summary: route.summary,
+      ...(route.parameters && {
+        parameters: route.parameters.map((parameter) => ({
+          name: parameter.name,
+          in: "path",
+          required: true,
+          description: parameter.description,
+          schema: z.toJSONSchema(parameter.schema),
+        })),
+      }),
       ...(route.request && {
         requestBody: {
           required: true,
