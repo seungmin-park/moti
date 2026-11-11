@@ -323,6 +323,7 @@ describe("POST /api/products/{productId}/metadata", () => {
     ["UUID가 아닌 상품", { generation: 1 }, "not-a-uuid"],
     ["0 세대", { generation: 0 }, productId],
     ["소수 세대", { generation: 1.5 }, productId],
+    ["저장할 수 있는 범위를 넘는 세대", { generation: 2147483648 }, productId],
     ["문자열 세대", { generation: "1" }, productId],
     ["세대 누락", {}, productId],
     ["알 수 없는 필드", { generation: 1, force: true }, productId],

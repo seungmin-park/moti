@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { MetadataRetryResult } from "../../metadata/application/commands";
+import { MAX_METADATA_GENERATION, type MetadataRetryResult } from "../../metadata/application/commands";
 import type { LinkSaveResult } from "../application/commands";
 import { collectionErrorCodes } from "../../metadata/domain/collection-error";
 import type { Collection, Library, Product } from "../domain/library";
@@ -69,7 +69,7 @@ export const linkSaveResponseSchema = z.object({
 }).strict();
 
 export const collectionCreateRequestSchema = z.object({ name: z.string() }).strict();
-export const metadataRetryRequestSchema = z.object({ generation: z.number().int().min(1) }).strict();
+export const metadataRetryRequestSchema = z.object({ generation: z.number().int().min(1).max(MAX_METADATA_GENERATION) }).strict();
 export const metadataRetryResponseSchema = z.object({ product: productResponseSchema }).strict();
 export const collectionCreateResponseSchema = collectionResponseSchema;
 

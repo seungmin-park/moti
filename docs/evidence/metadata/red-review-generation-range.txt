@@ -1,0 +1,10 @@
+$ npx vitest run src/features/metadata/application/commands.test.ts src/features/library/presentation/library-handlers.test.ts
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/metadata/application/commands.test.ts > 다시 가져오기 명령 > Given 저장할 수 있는 범위를 넘는 세대 When 명령을 만들면 Then 잘못된 입력으로 거절한다
+AssertionError: expected undefined to be an instance of LibraryError
+ ❯ src/features/metadata/application/commands.test.ts:16:19
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/products/{productId}/metadata > Given 저장할 수 있는 범위를 넘는 세대 When 다시 가져오면 Then 400이고 저장소를 부르지 않는다
+AssertionError: expected 202 to be 400 // Object.is equality
+ ❯ src/features/library/presentation/library-handlers.test.ts:334:29
+ Test Files  2 failed (2)
+      Tests  2 failed | 53 passed (55)
