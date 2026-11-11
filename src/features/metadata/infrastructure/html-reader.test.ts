@@ -103,4 +103,21 @@ describe("상품 페이지 읽기", () => {
     const page = `<meta property="og:image" content="https://cdn.shop.example/${"a".repeat(4100)}.jpg"><title>긴 이미지</title>`;
     expect(readProductPage(page, pageUrl)).toEqual({ title: "긴 이미지", prices: [], imageUrl: null });
   });
+
+  it.each([
+    ["사용자와 비밀번호", "//u:p@cdn.shop.example/a.jpg"],
+    ["사용자만", "https://u@cdn.shop.example/a.jpg"],
+    ["비밀번호만", "https://:p@cdn.shop.example/a.jpg"],
+  ])("Given 계정 정보(%s)가 든 og:image When 읽으면 Then 이미지만 버리고 이름과 가격은 쓴다", (_, image) => {
+    const page = `<meta property="og:image" content="${image}"><meta property="og:title" content="램프">`
+      + `<meta property="product:price:amount" content="59000"><meta property="product:price:currency" content="KRW">`;
+    expect(readProductPage(page, pageUrl)).toEqual({
+      title: "램프", prices: [{ amount: "59000", currency: "KRW" }], imageUrl: null,
+    });
+  });
+
+  it("Given 계정 정보가 든 JSON-LD 이미지 When 읽으면 Then 이미지를 쓰지 않는다", () => {
+    const page = jsonLd({ "@type": "Product", name: "램프", image: "https://u:p@cdn.shop.example/a.jpg" });
+    expect(readProductPage(page, pageUrl)).toEqual({ title: "램프", prices: [], imageUrl: null });
+  });
 });

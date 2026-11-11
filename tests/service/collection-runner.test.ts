@@ -58,6 +58,21 @@ describe("실제 저장소를 사용하는 수집 실행", () => {
     expect(source.read).toHaveBeenCalledOnce();
   });
 
+  it("og:image에 계정 정보가 든 페이지도 이름과 가격을 저장한다", async () => {
+    const product = await saved();
+    const page = offerPage.replace(/<meta property="og:image"[^>]*>/, '<meta property="og:image" content="//u:p@cdn.shop.example/a.jpg">');
+    expect(page).not.toBe(offerPage);
+
+    const run = await runner(shop(() => served(page))).run({ productId: product.id, generation: 1 });
+
+    expect(run.kind).toBe("collected");
+    expect(await stored(product)).toMatchObject({
+      title: "무선 헤드폰 블랙",
+      metadata: { phase: "ready", generation: 1, attempts: 1 },
+      lastSuccessfulPrice: { amountMinor: 289000, currency: "KRW" },
+    });
+  });
+
   it.each<CollectionErrorCode>([
     "blocked_address", "dns_failed", "connect_failed", "timeout", "too_many_redirects", "blocked_by_site",
     "http_status", "unsupported_content", "too_large", "decode_failed",

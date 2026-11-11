@@ -5,6 +5,9 @@ import { cleanTitle } from "../domain/title";
 const MAX_DEPTH = 8;
 const MAX_NODES = 5000;
 const MAX_IMAGE_URL = 4096;
+// Mirrors moti.is_web_url (a serialized URL has no control characters), which the database applies to the
+// image address; an address it rejects would fail the whole collection, so such an image is dropped here.
+const STORABLE_WEB_URL = /^https?:\/\/(\[[0-9a-f:.]+\]|[^/?#@:[\]]+)(:[0-9]{1,5})?([/?#].*)?$/i;
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type JsonObject = { [key: string]: Json };
@@ -114,9 +117,9 @@ function imageOf(value: Json | undefined): string | null {
 function absoluteImage(value: string | null | undefined, pageUrl: string): string | null {
   if (!value?.trim()) return null;
   try {
-    const url = new URL(value.trim(), pageUrl);
-    if ((url.protocol !== "http:" && url.protocol !== "https:") || url.href.length > MAX_IMAGE_URL) return null;
-    return url.href;
+    const { href } = new URL(value.trim(), pageUrl);
+    if (href.length > MAX_IMAGE_URL || !STORABLE_WEB_URL.test(href)) return null;
+    return href;
   } catch {
     return null;
   }
