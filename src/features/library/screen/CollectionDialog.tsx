@@ -8,11 +8,13 @@ import type { FormError, ScreenEvent } from "./screen-state";
 export function CollectionDialog({
   name,
   saving,
+  refreshing,
   error,
   send,
 }: {
   name: string;
   saving: boolean;
+  refreshing: boolean;
   error: FormError | null;
   send: (event: ScreenEvent) => void;
 }) {
@@ -42,7 +44,7 @@ export function CollectionDialog({
         </label>
         <FieldError id={errorId} error={error} field="collection" />
         <FieldError id={`${id}-form-error`} error={error} field={null} />
-        <button className="button primary full" type="submit" disabled={saving}>
+        <button className="button primary full" type="submit" disabled={saving || refreshing}>
           {saving ? "만드는 중…" : "만들기"}
         </button>
       </form>

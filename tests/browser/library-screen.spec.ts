@@ -146,10 +146,20 @@ test("고른 컬렉션이 다른 곳에서 지워지면 안내 후 목록을 새
   await add.getByRole("checkbox", { name: "책상" }).check();
   await add.getByRole("button", { name: "담을 컬렉션: 책상", exact: true }).click();
 
+  let release = () => {};
+  const refreshHeld = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/library", async (route) => {
+    await refreshHeld;
+    await route.continue();
+  });
   await fixture().admin.query("delete from moti.collections where id = $1", [rows[0].id]);
-  await add.getByRole("button", { name: "위시에 담기", exact: true }).click();
+  const submit = add.getByRole("button", { name: "위시에 담기", exact: true });
+  await submit.click();
 
   await expect(add.getByRole("alert")).toHaveText("선택한 컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요.");
+  await expect(submit).toBeDisabled();
+  release();
+  await expect(submit).toBeEnabled();
   await expect(add.getByRole("button", { name: "담을 컬렉션: 컬렉션 선택", exact: true })).toBeVisible();
   await add.getByRole("button", { name: /^담을 컬렉션:/ }).click();
   await expect(add.getByRole("checkbox", { name: "책상" })).toHaveCount(0);

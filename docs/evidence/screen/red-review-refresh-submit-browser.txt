@@ -1,0 +1,40 @@
+Running 14 tests using 1 worker
+
+  ✘   3 [desktop-chromium] › tests/browser/library-screen.spec.ts:135:1 › 고른 컬렉션이 다른 곳에서 지워지면 안내 후 목록을 새로 불러오고 입력한 링크로 다시 담는다 (5.8s)
+  ✘  10 [iphone-webkit] › tests/browser/library-screen.spec.ts:135:1 › 고른 컬렉션이 다른 곳에서 지워지면 안내 후 목록을 새로 불러오고 입력한 링크로 다시 담는다 (6.0s)
+
+  1) [desktop-chromium] › tests/browser/library-screen.spec.ts:135:1 › 고른 컬렉션이 다른 곳에서 지워지면 안내 후 목록을 새로 불러오고 입력한 링크로 다시 담는다 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('dialog', { name: '마음에 든 물건을 담아두세요' }).getByRole('button', { name: '위시에 담기', exact: true })
+    Expected: disabled
+    Received: enabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeDisabled" getByRole('dialog', { name: '마음에 든 물건을 담아두세요' }).getByRole('button', { name: '위시에 담기', exact: true }) with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '마음에 든 물건을 담아두세요' }).getByRole('button', { name: '위시에 담기', exact: true })
+        14 × locator resolved to <button type="submit" class="button primary full">…</button>
+           - unexpected value "enabled"
+
+
+      158 |
+      159 |   await expect(add.getByRole("alert")).toHaveText("선택한 컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요.");
+    > 160 |   await expect(submit).toBeDisabled();
+          |                        ^
+      161 |   release();
+      162 |   await expect(submit).toBeEnabled();
+      163 |   await expect(add.getByRole("button", { name: "담을 컬렉션: 컬렉션 선택", exact: true })).toBeVisible();
+        at <workspace>/tests/browser/library-screen.spec.ts:160:24
+
+    (attachments omitted)
+
+  2) [iphone-webkit] › tests/browser/library-screen.spec.ts:135:1 › 고른 컬렉션이 다른 곳에서 지워지면 안내 후 목록을 새로 불러오고 입력한 링크로 다시 담는다 
+
+    (same error: expect(locator).toBeDisabled() received enabled at library-screen.spec.ts:160:24; attachments omitted)
+
+  2 failed
+    [desktop-chromium] › tests/browser/library-screen.spec.ts:135:1 › 고른 컬렉션이 다른 곳에서 지워지면 안내 후 목록을 새로 불러오고 입력한 링크로 다시 담는다 
+    [iphone-webkit] › tests/browser/library-screen.spec.ts:135:1 › 고른 컬렉션이 다른 곳에서 지워지면 안내 후 목록을 새로 불러오고 입력한 링크로 다시 담는다 
+  12 passed (26.9s)

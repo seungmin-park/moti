@@ -47,6 +47,7 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
         draft={dialog.draft}
         saving={dialog.saving}
         creating={dialog.creating}
+        refreshing={state.refreshing}
         error={dialog.error}
         collections={library.collections}
         send={send}
@@ -54,7 +55,9 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
     );
   }
   if (dialog?.kind === "collection") {
-    return <CollectionDialog name={dialog.name} saving={dialog.saving} error={dialog.error} send={send} />;
+    return (
+      <CollectionDialog name={dialog.name} saving={dialog.saving} refreshing={state.refreshing} error={dialog.error} send={send} />
+    );
   }
   if (dialog?.kind === "detail") {
     const product = library.products.find((item) => item.id === dialog.productId);

@@ -27,6 +27,7 @@ export function AddLinkDialog({
   draft,
   saving,
   creating,
+  refreshing,
   error,
   collections,
   send,
@@ -34,6 +35,7 @@ export function AddLinkDialog({
   draft: LinkDraft;
   saving: boolean;
   creating: string | null;
+  refreshing: boolean;
   error: FormError | null;
   collections: CollectionResponse[];
   send: (event: ScreenEvent) => void;
@@ -95,7 +97,7 @@ export function AddLinkDialog({
         )}
         <FieldError id={errorId("collection")} error={error} field="collection" />
         <FieldError id={errorId(null)} error={error} field={null} />
-        <button className="button primary full" type="submit" disabled={saving || creating !== null}>
+        <button className="button primary full" type="submit" disabled={saving || creating !== null || refreshing}>
           {saving ? "담는 중…" : "위시에 담기"} <ArrowUpRight size={17} aria-hidden="true" />
         </button>
       </form>
