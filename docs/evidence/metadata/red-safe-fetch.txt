@@ -1,0 +1,35 @@
+$ npx vitest run tests/fetcher
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 허용한 주소의 HTML When 읽으면 Then 본문, 최종 주소와 상태를 돌려준다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 다섯 번의 이동 When 읽으면 Then 마지막 페이지를 읽고, 여섯 번이면 이동 초과다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given IPv6 루프백로 이동 When 읽으면 Then 연결하지 않고 막는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 클라우드 메타데이터로 이동 When 읽으면 Then 연결하지 않고 막는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 사설 주소로 풀리는 이름로 이동 When 읽으면 Then 연결하지 않고 막는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 사설과 공인 주소가 섞인 이름로 이동 When 읽으면 Then 연결하지 않고 막는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 허용하지 않은 포트로 이동 When 읽으면 Then 연결하지 않고 막는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 사설과 공인 주소가 섞인 이름 When 바로 읽으면 Then 막는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 운영 정책 When 로컬 테스트 서버를 읽으면 Then 루프백이라 막는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 첫 확인 뒤 다른 주소를 돌려주는 DNS When 이동 단계에서 다시 풀면 Then 바뀐 주소를 막는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 3 MiB라고 밝힌 응답 When 읽으면 Then 본문을 받기 전에 너무 크다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 끝없는 chunked 응답 When 읽으면 Then 2 MiB에서 멈춘다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 압축을 풀면 10 MiB인 gzip When 읽으면 Then 푼 크기 한도에서 멈춘다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 깨진 gzip When 읽으면 Then 해독 실패다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given brotli 압축 When 읽으면 Then 풀어서 읽는다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 지원하지 않는 압축 방식 When 읽으면 Then 지원하지 않는 형식이다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 아주 느리게 보내는 응답 When 전체 시간 한도를 넘기면 Then 시간 초과다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given HTML이 아닌 응답 When 읽으면 Then 지원하지 않는 형식이다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 403 응답 When 읽으면 Then blocked_by_site다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 401 응답 When 읽으면 Then blocked_by_site다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 429 응답 When 읽으면 Then blocked_by_site다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 451 응답 When 읽으면 Then blocked_by_site다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 404 응답 When 읽으면 Then http_status다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 500 응답 When 읽으면 Then http_status다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 304 응답 When 읽으면 Then http_status다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 쿠키 없는 요청 When 읽으면 Then 쿠키·리퍼러·인증 없이 moti 사용자 에이전트로 요청한다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 문서의 meta에만 EUC-KR을 밝힌 페이지 When 읽으면 Then 한글을 바르게 푼다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given 없는 이름과 닫힌 포트 When 읽으면 Then DNS 실패와 연결 실패로 구분한다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given not a url When 읽으면 Then 열 수 없는 주소다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given ftp://shop.example/item When 읽으면 Then 열 수 없는 주소다
+ × tests/fetcher/safe-fetch.test.ts > 안전한 페이지 요청 > Given http://user:pw@shop.example/ When 읽으면 Then 열 수 없는 주소다
+Error: not implemented
+ Test Files  1 failed (1)
+      Tests  31 failed (31)
