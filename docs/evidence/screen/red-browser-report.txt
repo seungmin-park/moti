@@ -1,0 +1,28 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ tests/unit/test-report.test.ts (9 tests | 1 failed) 6ms
+   ❯ 브라우저 검증 완료 판정 (3)
+     × 두 프로젝트에서 모두 실행되고 통과한 결과의 개수를 돌려준다 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/test-report.test.ts > 브라우저 검증 완료 판정 > 두 프로젝트에서 모두 실행되고 통과한 결과의 개수를 돌려준다
+Error: not implemented
+ ❯ assertBrowserReport scripts/assert-test-report.mjs:34:9
+     32|
+     33| export function assertBrowserReport() {
+     34|   throw new Error("not implemented");
+       |         ^
+     35| }
+     36|
+ ❯ tests/unit/test-report.test.ts:78:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  18:13:22
+   Duration  100ms (transform 59%, tests 18%, import 17%, worker 5%)
+
