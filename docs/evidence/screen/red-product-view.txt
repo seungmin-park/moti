@@ -1,0 +1,194 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/screen/product-view.test.ts (17 tests | 17 failed) 5ms
+   ❯ 상품 카드 문구 (10)
+     × Given 막 담은 링크 When 카드로 보이면 Then 저장한 정보와 수집 대기·가격 확인 전·미분류를 그대로 말한다 2ms
+     × Given 수집 단계 queued When 카드로 보이면 Then 상태 표시는 "정보 수집 대기"다 0ms
+     × Given 수집 단계 running When 카드로 보이면 Then 상태 표시는 "정보 수집 중"다 0ms
+     × Given 수집 단계 failed When 카드로 보이면 Then 상태 표시는 "정보를 가져오지 못했어요"다 0ms
+     × Given 수집 단계 ready When 카드로 보이면 Then 상태 표시는 null다 0ms
+     × Given 마지막으로 확인한 원화 가격 When 카드로 보이면 Then 최소 단위를 통화로 바꾸고 서울 날짜로 확인일을 붙인다 0ms
+     × Given 소수 단위가 있는 통화 When 카드로 보이면 Then 통화의 소수 자릿수로 나눈다 0ms
+     × Given 구매한 상품 When 카드로 보이면 Then 구매완료를 표시하고, 위시 상품은 표시하지 않는다 0ms
+     × Given 여러 컬렉션 When 카드로 보이면 Then 첫 컬렉션 이름과 나머지 개수를 보여주고 모르는 id는 세지 않는다 0ms
+     × Given 옵션을 적은 상품 When 카드로 보이면 Then 옵션을 그대로 보여준다 0ms
+   ❯ 상품 상세 문구 (6)
+     × Given 막 담은 링크 When 상세로 보이면 Then 정보를 아직 가져오지 않았고 원본 링크는 보관했다고 말한다 0ms
+     × Given 수집 단계 running When 상세로 보이면 Then 그 단계를 설명한다 0ms
+     × Given 수집 단계 failed When 상세로 보이면 Then 그 단계를 설명한다 0ms
+     × Given 수집 단계 ready When 상세로 보이면 Then 그 단계를 설명한다 0ms
+     × Given 저장 결과 When 상세로 보이면 Then 담았다·이미 담았다 안내를 고른다 0ms
+     × Given 메모가 있는 상품 When 상세로 보이면 Then 메모를 보여주고 공백뿐이면 숨긴다 0ms
+   ❯ 실제 데이터만 말하기 (1)
+     × Given 모든 수집 단계·가격·구매 상태 When 카드와 상세로 보이면 Then 어떤 문구에도 예시가 없다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 막 담은 링크 When 카드로 보이면 Then 저장한 정보와 수집 대기·가격 확인 전·미분류를 그대로 말한다
+Error: not implemented
+ ❯ toProductCardView src/features/library/screen/product-view.ts:31:9
+     29|   void product;
+     30|   void collections;
+     31|   throw new Error("not implemented");
+       |         ^
+     32| }
+     33|
+ ❯ src/features/library/screen/product-view.test.ts:41:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 수집 단계 queued When 카드로 보이면 Then 상태 표시는 "정보 수집 대기"다
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 수집 단계 running When 카드로 보이면 Then 상태 표시는 "정보 수집 중"다
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 수집 단계 failed When 카드로 보이면 Then 상태 표시는 "정보를 가져오지 못했어요"다
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 수집 단계 ready When 카드로 보이면 Then 상태 표시는 null다
+Error: not implemented
+ ❯ toProductCardView src/features/library/screen/product-view.ts:31:9
+     29|   void product;
+     30|   void collections;
+     31|   throw new Error("not implemented");
+       |         ^
+     32| }
+     33|
+ ❯ src/features/library/screen/product-view.test.ts:59:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 마지막으로 확인한 원화 가격 When 카드로 보이면 Then 최소 단위를 통화로 바꾸고 서울 날짜로 확인일을 붙인다
+Error: not implemented
+ ❯ toProductCardView src/features/library/screen/product-view.ts:31:9
+     29|   void product;
+     30|   void collections;
+     31|   throw new Error("not implemented");
+       |         ^
+     32| }
+     33|
+ ❯ src/features/library/screen/product-view.test.ts:64:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 소수 단위가 있는 통화 When 카드로 보이면 Then 통화의 소수 자릿수로 나눈다
+Error: not implemented
+ ❯ toProductCardView src/features/library/screen/product-view.ts:31:9
+     29|   void product;
+     30|   void collections;
+     31|   throw new Error("not implemented");
+       |         ^
+     32| }
+     33|
+ ❯ src/features/library/screen/product-view.test.ts:69:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 구매한 상품 When 카드로 보이면 Then 구매완료를 표시하고, 위시 상품은 표시하지 않는다
+Error: not implemented
+ ❯ toProductCardView src/features/library/screen/product-view.ts:31:9
+     29|   void product;
+     30|   void collections;
+     31|   throw new Error("not implemented");
+       |         ^
+     32| }
+     33|
+ ❯ src/features/library/screen/product-view.test.ts:74:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 여러 컬렉션 When 카드로 보이면 Then 첫 컬렉션 이름과 나머지 개수를 보여주고 모르는 id는 세지 않는다
+Error: not implemented
+ ❯ toProductCardView src/features/library/screen/product-view.ts:31:9
+     29|   void product;
+     30|   void collections;
+     31|   throw new Error("not implemented");
+       |         ^
+     32| }
+     33|
+ ❯ src/features/library/screen/product-view.test.ts:80:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 옵션을 적은 상품 When 카드로 보이면 Then 옵션을 그대로 보여준다
+Error: not implemented
+ ❯ toProductCardView src/features/library/screen/product-view.ts:31:9
+     29|   void product;
+     30|   void collections;
+     31|   throw new Error("not implemented");
+       |         ^
+     32| }
+     33|
+ ❯ src/features/library/screen/product-view.test.ts:85:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 상세 문구 > Given 막 담은 링크 When 상세로 보이면 Then 정보를 아직 가져오지 않았고 원본 링크는 보관했다고 말한다
+Error: not implemented
+ ❯ toProductDetailView src/features/library/screen/product-view.ts:42:9
+     40|   void collections;
+     41|   void arrival;
+     42|   throw new Error("not implemented");
+       |         ^
+     43| }
+     44|
+ ❯ src/features/library/screen/product-view.test.ts:91:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 상세 문구 > Given 수집 단계 running When 상세로 보이면 Then 그 단계를 설명한다
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 상세 문구 > Given 수집 단계 failed When 상세로 보이면 Then 그 단계를 설명한다
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 상세 문구 > Given 수집 단계 ready When 상세로 보이면 Then 그 단계를 설명한다
+Error: not implemented
+ ❯ toProductDetailView src/features/library/screen/product-view.ts:42:9
+     40|   void collections;
+     41|   void arrival;
+     42|   throw new Error("not implemented");
+       |         ^
+     43| }
+     44|
+ ❯ src/features/library/screen/product-view.test.ts:112:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 상세 문구 > Given 저장 결과 When 상세로 보이면 Then 담았다·이미 담았다 안내를 고른다
+Error: not implemented
+ ❯ toProductDetailView src/features/library/screen/product-view.ts:42:9
+     40|   void collections;
+     41|   void arrival;
+     42|   throw new Error("not implemented");
+       |         ^
+     43| }
+     44|
+ ❯ src/features/library/screen/product-view.test.ts:116:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 상세 문구 > Given 메모가 있는 상품 When 상세로 보이면 Then 메모를 보여주고 공백뿐이면 숨긴다
+Error: not implemented
+ ❯ toProductDetailView src/features/library/screen/product-view.ts:42:9
+     40|   void collections;
+     41|   void arrival;
+     42|   throw new Error("not implemented");
+       |         ^
+     43| }
+     44|
+ ❯ src/features/library/screen/product-view.test.ts:121:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 실제 데이터만 말하기 > Given 모든 수집 단계·가격·구매 상태 When 카드와 상세로 보이면 Then 어떤 문구에도 예시가 없다
+Error: not implemented
+ ❯ toProductCardView src/features/library/screen/product-view.ts:31:9
+     29|   void product;
+     30|   void collections;
+     31|   throw new Error("not implemented");
+       |         ^
+     32| }
+     33|
+ ❯ src/features/library/screen/product-view.test.ts:133:42
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  17 failed (17)
+   Start at  18:21:39
+   Duration  140ms (transform 58%, import 20%, tests 15%, worker 7%)
+
