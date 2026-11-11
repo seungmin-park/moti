@@ -71,3 +71,15 @@ design-taste-frontend의 Editorial greeting, seed 1304296013을 사용했다. �
 A를 선택했다. 2b의 실제 화면은 조회·링크 담기·컬렉션 만들기만 제공하므로 공유 틀의 이득이 비용보다 작다. B를 설계한 후보도 2b만 보면 더 비싸다고 평가했다. 일반 대화상자 틀은 복사하지 않고 `wishlist/Dialog.tsx`로 분리해 함께 쓴다. 3~5단위에서 실제 화면에 이미지·가격·구매가 붙을 때 공유 틀을 다시 검토한다.
 
 두 후보는 같은 모델 계열에서 독립적으로 작성했다. 다른 계열 심사는 제공되지 않아 생략했다. 두 후보는 브라우저 호출, Server Component 로그인 화면, 순수 전환, 오류 코드 대응표와 실제 스택 브라우저 검사에 동의했다.
+
+## 상품 정보 수집
+
+`src/features/metadata/`가 수집을 소유한다. 도메인은 이름·가격 규칙과 오류 코드, 응용 계층은 `PageSource`·`CollectionJobStore` 포트와 결코 예외를 던지지 않는 실행기, 인프라는 안전한 가져오기·HTML 읽기·Supabase 어댑터다. Presentation은 `next/server`와 `next/headers`를 가져오지 않는다. `after()`는 `src/app`의 조립 위치에서만 부른다.
+
+```text
+POST /api/links → 저장 → 응답 → after(): claim → 안전한 가져오기 → 읽기 → complete | fail
+화면: 대기·수집 중 상품이 있으면 GET /api/library를 다시 읽고 세대·단계가 앞선 결과만 반영
+```
+
+작업 상태의 원천은 DB다. 임대 토큰, 세대, 시도 횟수 검사는 SQL에만 있고 TypeScript에 복제하지 않는다. 설계 비교와 검증은 [changes/metadata.md](changes/metadata.md)에 있다.
+

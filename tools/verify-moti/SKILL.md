@@ -9,7 +9,7 @@ Run from the repository root. Read [feature-map.md](../../docs/feature-map.md) f
 
 Use Node 24 and the locked dependencies. Run `npm ci` when dependencies are missing or the lockfile changed. Install test browsers with `npm exec -- playwright install chromium webkit`.
 
-For behavior changes, run a targeted failing test before implementation. `npm test` runs domain assertions. `npm run lint` includes the domain dependency boundary. `npm run typecheck` generates Next.js types before checking TypeScript.
+For behavior changes, run a targeted failing test before implementation. `npm test` runs domain assertions and the safe-fetcher integration tests against a local server. Real shop pages are checked separately with `node scripts/check-real-pages.mjs <url...>` (public internet, not CI); record the outcomes. `npm run lint` includes the domain dependency boundary. `npm run typecheck` generates Next.js types before checking TypeScript.
 
 Run `npm run build` before browser checks. `npm run test:e2e` starts a fresh production server on port 3101 without Supabase configuration and closes that owned server afterward. It covers the `/demo` mockup, `/login` and the unconfigured redirect from `/`. It refuses to reuse an existing process. A busy port is an environment failure; identify its owner before changing anything. PC Chromium and iPhone-sized WebKit assertions do not establish behavior on a physical iPhone.
 
