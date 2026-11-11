@@ -1,3 +1,4 @@
+import { parseCollectionName } from "../../wishlist/collection-name";
 import { parseLink } from "../../wishlist/link";
 import type {
   CollectionCreateRequest,
@@ -54,14 +55,6 @@ const refresh: ApiCall = { type: "library.read" };
 
 function busy(dialog: ScreenDialog | null): boolean {
   return dialog !== null && dialog.kind !== "detail" && dialog.saving;
-}
-
-// Mirrors toCollectionCreateCommand, which the screen may not import across the layer boundary.
-function toCollectionName(input: string): { ok: true; name: string } | { ok: false; message: string } {
-  if (!input.isWellFormed() || input.includes("\u0000")) return { ok: false, message: "컬렉션 이름을 확인해 주세요." };
-  const name = input.trim().normalize("NFC");
-  if (!name || [...name].length > 40) return { ok: false, message: "컬렉션 이름은 1~40자로 입력해 주세요." };
-  return { ok: true, name };
 }
 
 function sameName(collections: CollectionCreateResponse[], name: string): CollectionCreateResponse | undefined {
@@ -134,7 +127,7 @@ function onAdd(state: Ready, dialog: AddDialog, event: ScreenEvent): Transition 
     }
     case "add.createCollection": {
       if (dialog.creating !== null) return stay(state);
-      const result = toCollectionName(event.name);
+      const result = parseCollectionName(event.name);
       if (!result.ok) return withDialog({ error: { field: "collection", message: result.message } });
       const existing = sameName(state.library.collections, result.name);
       if (existing) return withDialog({ draft: { ...dialog.draft, collectionIds: including(dialog.draft.collectionIds, existing.id) } });
@@ -162,7 +155,7 @@ function onCollection(state: Ready, dialog: CollectionDialog, event: ScreenEvent
   if (event.type === "collection.edit") return stay({ ...state, dialog: { ...dialog, name: event.name } });
   if (event.type !== "collection.submit") return stay(state);
   const reject = (message: string) => stay({ ...state, dialog: { ...dialog, error: { field: "collection", message } } });
-  const result = toCollectionName(dialog.name);
+  const result = parseCollectionName(dialog.name);
   if (!result.ok) return reject(result.message);
   if (sameName(state.library.collections, result.name)) return reject("같은 이름의 컬렉션이 이미 있어요.");
   return {

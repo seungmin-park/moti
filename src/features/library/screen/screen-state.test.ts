@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { toCollectionCreateCommand } from "../application/commands";
 import type { CollectionResponse, LibraryReadResponse, ProductResponse } from "../presentation/library-dto";
 import type { ApiFailure, LibraryApi } from "./library-api";
 import {
@@ -317,23 +316,13 @@ describe("담는 중에 컬렉션 만들기", () => {
     expect(dialogOf(stale.state)).toMatchObject({ creating: null, error: { field: "collection", message: "같은 이름의 컬렉션이 이미 있어요." } });
   });
 
-  it.each(["", "   ", "가".repeat(41), "a\u0000b", "\uD800"])(
-    "Given 서버가 거절할 이름 %j When 만들면 Then 요청하지 않고 컬렉션 칸에 오류를 보여준다",
-    (name) => {
-      expect(() => toCollectionCreateCommand(name)).toThrow();
-      const { state, call } = run(adding(), { type: "add.createCollection", name });
-      expect(call).toBeNull();
-      expect(dialogOf(state)).toMatchObject({ creating: null, error: { field: "collection" } });
-    },
-  );
-
-  it.each(["가".repeat(40), " 🎁".repeat(20), "é"])(
-    "Given 서버가 받는 이름 %j When 만들면 Then 서버와 같은 이름으로 요청한다",
-    (name) => {
-      const { call } = run(adding(), { type: "add.createCollection", name });
-      expect(call).toEqual({ type: "collection.create", body: toCollectionCreateCommand(name), from: "picker" });
-    },
-  );
+  it("Given 이름 규칙에 맞지 않는 이름 When 만들면 Then 요청하지 않고 컬렉션 칸에 규칙의 문구를 보여준다", () => {
+    const { state, call } = run(adding(), { type: "add.createCollection", name: "가".repeat(41) });
+    expect(call).toBeNull();
+    expect(dialogOf(state)).toMatchObject({
+      creating: null, error: { field: "collection", message: "컬렉션 이름은 1~40자로 입력해 주세요." },
+    });
+  });
 });
 
 describe("컬렉션 대화상자", () => {

@@ -53,21 +53,17 @@ describe("저장 명령", () => {
   });
 });
 
-describe("컬렉션 이름", () => {
-  it("trim과 NFC 정규화를 적용한다", () => {
-    expect(toCollectionCreateCommand(" 가방 ")).toEqual({ name: "가방" });
+describe("컬렉션 생성 명령", () => {
+  it("이름 규칙이 정리한 이름으로 명령을 만든다", () => {
+    expect(toCollectionCreateCommand(" 가방 ")).toEqual({ name: "가방" });
   });
 
-  it("Unicode code point 40자까지 허용한다", () => {
-    expect(toCollectionCreateCommand("🌱".repeat(40))).toEqual({ name: "🌱".repeat(40) });
+  it("이름 규칙이 거절한 입력은 컬렉션 필드의 입력 오류로 바꾼다", () => {
+    expect(() => toCollectionCreateCommand(null)).toThrowError(
+      expect.objectContaining({ code: "invalid_input", field: "collection", message: "컬렉션 이름을 확인해 주세요." }),
+    );
+    expect(() => toCollectionCreateCommand("가".repeat(41))).toThrowError(
+      expect.objectContaining({ code: "invalid_input", field: "collection", message: "컬렉션 이름은 1~40자로 입력해 주세요." }),
+    );
   });
-
-  it.each([null, 1, " ", "가".repeat(41), "가\u0000", "가\uD800"])(
-    "유효하지 않은 이름 %s를 거절한다",
-    (input) => {
-      expect(() => toCollectionCreateCommand(input)).toThrowError(
-        expect.objectContaining({ code: "invalid_input", field: "collection" }),
-      );
-    },
-  );
 });

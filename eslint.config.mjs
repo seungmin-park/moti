@@ -6,7 +6,12 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    files: ["src/features/wishlist/model.ts", "src/features/wishlist/link.ts", "src/features/*/domain/**/*.ts"],
+    files: [
+      "src/features/wishlist/model.ts",
+      "src/features/wishlist/link.ts",
+      "src/features/wishlist/collection-name.ts",
+      "src/features/*/domain/**/*.ts",
+    ],
     ignores: ["**/*.test.ts"],
     rules: {
       "no-restricted-imports": ["error", { patterns: [
