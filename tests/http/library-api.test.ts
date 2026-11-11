@@ -4,6 +4,7 @@ import {
   errorResponseSchema,
   libraryReadResponseSchema,
   linkSaveResponseSchema,
+  type ProductResponse,
 } from "../../src/features/library/presentation/library-dto";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 import { HTTP_OWNER_SUBJECT, readDatabaseConfig } from "../support/database-config";
@@ -37,6 +38,11 @@ function postJson(path: string, body: unknown, cookie: string, headers: Record<s
   });
 }
 
+function savedLink({ metadata, title, lastSuccessfulPrice, ...link }: ProductResponse) {
+  void metadata; void title; void lastSuccessfulPrice;
+  return link;
+}
+
 async function storedProducts() {
   const { rows } = await fixture.admin.query<{ count: number }>(
     "select count(*)::int as count from moti.products where owner_id = any($1::uuid[])",
@@ -61,20 +67,25 @@ describe("실제 HTTP 보관함 API", () => {
     const collection = collectionCreateResponseSchema.parse(await created.json());
     expect(collection.name).toBe("책상");
 
-    const link = { url: "https://example.com/item?utm_source=a", option: "블랙", collectionIds: [collection.id] };
+    const link = { url: "https://shop.example/item?utm_source=a", option: "블랙", collectionIds: [collection.id] };
     const added = await postJson("/api/links", link, cookie);
     expect(added.status).toBe(201);
     const saved = linkSaveResponseSchema.parse(await added.json());
-    expect(saved).toMatchObject({ kind: "added", product: { identityUrl: "https://example.com/item", collectionIds: [collection.id] } });
+    expect(saved).toMatchObject({ kind: "added", product: { identityUrl: "https://shop.example/item", collectionIds: [collection.id] } });
 
-    const duplicate = await postJson("/api/links", { ...link, url: "https://example.com/item?utm_source=b" }, cookie);
+    // Collection starts after each save and may settle at any moment, so only the saved link is compared here.
+    const duplicate = await postJson("/api/links", { ...link, url: "https://shop.example/item?utm_source=b" }, cookie);
     expect(duplicate.status).toBe(200);
-    expect(linkSaveResponseSchema.parse(await duplicate.json())).toEqual({ kind: "duplicate", product: saved.product });
+    const again = linkSaveResponseSchema.parse(await duplicate.json());
+    expect(again.kind).toBe("duplicate");
+    expect(savedLink(again.product)).toEqual(savedLink(saved.product));
 
     const nextSession = cookieHeader(await signInCookies(fixture.owner));
     const read = await request("/api/library", { cookie: nextSession });
     expect(read.status).toBe(200);
-    expect(libraryReadResponseSchema.parse(await read.json())).toEqual({ products: [saved.product], collections: [collection] });
+    const library = libraryReadResponseSchema.parse(await read.json());
+    expect(library.collections).toEqual([collection]);
+    expect(library.products.map(savedLink)).toEqual([savedLink(saved.product)]);
   });
 
   it("다른 Google 계정의 세션은 403이고 쿠키와 서버 세션을 폐기해 이후 쓰기도 저장하지 않는다", async () => {
@@ -88,7 +99,7 @@ describe("실제 HTTP 보관함 API", () => {
     expect(cleared.length).toBeGreaterThan(0);
     expect(cleared.every((value) => /max-age=0/i.test(value))).toBe(true);
 
-    const write = await postJson("/api/links", { url: "https://example.com/forbidden", option: "", collectionIds: [] }, cookie);
+    const write = await postJson("/api/links", { url: "https://shop.example/forbidden", option: "", collectionIds: [] }, cookie);
     expect(write.status).toBe(401);
     expect(errorResponseSchema.parse(await write.json()).error).toBe("signed_out");
     expect(await storedProducts()).toBe(0);
@@ -96,7 +107,7 @@ describe("실제 HTTP 보관함 API", () => {
 
   it("다른 출처의 쓰기 요청은 소유자 세션이어도 403이고 저장하지 않는다", async () => {
     const cookie = cookieHeader(await signInCookies(fixture.owner));
-    const response = await postJson("/api/links", { url: "https://example.com/csrf", option: "", collectionIds: [] }, cookie, {
+    const response = await postJson("/api/links", { url: "https://shop.example/csrf", option: "", collectionIds: [] }, cookie, {
       origin: "https://evil.example",
     });
     expect(response.status).toBe(403);
@@ -115,7 +126,7 @@ describe("실제 HTTP 보관함 API", () => {
   it("없는 컬렉션을 지정하면 422이고 저장하지 않는다", async () => {
     const cookie = cookieHeader(await signInCookies(fixture.owner));
     const response = await postJson("/api/links", {
-      url: "https://example.com/item", option: "", collectionIds: ["00000000-0000-4000-8000-000000000000"],
+      url: "https://shop.example/item", option: "", collectionIds: ["00000000-0000-4000-8000-000000000000"],
     }, cookie);
     expect(response.status).toBe(422);
     expect(errorResponseSchema.parse(await response.json()).error).toBe("collection_missing");

@@ -84,9 +84,10 @@ test("소유자는 빈 보관함에 컬렉션과 함께 링크를 담고, 다시
   await expect(add.getByRole("checkbox", { name: "책상" })).toBeChecked();
   await submitAndExpect(page, "위시에 담았어요");
 
+  // Collection starts right after the save; the reserved .example name never resolves, so it settles as a failure.
   const detail = detailDialog(page);
-  await expect(detail).toContainText("정보 수집 대기");
-  await expect(detail).toContainText("상품 정보는 아직 가져오지 않았어요. 원본 링크는 보관했어요.");
+  await expect(detail).toContainText("정보를 가져오지 못했어요", { timeout: 20_000 });
+  await expect(detail).toContainText("원본 링크는 그대로 보관했어요.");
   await expect(detail).toContainText("가격 확인 전");
   await expect(detail.getByRole("link", { name: "원본 링크 열기" }))
     .toHaveAttribute("href", "https://shop.example/desk-lamp?utm_source=moti");
@@ -115,6 +116,50 @@ test("소유자는 빈 보관함에 컬렉션과 함께 링크를 담고, 다시
   } finally {
     await other.close();
   }
+});
+
+test("막힌 주소의 링크도 보관하고 실패 이유를 보여주며, 다시 가져오기는 새 세대로 다시 수집하고 새로고침해도 링크가 남는다", async ({ page, context }) => {
+  await signIn(context, fixture().owner);
+  await page.goto("/");
+  const link = "http://127.0.0.1:9/p";
+  await openAdd(page, link);
+  await submitAndExpect(page, "위시에 담았어요");
+
+  const detail = detailDialog(page);
+  await expect(detail).toContainText("정보를 가져오지 못했어요", { timeout: 15_000 });
+  await expect(detail).toContainText("안전을 위해 열지 않는 주소예요. 원본 링크는 그대로 보관했어요.");
+  const retry = detail.getByRole("button", { name: "다시 가져오기", exact: true });
+  await expect(retry).toBeEnabled();
+  expect(await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()
+    .then((result) => result.violations)).toEqual([]);
+
+  let release = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/products/*/metadata", async (route) => {
+    await held;
+    await route.continue();
+  });
+  await retry.click();
+  const pending = detail.getByRole("button", { name: "다시 가져오는 중", exact: true });
+  await expect(pending).toBeDisabled();
+  release();
+  await expect(detail).toContainText("정보 수집 대기");
+  await expect(detail).toContainText("안전을 위해 열지 않는 주소예요.", { timeout: 15_000 });
+  await expect(detail.getByRole("button", { name: "다시 가져오기", exact: true })).toBeEnabled();
+  const { rows } = await fixture().admin.query<{ source_url: string; metadata_generation: number; metadata_error_code: string }>(
+    "select source_url, metadata_generation, metadata_error_code from moti.products where owner_id = $1",
+    [fixture().owner.id],
+  );
+  expect(rows).toEqual([{ source_url: link, metadata_generation: 2, metadata_error_code: "blocked_address" }]);
+  await closeDetail(page);
+  await expect(cards(page)).toContainText("정보를 가져오지 못했어요");
+
+  await page.reload();
+  await expect(cards(page)).toHaveCount(1);
+  await expect(cards(page)).toContainText("정보를 가져오지 못했어요");
+  await cards(page).click();
+  await expect(detailDialog(page).locator(".source-url")).toHaveText(link);
+  await expectNeutral(detailDialog(page).getByRole("button", { name: "다시 가져오기", exact: true }), ["color"]);
 });
 
 test("같은 링크를 다시 담으면 이미 담았다고 알리고 저장은 하나로 유지한다", async ({ page, context }) => {
