@@ -96,6 +96,7 @@ describe("상품 상세 문구", () => {
       price: { value: "가격 확인 전", checked: null },
       status: { title: "정보 수집 대기", detail: "상품 정보는 아직 가져오지 않았어요. 원본 링크는 보관했어요." },
       sourceUrl: "https://www.shop.example/item?utm_source=a",
+      openUrl: "https://www.shop.example/item?utm_source=a",
       collectionNames: ["책상", "방"],
       addedOn: "2026. 11. 11.",
       note: null,
@@ -110,6 +111,14 @@ describe("상품 상세 문구", () => {
   ] as const)("Given 수집 단계 %s When 상세로 보이면 Then 그 단계를 설명한다", (phase, title, detail) => {
     const metadata = everyPhase.find((item) => item.phase === phase)!;
     expect(toProductDetailView({ ...queued, metadata }, [], null).status).toEqual({ title, detail });
+  });
+
+  it("Given http(s)가 아닌 원본 주소 When 상세로 보이면 Then 주소는 보여주되 열기 링크는 만들지 않는다", () => {
+    for (const sourceUrl of ["javascript:alert(1)", "data:text/html,hi", "not a url"]) {
+      const view = toProductDetailView({ ...queued, sourceUrl }, [], null);
+      expect(view.sourceUrl).toBe(sourceUrl);
+      expect(view.openUrl).toBeNull();
+    }
   });
 
   it("Given 저장 결과 When 상세로 보이면 Then 담았다·이미 담았다 안내를 고른다", () => {

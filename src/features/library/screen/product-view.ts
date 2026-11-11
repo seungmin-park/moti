@@ -19,6 +19,7 @@ export type ProductDetailView = {
   price: PriceView;
   status: { title: string; detail: string };
   sourceUrl: string;
+  openUrl: string | null;
   collectionNames: string[];
   addedOn: string;
   note: string | null;
@@ -63,6 +64,14 @@ function statusOf(metadata: ProductResponse["metadata"]): ProductDetailView["sta
   }
 }
 
+function openableUrl(value: string): string | null {
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 export function toProductCardView(product: ProductResponse, collections: CollectionResponse[]): ProductCardView {
   const [first, ...rest] = namesOf(product, collections);
   return {
@@ -91,6 +100,7 @@ export function toProductDetailView(
     price: priceOf(product),
     status: statusOf(product.metadata),
     sourceUrl: product.sourceUrl,
+    openUrl: openableUrl(product.sourceUrl),
     collectionNames: namesOf(product, collections),
     addedOn: onSeoulDate(product.addedAt),
     note: product.note.trim() ? product.note : null,
