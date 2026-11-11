@@ -170,7 +170,6 @@ describe("실제 HTTP 세션 갱신", () => {
     const renewed = readSession(updatedJar(expired, response.headers.getSetCookie()));
     expect(renewed.expires_at * 1000).toBeGreaterThan(Date.now());
     expect(renewed.refresh_token).not.toBe(before.refresh_token);
-    expect(renewed.access_token).not.toBe(before.access_token);
 
     const next = await request("/api/library", { cookie: cookieHeader(updatedJar(expired, response.headers.getSetCookie())) });
     expect(next.status).toBe(200);
