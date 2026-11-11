@@ -4,7 +4,7 @@ import { databaseConfigSchema } from "../support/database-config";
 const local = {
   runId: "00000000-0000-4000-8000-000000000001",
   apiUrl: "http://127.0.0.1:56321",
-  appUrl: "http://127.0.0.1:56380/",
+  appUrl: "http://127.0.0.1:3180/",
   databaseUrl: "postgresql://postgres:test-password@127.0.0.1:56322/postgres",
   anonKey: "local-anonymous-fixture-key",
   serviceRoleKey: "local-administrator-fixture-key",

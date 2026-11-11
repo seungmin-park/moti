@@ -8,7 +8,8 @@ const localUrl = z.string().url().refine((value) => {
   return url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port === "56321";
 }, "테스트 전용 로컬 Supabase만 사용할 수 있습니다.");
 
-export const HTTP_APP_PORT = 56380;
+// Below the OS ephemeral ranges and the ports the native Supabase stack picks at runtime; 56380 was already taken in CI.
+export const HTTP_APP_PORT = 3180;
 export const HTTP_OWNER_SUBJECT = "moti-http-owner";
 
 const localApp = z.string().url().refine((value) => {

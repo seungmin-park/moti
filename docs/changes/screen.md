@@ -41,6 +41,8 @@
 | 실제 화면 | 같은 명령 | PC Chromium과 iPhone 크기 WebKit에서 7개씩, 14개 통과. 같은 검사를 스크린샷과 함께 한 번 더 실행해 PC·iPhone 크기 화면, 상세와 로그인 거절 안내를 직접 확인했다. |
 | 브라우저 e2e | `npm run test:e2e` | 50개 통과. 목업 40개는 `/demo`에서, `/login`·설정 누락 5개는 두 프로젝트에서 실행 |
 
+PR의 첫 CI에서 `database` 작업은 persistence·service 43개를 통과한 뒤 앱 포트 56380이 이미 사용 중이어서 앱을 시작하지 못했다. 환경 오류라 Red로 세지 않았다. native 스택이 실행 중 내부 포트를 고르는 것을 로컬에서 관찰했고, 앱 포트를 OS 임시 포트 범위 밖의 3180으로 옮긴 뒤 로컬 전체 단계가 통과했다.
+
 실제 화면 검사는 저장 후 DB 행 수, 새로고침과 새 세션의 유지, 중복, 다른 곳에서 지운 컬렉션, 대화상자에서 만든 컬렉션, 로그아웃, 거절 계정의 쿠키 삭제와 axe 접근성을 확인한다. 실행기는 JSON 결과에서 두 프로젝트의 실제 통과 수를 확인하고 skip·flaky·실패를 거절한다.
 
 ESLint 경계는 화면 파일에서 `@supabase/ssr`, `wishlist/demo-data`, `domain`, 공개 계약이 아닌 `presentation`, `_server`, `next/headers`를 가져오면 실패한다. 결과는 `lint-boundary.txt`에 있다.
