@@ -54,7 +54,8 @@ const leave = (to: string): Transition => stay({ phase: "leaving", to });
 const refresh: ApiCall = { type: "library.read" };
 
 function busy(dialog: ScreenDialog | null): boolean {
-  return dialog !== null && dialog.kind !== "detail" && dialog.saving;
+  if (dialog === null || dialog.kind === "detail") return false;
+  return dialog.saving || (dialog.kind === "add" && dialog.creating !== null);
 }
 
 function sameName(collections: CollectionCreateResponse[], name: string): CollectionCreateResponse | undefined {

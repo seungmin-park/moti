@@ -296,12 +296,34 @@ describe("담는 중에 컬렉션 만들기", () => {
     expect(dialogOf(state)).toMatchObject({ creating: null, draft: { collectionIds: [room.id, created.id] }, error: null });
   });
 
-  it("Given 만드는 중에 대화상자를 닫음 When 만들어지면 Then 목록에만 더한다", () => {
+  it("Given 만드는 중 When 닫고 다시 열어 다른 이름을 만들면 Then 모두 무시하고, 만들어지면 처음 대화상자에서 고른다", () => {
     const created = { ...desk, id: "66666666-6666-4666-8666-666666666666", name: "책상" };
-    const closed = run(adding({}, { creating: "책상" }), { type: "dialog.close" });
-    expect(dialogOf(closed.state)).toBeNull();
-    const { state } = transition(closed.state, { type: "collection.settled", from: "picker", outcome: { ok: true, value: created } });
-    expect(state).toEqual(ready({ library: { ...library, collections: [desk, room, created] } }));
+    const creating = run(ready(), { type: "add.open" }, { type: "add.edit", url: "https://shop.example/lamp" },
+      { type: "add.createCollection", name: "책상" });
+    for (const event of [
+      { type: "dialog.close" },
+      { type: "add.open" },
+      { type: "collection.open" },
+      { type: "detail.open", productId: lamp.id },
+    ] satisfies ScreenEvent[]) {
+      expect(transition(creating.state, event)).toEqual({ state: creating.state, call: null });
+    }
+    const reopened = run(creating.state, { type: "dialog.close" }, { type: "add.open" }, { type: "add.createCollection", name: "주방" });
+    expect(reopened).toEqual({ state: creating.state, call: null });
+    const { state, call } = transition(reopened.state, {
+      type: "collection.settled", from: "picker", outcome: { ok: true, value: created },
+    });
+    expect(call).toBeNull();
+    expect(state).toEqual(ready({
+      library: { ...library, collections: [desk, room, created] },
+      dialog: {
+        kind: "add",
+        draft: { url: "https://shop.example/lamp", option: "", collectionIds: [created.id] },
+        saving: false,
+        creating: null,
+        error: null,
+      },
+    }));
   });
 
   it("Given 만드는 중 When 실패하면 Then 컬렉션 칸 아래에 오류를 보여주고, 이름 중복이면 보관함을 다시 읽는다", () => {
