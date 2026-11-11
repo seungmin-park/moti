@@ -75,7 +75,7 @@ test("소유자는 빈 보관함에 컬렉션과 함께 링크를 담고, 다시
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "아직 담아둔 물건이 없어요" })).toBeVisible();
 
-  await openAdd(page, "https://shop.example/desk-lamp?utm_source=moti");
+  await openAdd(page, "http://127.0.0.1:9/desk-lamp?utm_source=moti");
   const add = addDialog(page);
   await add.getByLabel("옵션 선택", { exact: true }).fill("화이트");
   await add.getByRole("button", { name: /^담을 컬렉션:/ }).click();
@@ -84,13 +84,13 @@ test("소유자는 빈 보관함에 컬렉션과 함께 링크를 담고, 다시
   await expect(add.getByRole("checkbox", { name: "책상" })).toBeChecked();
   await submitAndExpect(page, "위시에 담았어요");
 
-  // Collection starts right after the save; the reserved .example name never resolves, so it settles as a failure.
+  // Collection starts right after the save; the loopback address is refused before any request, so it settles as a failure.
   const detail = detailDialog(page);
   await expect(detail).toContainText("정보를 가져오지 못했어요", { timeout: 20_000 });
-  await expect(detail).toContainText("원본 링크는 그대로 보관했어요.");
+  await expect(detail).toContainText("안전을 위해 열지 않는 주소예요. 원본 링크는 그대로 보관했어요.");
   await expect(detail).toContainText("가격 확인 전");
   await expect(detail.getByRole("link", { name: "원본 링크 열기" }))
-    .toHaveAttribute("href", "https://shop.example/desk-lamp?utm_source=moti");
+    .toHaveAttribute("href", "http://127.0.0.1:9/desk-lamp?utm_source=moti");
   await closeDetail(page);
 
   await expect(cards(page)).toHaveCount(1);
