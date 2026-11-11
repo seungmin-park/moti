@@ -300,7 +300,7 @@ describe("POST /api/products/{productId}/metadata", () => {
 
   it("Given 멈춘 작업 When 다시 가져오면 Then 같은 세대의 수집을 다시 예약한다", async () => {
     const { handlers, retry, collect } = given(allowed);
-    retry.mockResolvedValueOnce({ kind: "resumed", product: { ...product, metadata: { phase: "queued", generation: 1, attempts: 1, stalled: true } } });
+    retry.mockResolvedValueOnce({ kind: "resumed", product: { ...product, metadata: { phase: "queued", generation: 1, attempts: 1, stalled: false } } });
     const response = await handlers.postMetadataRetry(...retryRequest());
     expect(response.status).toBe(202);
     expect(collect).toHaveBeenCalledExactlyOnceWith({ productId, generation: 1 });

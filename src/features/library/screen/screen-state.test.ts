@@ -596,6 +596,17 @@ describe("다시 가져오기", () => {
     expect(productsOf(state)).toEqual([chair, requeued]);
   });
 
+  it("Given 멈춰서 확인을 멈춘 상품 When 같은 세대로 다시 시작되면 Then 다시 확인한다", () => {
+    const stalled: ProductResponse = { ...lamp, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } };
+    const resumed: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 1, attempts: 1, stalled: false } };
+    const start = withProducts([stalled], { retrying: lamp.id });
+    expect(pollDelay(start, 0)).toBeNull();
+
+    const { state } = transition(start, { type: "metadata.settled", productId: lamp.id, outcome: { ok: true, value: { product: resumed } } });
+
+    expect(pollDelay(state, 0)).toBe(1500);
+  });
+
   it("Given 상태가 바뀌어 거절 When 결과를 받으면 Then 안내하고 보관함을 새로 읽는다", () => {
     const start = withProducts([failedLamp], { dialog: detail(), retrying: lamp.id });
     const failure: ApiFailure = { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." };

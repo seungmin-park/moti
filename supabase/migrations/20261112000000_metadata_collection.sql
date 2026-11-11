@@ -31,9 +31,10 @@ alter table moti.products
 create index metadata_jobs_pending on moti.metadata_jobs (status, lease_until) where status in ('queued', 'running');
 
 -- A job nobody is working on: queued for longer than a request takes to start it, or running past its lease.
+-- A queued job's updated_at is when it last entered the queue: its insert or an owner's resume.
 create function moti.is_stalled(j moti.metadata_jobs) returns boolean
 language sql stable set search_path = '' as $$
-  select (j.status = 'queued' and j.created_at < now() - interval '60 seconds')
+  select (j.status = 'queued' and j.updated_at < now() - interval '60 seconds')
       or (j.status = 'running' and j.lease_until < now())
 $$;
 
@@ -225,6 +226,13 @@ begin
 
   if v_product.metadata_phase in ('queued', 'running') and v_job.id is not null and moti.is_stalled(v_job)
     and v_job.attempts < 3 then
+    -- Back in the queue rather than left stalled, so every read until the next claim shows it waiting.
+    update moti.metadata_jobs j
+    set status = 'queued', lease_token = null, lease_until = null, updated_at = now()
+    where j.id = v_job.id;
+    update moti.products p set metadata_phase = 'queued'
+    where p.id = p_product_id
+    returning * into v_product;
     return jsonb_build_object('kind', 'resumed', 'product', moti.product_json(v_product));
   end if;
 

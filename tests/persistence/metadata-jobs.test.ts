@@ -244,18 +244,26 @@ describe("수집 작업 저장소", () => {
     expect((await current(product)).lastSuccessfulPrice).toMatchObject({ amountMinor: 279000, currency: "KRW" });
   });
 
-  it("오래 대기하거나 기한이 지난 작업은 멈춤으로 보이고 시도가 남았으면 같은 세대로 다시 시작한다", async () => {
+  it("오래 대기하거나 기한이 지난 작업은 멈춤으로 보이고 시도가 남았으면 같은 세대를 멈추지 않은 대기로 되돌린다", async () => {
     const product = await saved();
-    await fixture.admin.query("update moti.metadata_jobs set created_at = now() - interval '2 minutes' where product_id = $1", [product.id]);
+    await fixture.admin.query(
+      "update moti.metadata_jobs set created_at = now() - interval '2 minutes', updated_at = now() - interval '2 minutes' where product_id = $1",
+      [product.id],
+    );
     expect((await current(product)).metadata).toEqual({ phase: "queued", generation: 1, attempts: 0, stalled: true });
-    expect(await jobs().retry({ productId: product.id, expectedGeneration: 1 }))
-      .toEqual({ kind: "resumed", product: await current(product) });
+    const waiting = await jobs().retry({ productId: product.id, expectedGeneration: 1 });
+    expect(waiting).toEqual({ kind: "resumed", product: await current(product) });
+    expect(waiting.product.metadata).toEqual({ phase: "queued", generation: 1, attempts: 0, stalled: false });
 
     const job = await claimed(product);
     expect((await current(product)).metadata).toMatchObject({ phase: "running", stalled: false });
     await expireLease(job);
     expect((await current(product)).metadata).toMatchObject({ phase: "running", stalled: true });
-    expect((await jobs().retry({ productId: product.id, expectedGeneration: 1 })).kind).toBe("resumed");
+    const expired = await jobs().retry({ productId: product.id, expectedGeneration: 1 });
+    expect(expired).toEqual({ kind: "resumed", product: await current(product) });
+    expect(expired.product.metadata).toEqual({ phase: "queued", generation: 1, attempts: 1, stalled: false });
+    expect(await jobs().complete(job, page)).toEqual({ kind: "stale" });
+
     expect((await claimed(product)).attempts).toBe(2);
   });
 
