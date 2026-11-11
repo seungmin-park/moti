@@ -1,0 +1,24 @@
+# npx playwright test tests/e2e/login.spec.ts --project=desktop-chromium --timeout=10000 (no /login route yet)
+# page snapshot:
+    - heading "404" [level=1] [ref=e4]
+    - heading "This page could not be found." [level=2] [ref=e6]
+- heading "404" [level=1]
+- heading "This page could not be found." [level=2]
+
+  ✘  3 [desktop-chromium] › tests/e2e/login.spec.ts:7:1 › 로그인 오류 코드마다 원인에 맞는 안내를 보여준다 (5.3s)
+  ✘  2 [desktop-chromium] › tests/e2e/login.spec.ts:24:1 › 오류 없이 열면 안내 없이 Google 로그인과 목업 둘러보기를 제공한다 (5.3s)
+  ✘  1 [desktop-chromium] › tests/e2e/login.spec.ts:32:1 › Google 로그인을 누르면 실제 로그인 경로를 거쳐 설정 누락 안내로 돌아온다 (10.1s)
+  ✘  4 [desktop-chromium] › tests/e2e/login.spec.ts:39:1 › 로그인 화면은 기본 접근성 검사에 통과하고 중립 색만 쓴다 (10.1s)
+    Error: expect(locator).toContainText(expected) failed
+    Expected substring: "이 Google 계정은 사용할 수 없어요"
+    Error: element(s) not found
+      - waiting for getByRole('main').getByRole('alert')
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Expected: "/auth/login"
+    Error: element(s) not found
+      - waiting for getByRole('link', { name: 'Google 계정으로 계속하기' })
+    Error: locator.click: Test timeout of 10000ms exceeded.
+      - waiting for getByRole('link', { name: 'Google 계정으로 계속하기' })
+    Error: locator.focus: Test timeout of 10000ms exceeded.
+      - waiting for getByRole('link', { name: 'Google 계정으로 계속하기' })
+  4 failed
