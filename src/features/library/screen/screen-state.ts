@@ -52,6 +52,8 @@ type CollectionDialog = Extract<ScreenDialog, { kind: "collection" }>;
 const stay = (state: LibraryScreenState): Transition => ({ state, call: null });
 const leave = (to: string): Transition => stay({ phase: "leaving", to });
 const refresh: ApiCall = { type: "library.read" };
+// A write that settles before the pending read would be erased by the read's older snapshot.
+const writes: ReadonlySet<ScreenEvent["type"]> = new Set(["add.submit", "add.createCollection", "collection.submit"]);
 
 function busy(dialog: ScreenDialog | null): boolean {
   if (dialog === null || dialog.kind === "detail") return false;
@@ -228,6 +230,7 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       return leaveOrStay(state, event.outcome.failure);
     }
     default:
+      if (state.refreshing && writes.has(event.type)) return stay(state);
       if (dialog?.kind === "add") return onAdd(state, dialog, event);
       if (dialog?.kind === "collection") return onCollection(state, dialog, event);
       return stay(state);

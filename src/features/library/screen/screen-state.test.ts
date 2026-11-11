@@ -268,6 +268,23 @@ describe("오래된 화면 다시 맞추기", () => {
       type: "library.settled", outcome: { ok: false, failure: { kind: "redirect", to: "/login" } },
     }).state).toEqual({ phase: "leaving", to: "/login" });
   });
+
+  const staleCollection = () => run(ready({ dialog: { kind: "collection", name: "주방", saving: true, error: null } }), {
+    type: "collection.settled", from: "dialog", outcome: { ok: false, failure: { kind: "stale", message: "같은 이름의 컬렉션이 이미 있어요." } },
+  });
+
+  it.each([
+    ["링크를 다시 담으면", staleSave, { type: "add.submit" }],
+    ["담는 중에 새 컬렉션을 만들면", staleSave, { type: "add.createCollection", name: "주방" }],
+    ["컬렉션 대화상자에서 다시 만들면", staleCollection, { type: "collection.submit" }],
+  ] satisfies [string, () => ReturnType<typeof run>, ScreenEvent][])(
+    "Given 다시 읽는 중 When %s Then 요청하지 않고 화면을 그대로 둔다",
+    (_, stale, event) => {
+      const { state } = stale();
+      expect(state).toMatchObject({ refreshing: true });
+      expect(transition(state, event)).toEqual({ state, call: null });
+    },
+  );
 });
 
 describe("담는 중에 컬렉션 만들기", () => {

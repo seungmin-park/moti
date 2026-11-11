@@ -1,0 +1,153 @@
+
+ RUN  v5.1.0 <workspace>
+
+ ❯ src/features/library/screen/screen-state.test.ts (40 tests | 3 failed) 16ms
+   ❯ 오래된 화면 다시 맞추기 (8)
+     × Given 다시 읽는 중 When 링크를 다시 담으면 Then 요청하지 않고 화면을 그대로 둔다 6ms
+     × Given 다시 읽는 중 When 담는 중에 새 컬렉션을 만들면 Then 요청하지 않고 화면을 그대로 둔다 1ms
+     × Given 다시 읽는 중 When 컬렉션 대화상자에서 다시 만들면 Then 요청하지 않고 화면을 그대로 둔다 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 오래된 화면 다시 맞추기 > Given 다시 읽는 중 When 링크를 다시 담으면 Then 요청하지 않고 화면을 그대로 둔다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -1,7 +1,17 @@
+  {
+-   "call": null,
++   "call": {
++     "body": {
++       "collectionIds": [
++         "11111111-1111-4111-8111-111111111111",
++         "33333333-3333-4333-8333-333333333333",
++       ],
++       "option": "블랙",
++       "url": "https://shop.example/item",
++     },
++     "type": "link.save",
++   },
+    "state": {
+      "collectionId": null,
+      "dialog": {
+        "creating": null,
+        "draft": {
+@@ -10,16 +20,13 @@
+            "33333333-3333-4333-8333-333333333333",
+          ],
+          "option": "블랙",
+          "url": "https://shop.example/item",
+        },
+-       "error": {
+-         "field": "collection",
+-         "message": "선택한 컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요.",
+-       },
++       "error": null,
+        "kind": "add",
+-       "saving": false,
++       "saving": true,
+      },
+      "library": {
+        "collections": [
+          {
+            "createdAt": "2026-11-10T00:00:00.000Z",
+
+ ❯ src/features/library/screen/screen-state.test.ts:285:40
+    283|       const { state } = stale();
+    284|       expect(state).toMatchObject({ refreshing: true });
+    285|       expect(transition(state, event)).toEqual({ state, call: null });
+       |                                        ^
+    286|     },
+    287|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 오래된 화면 다시 맞추기 > Given 다시 읽는 중 When 담는 중에 새 컬렉션을 만들면 Then 요청하지 않고 화면을 그대로 둔다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -1,11 +1,17 @@
+  {
+-   "call": null,
++   "call": {
++     "body": {
++       "name": "주방",
++     },
++     "from": "picker",
++     "type": "collection.create",
++   },
+    "state": {
+      "collectionId": null,
+      "dialog": {
+-       "creating": null,
++       "creating": "주방",
+        "draft": {
+          "collectionIds": [
+            "11111111-1111-4111-8111-111111111111",
+            "33333333-3333-4333-8333-333333333333",
+          ],
+
+ ❯ src/features/library/screen/screen-state.test.ts:285:40
+    283|       const { state } = stale();
+    284|       expect(state).toMatchObject({ refreshing: true });
+    285|       expect(transition(state, event)).toEqual({ state, call: null });
+       |                                        ^
+    286|     },
+    287|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 오래된 화면 다시 맞추기 > Given 다시 읽는 중 When 컬렉션 대화상자에서 다시 만들면 Then 요청하지 않고 화면을 그대로 둔다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -1,17 +1,20 @@
+  {
+-   "call": null,
++   "call": {
++     "body": {
++       "name": "주방",
++     },
++     "from": "dialog",
++     "type": "collection.create",
++   },
+    "state": {
+      "collectionId": null,
+      "dialog": {
+-       "error": {
+-         "field": "collection",
+-         "message": "같은 이름의 컬렉션이 이미 있어요.",
+-       },
++       "error": null,
+        "kind": "collection",
+        "name": "주방",
+-       "saving": false,
++       "saving": true,
+      },
+      "library": {
+        "collections": [
+          {
+            "createdAt": "2026-11-10T00:00:00.000Z",
+
+ ❯ src/features/library/screen/screen-state.test.ts:285:40
+    283|       const { state } = stale();
+    284|       expect(state).toMatchObject({ refreshing: true });
+    285|       expect(transition(state, event)).toEqual({ state, call: null });
+       |                                        ^
+    286|     },
+    287|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 37 passed (40)
+   Start at  21:06:49
+   Duration  101ms (tests 53%, import 26%, transform 14%, worker 6%)
+
