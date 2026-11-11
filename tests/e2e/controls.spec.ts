@@ -1,24 +1,10 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { expectNeutral } from "../support/neutral";
 
 function controlTab(browserName: string) {
   return browserName === "webkit" && process.platform === "darwin"
     ? "Alt+Tab"
     : "Tab";
-}
-
-async function expectNeutral(locator: Locator, properties: string[]) {
-  const colors = await locator.evaluate((element, names) => {
-    const style = getComputedStyle(element);
-    return names.map((name) => style.getPropertyValue(name));
-  }, properties);
-  for (const color of colors) {
-    const channels = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
-    expect(channels, color).toHaveLength(3);
-    expect(
-      Math.max(...channels!) - Math.min(...channels!),
-      color,
-    ).toBeLessThanOrEqual(1);
-  }
 }
 
 test("정렬 목록에서 현재 선택을 확인하고 클릭으로 가격순을 바꾼다", async ({ page }) => {
