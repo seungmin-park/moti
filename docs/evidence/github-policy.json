@@ -1,5 +1,5 @@
 {
-  "observedAt": "2026-11-10T19:53:28.987Z",
+  "observedAt": "2026-11-12T12:07:10.350Z",
   "repository": "https://github.com/seungmin-park/moti",
   "branch": "main",
   "allowAutoMerge": true,
@@ -8,7 +8,7 @@
     "appId": 15368,
     "contexts": [
       "pstack",
-      "mockup",
+      "app",
       "database"
     ]
   },
@@ -20,5 +20,5 @@
   "linearHistoryRequired": true,
   "allowForcePushes": false,
   "allowDeletions": false,
-  "verification": "Repository settings PATCH and branch protection PUT were followed by independent GET reads."
+  "verification": "Repository settings PATCH and branch protection PUT were followed by independent GET reads. On 2026-11-12 the required context mockup was renamed to app with the user's approval through the required_status_checks PATCH; strict mode, app 15368 and every other setting were re-read unchanged."
 }
