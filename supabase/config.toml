@@ -38,8 +38,11 @@ sign_in_sign_ups = 1000
 token_refresh = 1000
 
 [storage]
-enabled = false
+enabled = true
 file_size_limit = "5MiB"
+
+[storage.image_transformation]
+enabled = false
 
 [realtime]
 enabled = false
