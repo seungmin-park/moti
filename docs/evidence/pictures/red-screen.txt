@@ -1,0 +1,29 @@
+# Red: screen view and state tests for pictures before product-view.ts and screen-state.ts know about them
+# 2026-11-12T12:58:27Z e2df390+working tree
+
+     × Given 새 사본이 담긴 확인 결과 When 받으면 Then 사진도 반영한다 6ms
+     × Given 사진을 가져오지 못한 상품 When 다시 가져오면 Then 그 세대로 요청한다 0ms
+     × Given 막 담은 링크 When 카드로 보이면 Then 저장한 정보와 수집 대기·가격 확인 전·미분류를 그대로 말한다 5ms
+     × Given 막 담은 링크 When 상세로 보이면 Then 정보를 아직 가져오지 않았고 원본 링크는 보관했다고 말한다 2ms
+     × Given 사본이 있는 상품 When 카드와 상세로 보이면 Then 같은 출처 주소로 사진을 보이고 상세는 이름을 대체 글로 쓴다 0ms
+     × Given 사진이 없는 페이지이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다 0ms
+     × Given 수집 대기이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다 0ms
+     × Given 수집 중이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다 0ms
+     × Given 사진만 실패이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다 0ms
+     × Given 페이지 실패이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다 0ms
+     × Given 멈춘 수집이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다 0ms
+     × Given 이전 사본이 있고 이번 사진은 실패 When 보이면 Then 이전 사본을 계속 보인다 0ms
+     × Given 사진을 가져오지 못한 상품 When 상세로 보이면 Then 이유와 이름·가격은 가져왔다는 말을 하고 다시 가져올 수 있다 0ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { shop: 'shop.example', …(6) } to deeply equal { shop: 'shop.example', …(7) }
+AssertionError: expected { shop: 'shop.example', …(12) } to deeply equal { shop: 'shop.example', …(13) }
+AssertionError: expected undefined to deeply equal { kind: 'photo', …(2) }
+AssertionError: expected undefined to deeply equal { kind: 'placeholder', …(2) }
+AssertionError: expected undefined to deeply equal { kind: 'placeholder', …(2) }
+AssertionError: expected undefined to deeply equal { kind: 'placeholder', …(2) }
+AssertionError: expected undefined to deeply equal { kind: 'photo', …(2) }
+AssertionError: expected { title: '상품 정보를 가져왔어요', …(1) } to deeply equal { title: '사진을 가져오지 못했어요', …(1) }
+AssertionError: expected { …(15) } to match object { …(2) }
+AssertionError: expected null to deeply equal { type: 'metadata.retry', …(2) }
+ Test Files  2 failed | 1 passed (3)
+      Tests  13 failed | 157 passed (170)

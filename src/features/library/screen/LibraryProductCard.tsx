@@ -1,5 +1,6 @@
-import { Bookmark, Check, Folder, Link2 } from "lucide-react";
+import { Bookmark, Check, Folder } from "lucide-react";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
+import { ProductPicture } from "./ProductPicture";
 import { toProductCardView } from "./product-view";
 
 export function LibraryProductCard({
@@ -16,10 +17,7 @@ export function LibraryProductCard({
     <article className="product-card">
       <button className="product-open" aria-label={`${view.title}, ${view.shop} 상세 보기`} onClick={onOpen}>
         <div className="product-picture">
-          <div className="picture-placeholder">
-            <Link2 size={32} aria-hidden="true" />
-            <span>링크를 담아두었어요</span>
-          </div>
+          <ProductPicture view={view.picture} sizes="(max-width: 640px) 50vw, (max-width: 1100px) 33vw, 350px" iconSize={32} />
           {(view.status || view.purchased) && (
             <div className="picture-status-list">
               {view.purchased && (

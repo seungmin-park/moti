@@ -1069,6 +1069,7 @@ h1 {
   gap: 30px;
 }
 .detail-picture {
+  position: relative;
   aspect-ratio: 1;
   border-radius: 12px;
   overflow: hidden;

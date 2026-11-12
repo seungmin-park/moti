@@ -528,13 +528,23 @@ describe("수집 결과 기다리기", () => {
     expect(transition({ phase: "loading" }, { type: "poll" })).toEqual({ state: { phase: "loading" }, call: null });
   });
 
-  it("Given 확인 결과 When 받으면 Then 화면의 상품에 이름·수집 상태·가격만 반영하고 다른 내용과 순서는 그대로 둔다", () => {
+  it("Given 새 사본이 담긴 확인 결과 When 받으면 Then 사진도 반영한다", () => {
+    const picture = { src: `/api/products/${lamp.id}/picture?v=77777777-7777-4777-8777-777777777777` };
+    const copied: ProductResponse = {
+      ...readyLamp,
+      metadata: { ...readyLamp.metadata, image: { outcome: "copied" } } as ProductResponse["metadata"],
+      picture,
+    };
+    expect(productsOf(transition(withProducts([lamp]), settled([copied])).state)[0]).toMatchObject({ picture, metadata: copied.metadata });
+  });
+
+  it("Given 확인 결과 When 받으면 Then 화면의 상품에 이름·수집 상태·가격·사진만 반영하고 다른 내용과 순서는 그대로 둔다", () => {
     const polled = { ...readyLamp, note: "다른 곳에서 고친 메모", collectionIds: [], option: "바뀐 옵션" };
     const stranger = product("66666666-6666-4666-8666-666666666666", "2026-11-12T00:00:00.000Z");
     const { state, call } = transition(ready({ dialog: { kind: "detail", productId: lamp.id, arrival: "added", error: null } }), settled([stranger, chair, polled]));
     expect(call).toBeNull();
     expect(productsOf(state)).toEqual([
-      { ...lamp, title: readyLamp.title, metadata: readyLamp.metadata, lastSuccessfulPrice: readyLamp.lastSuccessfulPrice },
+      { ...lamp, title: readyLamp.title, metadata: readyLamp.metadata, lastSuccessfulPrice: readyLamp.lastSuccessfulPrice, picture: null },
       chair,
     ]);
     expect(state).toMatchObject({ refreshing: false, dialog: { kind: "detail", productId: lamp.id, arrival: "added" } });
@@ -572,6 +582,15 @@ describe("다시 가져오기", () => {
     expect(call).toEqual({ type: "metadata.retry", productId: lamp.id, body: { generation: 1 } });
     expect(state).toMatchObject({ retrying: lamp.id });
     expect(transition(state, { type: "metadata.retry", productId: lamp.id })).toEqual({ state, call: null });
+  });
+
+  it("Given 사진을 가져오지 못한 상품 When 다시 가져오면 Then 그 세대로 요청한다", () => {
+    const pictureFailed: ProductResponse = {
+      ...readyLamp,
+      metadata: { ...readyLamp.metadata, image: { outcome: "failed", errorCode: "timeout" } } as ProductResponse["metadata"],
+    };
+    expect(transition(withProducts([pictureFailed]), { type: "metadata.retry", productId: lamp.id }).call)
+      .toEqual({ type: "metadata.retry", productId: lamp.id, body: { generation: 1 } });
   });
 
   it("Given 멈춘 작업 When 다시 가져오면 Then 같은 세대로 요청한다", () => {
