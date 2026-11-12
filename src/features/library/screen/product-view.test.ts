@@ -27,13 +27,14 @@ const queued: ProductResponse = {
   purchase: { status: "wish" },
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
+  picture: null,
 };
 
 const everyPhase: ProductResponse["metadata"][] = [
   { phase: "queued", generation: 1, attempts: 0, stalled: false },
   { phase: "running", generation: 1, attempts: 1, stalled: false },
   { phase: "failed", generation: 1, attempts: 3, errorCode: "blocked_address" },
-  { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
+  { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image: { outcome: "absent" } },
 ];
 
 describe("상품 카드 문구", () => {
@@ -180,7 +181,7 @@ describe("수집 결과와 다시 가져오기", () => {
     const ready: ProductResponse = {
       ...queued,
       title: "무선 헤드폰 블랙",
-      metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
+      metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image: { outcome: "absent" } },
       lastSuccessfulPrice: { amountMinor: 289000, currency: "KRW", checkedAt: "2026-11-11T00:00:00.000Z" },
     };
     expect(toProductCardView(ready, [])).toMatchObject({ title: "무선 헤드폰 블랙", status: null, price: { value: "₩289,000" } });

@@ -4,6 +4,7 @@ import { toLinkSaveCommand } from "../../src/features/library/application/comman
 import type { Product } from "../../src/features/library/domain/library";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import type { CollectedPage, CollectionJob } from "../../src/features/metadata/application/collection";
+import type { ImageCopy } from "../../src/features/metadata/application/picture-copy";
 import { createSupabaseCollectionStore } from "../../src/features/metadata/infrastructure/supabase-collection-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
@@ -21,6 +22,7 @@ const page: CollectedPage = {
   price: { amountMinor: 289000, currency: "KRW" },
   imageSourceUrl: "https://cdn.shop.example/headphones.jpg",
 };
+const notCopied: ImageCopy = { outcome: "failed", code: "timeout" };
 
 async function saved(url = "https://shop.example/item"): Promise<Product> {
   return (await library().saveLink(toLinkSaveCommand({ url, option: "", collectionIds: [] }))).product;
@@ -54,11 +56,11 @@ describe("수집 작업 저장소", () => {
     expect(job).toMatchObject({ generation: 1, attempts: 1, sourceUrl: "https://shop.example/item" });
     expect((await current(product)).metadata).toEqual({ phase: "running", generation: 1, attempts: 1, stalled: false });
 
-    const settlement = await jobs().complete(job, page);
+    const settlement = await jobs().complete(job, page, notCopied);
 
     expect(settlement.kind).toBe("applied");
     const stored = await current(product);
-    expect(settlement).toEqual({ kind: "applied", product: stored });
+    expect(settlement).toEqual({ kind: "applied", product: stored, replacedPicture: null });
     expect(stored).toMatchObject({
       title: "무선 헤드폰",
       revision: product.revision,
@@ -83,7 +85,7 @@ describe("수집 작업 저장소", () => {
     const product = await saved();
     expect(await jobs().claim({ productId: product.id, generation: 2 })).toEqual({ kind: "skipped", reason: "stale" });
     expect(await jobs().claim({ productId: randomUUID() as Product["id"], generation: 1 })).toEqual({ kind: "skipped", reason: "stale" });
-    await jobs().complete(await claimed(product), page);
+    await jobs().complete(await claimed(product), page, notCopied);
     expect(await jobs().claim({ productId: product.id, generation: 1 })).toEqual({ kind: "skipped", reason: "settled" });
   });
 
@@ -91,7 +93,7 @@ describe("수집 작업 저장소", () => {
     const product = await saved();
     const settlement = await jobs().fail(await claimed(product), "blocked_address");
     const stored = await current(product);
-    expect(settlement).toEqual({ kind: "applied", product: stored });
+    expect(settlement).toEqual({ kind: "applied", product: stored, replacedPicture: null });
     expect(stored).toMatchObject({
       sourceUrl: product.sourceUrl,
       title: product.title,
@@ -117,7 +119,7 @@ describe("수집 작업 저장소", () => {
       .rejects.toMatchObject({ code: "product_missing" });
 
     const ready = await saved("https://shop.example/ready");
-    await jobs().complete(await claimed(ready), page);
+    await jobs().complete(await claimed(ready), { ...page, imageSourceUrl: null }, { outcome: "absent" });
     expect((await raw(1, ready.id)).error?.code).toBe("M0007");
     expect(await jobRows(product)).toMatchObject([{ generation: 1, status: "failed" }]);
   });
@@ -134,7 +136,7 @@ describe("수집 작업 저장소", () => {
 
     expect(retried.kind).toBe("requeued");
     expect(retried.product.metadata).toEqual({ phase: "queued", generation: 2, attempts: 0, stalled: false });
-    expect(await jobs().complete(old, page)).toEqual({ kind: "stale" });
+    expect(await jobs().complete(old, page, notCopied)).toEqual({ kind: "stale" });
     expect(await jobs().fail(old, "timeout")).toEqual({ kind: "stale" });
     expect(await current(product)).toEqual(retried.product);
     expect(await jobRows(product)).toMatchObject([
@@ -143,7 +145,7 @@ describe("수집 작업 저장소", () => {
     ]);
 
     const next = await claimed(product, 2);
-    expect((await jobs().complete(next, page)).kind).toBe("applied");
+    expect((await jobs().complete(next, page, notCopied)).kind).toBe("applied");
     expect((await current(product)).metadata).toMatchObject({ phase: "ready", generation: 2 });
   });
 
@@ -164,7 +166,7 @@ describe("수집 작업 저장소", () => {
     await fixture.admin.query("update moti.products set metadata_generation = 2, metadata_phase = 'queued' where id = $1", [product.id]);
     const before = await current(product);
 
-    expect(await jobs().complete(job, page)).toEqual({ kind: "stale" });
+    expect(await jobs().complete(job, page, notCopied)).toEqual({ kind: "stale" });
 
     expect(await current(product)).toEqual(before);
     expect(await jobRows(product)).toMatchObject([{ generation: 1, status: "failed", error_code: "superseded" }]);
@@ -177,7 +179,7 @@ describe("수집 작업 저장소", () => {
     const second = await claimed(product);
     expect(second.attempts).toBe(2);
     expect(second.leaseToken).not.toBe(first.leaseToken);
-    expect(await jobs().complete(first, page)).toEqual({ kind: "stale" });
+    expect(await jobs().complete(first, page, notCopied)).toEqual({ kind: "stale" });
     await expireLease(second);
     const third = await claimed(product);
     expect(third.attempts).toBe(3);
@@ -189,14 +191,14 @@ describe("수집 작업 저장소", () => {
     expect(exhausted).toEqual({ kind: "exhausted", product: stored });
     expect(stored.metadata).toEqual({ phase: "failed", generation: 1, attempts: 3, errorCode: "attempts_exhausted" });
     expect(await jobRows(product)).toMatchObject([{ status: "failed", attempts: 3, error_code: "attempts_exhausted" }]);
-    expect(await jobs().complete(third, page)).toEqual({ kind: "stale" });
+    expect(await jobs().complete(third, page, notCopied)).toEqual({ kind: "stale" });
   });
 
   it("다른 임차 토큰의 완료와 실패는 반영하지 않는다", async () => {
     const product = await saved();
     const job = await claimed(product);
     const forged = { ...job, leaseToken: randomUUID() };
-    expect(await jobs().complete(forged, page)).toEqual({ kind: "stale" });
+    expect(await jobs().complete(forged, page, notCopied)).toEqual({ kind: "stale" });
     expect(await jobs().fail(forged, "timeout")).toEqual({ kind: "stale" });
     expect((await current(product)).metadata.phase).toBe("running");
   });
@@ -212,13 +214,16 @@ describe("수집 작업 저장소", () => {
     ["moti_metadata_complete", { p_amount_minor: null, p_currency: "KRW" }],
     ["moti_metadata_complete", { p_amount_minor: 0, p_currency: "KRW" }],
     ["moti_metadata_complete", { p_amount_minor: 1000, p_currency: "krw" }],
-    ["moti_metadata_complete", { p_image_source_url: "javascript:alert(1)" }],
+    ["moti_metadata_complete", { p_image_source_url: "javascript:alert(1)", p_image: "failed", p_image_error_code: "timeout" }],
   ])("%s의 잘못된 입력 %j은 DB가 거절한다", async (name, override) => {
     const product = await saved();
     const job = await claimed(product);
     const base = name === "moti_metadata_fail"
       ? { p_job_id: job.id, p_lease: job.leaseToken, p_error_code: "timeout" }
-      : { p_job_id: job.id, p_lease: job.leaseToken, p_title: "램프", p_amount_minor: null, p_currency: null, p_image_source_url: null };
+      : {
+        p_job_id: job.id, p_lease: job.leaseToken, p_title: "램프", p_amount_minor: null, p_currency: null,
+        p_image_source_url: null, p_image: "absent", p_image_error_code: null,
+      };
     const response = await fixture.owner.client.rpc(name, { ...base, ...override });
     expect(response.error?.code).toBe("M0002");
     expect((await current(product)).metadata.phase).toBe("running");
@@ -226,21 +231,22 @@ describe("수집 작업 저장소", () => {
 
   it("다른 통화로 확인한 가격은 마지막 성공 가격을 덮어쓰지 않고 같은 통화는 갱신한다", async () => {
     const product = await saved();
-    await jobs().complete(await claimed(product), page);
+    await jobs().complete(await claimed(product), page, notCopied);
     const first = (await current(product)).lastSuccessfulPrice;
     const requeue = async (generation: number) => {
       await fixture.admin.query(
-        "update moti.products set metadata_phase = 'failed', metadata_error_code = 'timeout', metadata_completed_at = null where id = $1",
+        `update moti.products set metadata_phase = 'failed', metadata_error_code = 'timeout', metadata_completed_at = null,
+         metadata_image = null, metadata_image_error_code = null where id = $1`,
         [product.id],
       );
       await jobs().retry({ productId: product.id, expectedGeneration: generation });
       return claimed(product, generation + 1);
     };
 
-    await jobs().complete(await requeue(1), { ...page, title: "Headphones", price: { amountMinor: 1999, currency: "USD" } });
+    await jobs().complete(await requeue(1), { ...page, title: "Headphones", price: { amountMinor: 1999, currency: "USD" } }, notCopied);
     expect(await current(product)).toMatchObject({ title: "Headphones", lastSuccessfulPrice: first });
 
-    await jobs().complete(await requeue(2), { ...page, price: { amountMinor: 279000, currency: "KRW" } });
+    await jobs().complete(await requeue(2), { ...page, price: { amountMinor: 279000, currency: "KRW" } }, notCopied);
     expect((await current(product)).lastSuccessfulPrice).toMatchObject({ amountMinor: 279000, currency: "KRW" });
   });
 
@@ -262,7 +268,7 @@ describe("수집 작업 저장소", () => {
     const expired = await jobs().retry({ productId: product.id, expectedGeneration: 1 });
     expect(expired).toEqual({ kind: "resumed", product: await current(product) });
     expect(expired.product.metadata).toEqual({ phase: "queued", generation: 1, attempts: 1, stalled: false });
-    expect(await jobs().complete(job, page)).toEqual({ kind: "stale" });
+    expect(await jobs().complete(job, page, notCopied)).toEqual({ kind: "stale" });
 
     expect((await claimed(product)).attempts).toBe(2);
   });
@@ -272,7 +278,7 @@ describe("수집 작업 저장소", () => {
     const job = await claimed(product);
     const completed = await fixture.owner.client.rpc("moti_metadata_complete", {
       p_job_id: job.id, p_lease: job.leaseToken, p_title: "램프", p_amount_minor: null, p_currency: null,
-      p_image_source_url: page.imageSourceUrl,
+      p_image_source_url: page.imageSourceUrl, p_image: "failed", p_image_error_code: "timeout",
     });
     const snapshot = await fixture.owner.client.rpc("moti_snapshot");
     for (const response of [completed, snapshot]) {
@@ -286,7 +292,10 @@ describe("수집 작업 저장소", () => {
     const job = await claimed(product);
     const calls = [
       ["moti_metadata_claim", { p_product_id: product.id, p_generation: 1 }],
-      ["moti_metadata_complete", { p_job_id: job.id, p_lease: job.leaseToken, p_title: "탈취", p_amount_minor: null, p_currency: null, p_image_source_url: null }],
+      ["moti_metadata_complete", {
+        p_job_id: job.id, p_lease: job.leaseToken, p_title: "탈취", p_amount_minor: null, p_currency: null,
+        p_image_source_url: null, p_image: "absent", p_image_error_code: null,
+      }],
       ["moti_metadata_fail", { p_job_id: job.id, p_lease: job.leaseToken, p_error_code: "timeout" }],
       ["moti_metadata_retry", { p_product_id: product.id, p_expected_generation: 1 }],
     ] as const;

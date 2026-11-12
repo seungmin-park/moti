@@ -38,6 +38,7 @@ function product(id: string, addedAt: string, collectionIds: string[] = []): Pro
     purchase: { status: "wish" },
     metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
     lastSuccessfulPrice: null,
+    picture: null,
   };
 }
 
@@ -495,7 +496,7 @@ const failedLamp: ProductResponse = { ...lamp, metadata: { phase: "failed", gene
 const readyLamp: ProductResponse = {
   ...lamp,
   title: "책상 조명",
-  metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:05.000Z" },
+  metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:05.000Z", image: { outcome: "absent" } },
   lastSuccessfulPrice: { amountMinor: 59000, currency: "KRW", checkedAt: "2026-11-11T00:00:05.000Z" },
 };
 const withProducts = (products: ProductResponse[], overrides: Partial<Ready> = {}) =>

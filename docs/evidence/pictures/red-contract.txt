@@ -1,0 +1,16 @@
+# Red: library-handlers.test.ts with the picture contract cases, before library-dto.ts carries picture and metadata.image
+# 2026-11-12T12:38:49Z 5a30821+working tree
+# The four src guard cases pass already because the strict schema rejects any picture key; they must keep passing after Green.
+
+     × Given 허용한 Google 계정 When 보관함을 읽으면 Then 200과 계약에 맞는 보관함을 돌려준다 19ms
+     × Given 사진 사본이 있는 상품 When 보관함을 읽으면 Then 같은 출처의 사진 주소와 이번 사진 결과만 돌려준다 2ms
+     × Given 허용한 Google 계정 When 새 링크를 저장하면 Then 201과 상품을 돌려준다 2ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library > Given 허용한 Google 계정 When 보관함을 읽으면 Then 200과 계약에 맞는 보관함을 돌려준다
+AssertionError: expected { products: [ { …(14) } ], …(1) } to deeply equal { products: [ { …(15) } ], …(1) }
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library > Given 사진 사본이 있는 상품 When 보관함을 읽으면 Then 같은 출처의 사진 주소와 이번 사진 결과만 돌려준다
+AssertionError: expected { …(14) } to match object { …(2) }
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/links > Given 허용한 Google 계정 When 새 링크를 저장하면 Then 201과 상품을 돌려준다
+AssertionError: expected { kind: 'added', product: { …(14) } } to deeply equal { kind: 'added', product: { …(15) } }
+ Test Files  1 failed (1)
+      Tests  3 failed | 55 passed (58)

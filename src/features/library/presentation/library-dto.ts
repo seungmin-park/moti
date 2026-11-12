@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { MAX_METADATA_GENERATION, type MetadataRetryResult } from "../../metadata/application/commands";
 import type { LinkSaveResult } from "../application/commands";
-import { collectionErrorCodes } from "../../metadata/domain/collection-error";
-import type { Collection, Library, Product } from "../domain/library";
+import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
+import type { Collection, Library, Picture, Product, ProductId } from "../domain/library";
 
 const timestamp = z.iso.datetime();
+const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const moneyResponseSchema = z.object({
   amountMinor: z.number().int().min(0),
   currency: z.string().regex(/^[A-Z]{3}$/),
@@ -16,6 +17,12 @@ export const collectionResponseSchema = z.object({
   revision: z.number().int().min(1),
   createdAt: timestamp,
   updatedAt: timestamp,
+}).strict();
+
+// A same-origin address that stays the same for one copy. No storage path, signed token or shop address reaches
+// the screen; the route signs a short-lived link when the browser asks for the bytes.
+export const pictureResponseSchema = z.object({
+  src: z.string().regex(new RegExp(`^/api/products/${uuid}/picture\\?v=${uuid}$`)),
 }).strict();
 
 export const productResponseSchema = z.object({
@@ -41,7 +48,16 @@ export const productResponseSchema = z.object({
       attempts: z.number().int(),
       stalled: z.boolean(),
     }).strict(),
-    z.object({ phase: z.literal("ready"), generation: z.number().int(), attempts: z.number().int(), completedAt: timestamp }).strict(),
+    z.object({
+      phase: z.literal("ready"),
+      generation: z.number().int(),
+      attempts: z.number().int(),
+      completedAt: timestamp,
+      image: z.discriminatedUnion("outcome", [
+        z.object({ outcome: z.enum(["copied", "absent"]) }).strict(),
+        z.object({ outcome: z.literal("failed"), errorCode: z.enum(imageErrorCodes) }).strict(),
+      ]),
+    }).strict(),
     z.object({
       phase: z.literal("failed"),
       generation: z.number().int(),
@@ -50,6 +66,7 @@ export const productResponseSchema = z.object({
     }).strict(),
   ]),
   lastSuccessfulPrice: moneyResponseSchema.extend({ checkedAt: timestamp }).strict().nullable(),
+  picture: pictureResponseSchema.nullable(),
 }).strict();
 
 export const libraryReadResponseSchema = z.object({
@@ -97,6 +114,7 @@ export const errorResponseSchema = z.object({
 }).strict();
 
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
+export type PictureResponse = z.infer<typeof pictureResponseSchema>;
 export type ProductResponse = z.infer<typeof productResponseSchema>;
 export type LibraryReadResponse = z.infer<typeof libraryReadResponseSchema>;
 export type LinkSaveRequest = z.infer<typeof linkSaveRequestSchema>;
@@ -137,9 +155,16 @@ export function toProductResponse(product: Product): ProductResponse {
         date: product.purchase.date,
         price: product.purchase.price && { ...product.purchase.price },
       },
-    metadata: { ...product.metadata },
+    metadata: product.metadata.phase === "ready"
+      ? { ...product.metadata, image: { ...product.metadata.image } }
+      : { ...product.metadata },
     lastSuccessfulPrice: product.lastSuccessfulPrice && { ...product.lastSuccessfulPrice },
+    picture: product.picture && toPictureResponse(product.id, product.picture),
   };
+}
+
+export function toPictureResponse(productId: ProductId, picture: Picture): PictureResponse {
+  return { src: `/api/products/${productId}/picture?v=${picture.version}` };
 }
 
 export function toLibraryReadResponse(library: Library): LibraryReadResponse {

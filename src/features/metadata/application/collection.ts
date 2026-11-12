@@ -3,19 +3,27 @@ import type { CollectionErrorCode } from "../domain/collection-error";
 import type { PageFacts } from "../domain/page-facts";
 import { pickSinglePrice, type Price } from "../domain/price";
 import type { MetadataRetryCommand, MetadataRetryResult } from "./commands";
+import type { ImageCopy, PictureObject } from "./picture-copy";
 
 export type CollectionRequest = { productId: ProductId; generation: number };
-export type CollectionJob = { id: string; leaseToken: string; generation: number; attempts: number; sourceUrl: string };
+export type CollectionJob = {
+  id: string;
+  leaseToken: string;
+  generation: number;
+  attempts: number;
+  sourceUrl: string;
+  picture: PictureObject;
+};
 export type JobClaim =
   | { kind: "claimed"; job: CollectionJob }
   | { kind: "skipped"; reason: "stale" | "busy" | "settled" }
   | { kind: "exhausted"; product: Product };
 export type CollectedPage = { title: string; price: Price | null; imageSourceUrl: string | null };
-export type JobSettlement = { kind: "applied"; product: Product } | { kind: "stale" };
+export type JobSettlement = { kind: "applied"; product: Product; replacedPicture: PictureObject | null } | { kind: "stale" };
 
 export interface CollectionJobStore {
   claim(request: CollectionRequest): Promise<JobClaim>;
-  complete(job: CollectionJob, page: CollectedPage): Promise<JobSettlement>;
+  complete(job: CollectionJob, page: CollectedPage, image: ImageCopy): Promise<JobSettlement>;
   fail(job: CollectionJob, code: CollectionErrorCode): Promise<JobSettlement>;
   retry(command: MetadataRetryCommand): Promise<MetadataRetryResult>;
 }
@@ -62,7 +70,8 @@ export function createCollectionRunner({ store, source, read }: {
       ? decideOutcome(read(fetched.page.html, fetched.page.url))
       : { kind: "fail", code: fetched.code };
     if (outcome.kind === "complete") {
-      return settled(await store.complete(job, outcome.page), (product) => ({ kind: "collected", product }));
+      const image: ImageCopy = outcome.page.imageSourceUrl === null ? { outcome: "absent" } : { outcome: "failed", code: "internal" };
+      return settled(await store.complete(job, outcome.page, image), (product) => ({ kind: "collected", product }));
     }
     const { code } = outcome;
     return settled(await store.fail(job, code), (product) => ({ kind: "failed", code, product }));

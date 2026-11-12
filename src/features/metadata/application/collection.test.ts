@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Product, ProductId } from "../../library/domain/library";
 import { createCollectionRunner, decideOutcome, type CollectionJob, type CollectionJobStore } from "./collection";
+import type { PictureObject } from "./picture-copy";
 
 describe("수집 결과 결정", () => {
   it("Given 이름과 하나의 가격 When 결정하면 Then 이름·가격·이미지를 저장한다", () => {
@@ -27,14 +28,21 @@ describe("수집 결과 결정", () => {
   });
 });
 
-const job: CollectionJob = { id: "job-1", leaseToken: "lease-1", generation: 1, attempts: 1, sourceUrl: "https://shop.example/p" };
+const job: CollectionJob = {
+  id: "job-1",
+  leaseToken: "lease-1",
+  generation: 1,
+  attempts: 1,
+  sourceUrl: "https://shop.example/p",
+  picture: "owner/p-1/job-1-1.webp" as PictureObject,
+};
 const product = { id: "p-1" as ProductId } as Product;
 
 function store(overrides: Partial<CollectionJobStore> = {}): CollectionJobStore {
   return {
     claim: vi.fn(async () => ({ kind: "claimed" as const, job })),
-    complete: vi.fn(async () => ({ kind: "applied" as const, product })),
-    fail: vi.fn(async () => ({ kind: "applied" as const, product })),
+    complete: vi.fn(async () => ({ kind: "applied" as const, product, replacedPicture: null })),
+    fail: vi.fn(async () => ({ kind: "applied" as const, product, replacedPicture: null })),
     retry: vi.fn(),
     ...overrides,
   };

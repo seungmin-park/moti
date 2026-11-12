@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { collectionErrorCodes } from "../../metadata/domain/collection-error";
+import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
 import type { LibraryStore } from "../application/library-store";
 import {
   LibraryError,
   type Collection,
   type CollectionId,
+  type ImageOutcome,
   type LibraryErrorCode,
   type MetadataState,
   type Product,
@@ -46,9 +47,12 @@ export const productRowSchema = z.object({
   metadata_error_code: z.enum(collectionErrorCodes).nullable(),
   metadata_stalled: z.boolean(),
   metadata_completed_at: timestamp.nullable(),
+  metadata_image: z.enum(["copied", "absent", "failed"]).nullable(),
+  metadata_image_error_code: z.enum(imageErrorCodes).nullable(),
   last_success_amount_minor: money,
   last_success_currency: currency,
   last_success_at: timestamp.nullable(),
+  picture_version: z.uuid().nullable(),
 }).refine((row) => {
   const purchaseConsistent =
     row.purchase_status === "wish"
@@ -63,7 +67,9 @@ export const productRowSchema = z.object({
       : row.metadata_phase === "failed"
         ? row.metadata_error_code !== null && row.metadata_completed_at === null
         : row.metadata_error_code === null && row.metadata_completed_at === null;
-  return purchaseConsistent && priceConsistent && metadataConsistent;
+  const imageConsistent = (row.metadata_phase === "ready") === (row.metadata_image !== null) &&
+    (row.metadata_image === "failed") === (row.metadata_image_error_code !== null);
+  return purchaseConsistent && priceConsistent && metadataConsistent && imageConsistent;
 });
 
 type CollectionRow = z.infer<typeof collectionRowSchema>;
@@ -79,11 +85,17 @@ function toCollection(row: CollectionRow): Collection {
   };
 }
 
+function toImageOutcome(row: ProductRow): ImageOutcome {
+  return row.metadata_image === "failed"
+    ? { outcome: "failed", errorCode: row.metadata_image_error_code! }
+    : { outcome: row.metadata_image! };
+}
+
 export function toProduct(row: ProductRow): Product {
   const generation = { generation: row.metadata_generation, attempts: row.metadata_attempts };
   const metadata: MetadataState =
     row.metadata_phase === "ready"
-      ? { ...generation, phase: "ready", completedAt: row.metadata_completed_at! }
+      ? { ...generation, phase: "ready", completedAt: row.metadata_completed_at!, image: toImageOutcome(row) }
       : row.metadata_phase === "failed"
         ? { ...generation, phase: "failed", errorCode: row.metadata_error_code! }
         : { ...generation, phase: row.metadata_phase, stalled: row.metadata_stalled };
@@ -113,6 +125,7 @@ export function toProduct(row: ProductRow): Product {
       currency: row.last_success_currency!,
       checkedAt: row.last_success_at!,
     },
+    picture: row.picture_version === null ? null : { version: row.picture_version },
   };
 }
 

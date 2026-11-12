@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Access } from "../../auth/domain/access";
 import { toLinkSaveCommand } from "../application/commands";
-import { LibraryError, type Collection, type CollectionId, type Product, type ProductId } from "../domain/library";
+import { LibraryError, type Collection, type CollectionId, type Library, type Product, type ProductId } from "../domain/library";
 import type { CollectionRequest } from "../../metadata/application/collection";
 import type { MetadataRetryCommand, MetadataRetryResult } from "../../metadata/application/commands";
 import { createLibraryHandlers } from "./library-handlers";
@@ -37,11 +37,12 @@ const product = {
   purchase: { status: "wish" },
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
+  picture: null,
 } satisfies Product;
 
 function given(access: Access) {
   const service = {
-    snapshot: vi.fn(async () => ({ products: [product], collections: [collection] })),
+    snapshot: vi.fn(async (): Promise<Library> => ({ products: [product], collections: [collection] })),
     saveLink: vi.fn(async () => ({ kind: "added" as const, product })),
     createCollection: vi.fn(async () => collection),
   };
@@ -77,6 +78,39 @@ describe("GET /api/library", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(libraryReadResponseSchema.parse(await response.json())).toEqual({ products: [product], collections: [collection] });
     expect(service.snapshot).toHaveBeenCalledOnce();
+  });
+
+  it("Given 사진 사본이 있는 상품 When 보관함을 읽으면 Then 같은 출처의 사진 주소와 이번 사진 결과만 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    const version = "33333333-3333-4333-8333-333333333333";
+    service.snapshot.mockResolvedValueOnce({
+      products: [{
+        ...product,
+        metadata: {
+          phase: "ready", generation: 2, attempts: 1, completedAt: "2026-11-12T00:00:00.000Z",
+          image: { outcome: "failed", errorCode: "upload_failed" },
+        },
+        picture: { version },
+      }],
+      collections: [],
+    });
+
+    const body = libraryReadResponseSchema.parse(await (await handlers.getLibrary(get())).json());
+
+    expect(body.products[0]).toMatchObject({
+      metadata: { phase: "ready", image: { outcome: "failed", errorCode: "upload_failed" } },
+      picture: { src: `/api/products/${product.id}/picture?v=${version}` },
+    });
+  });
+
+  it.each([
+    { src: "https://cdn.shop.example/a.jpg" },
+    { src: "/storage/v1/object/sign/product-pictures/a/b/c-1.webp?token=x" },
+    { src: "//evil.example/api/products/22222222-2222-4222-8222-222222222222/picture?v=33333333-3333-4333-8333-333333333333" },
+    { src: "/api/products/22222222-2222-4222-8222-222222222222/picture?v=33333333-3333-4333-8333-333333333333", url: "x" },
+  ])("Given 같은 출처 사진 경로가 아닌 $src When 계약으로 검증하면 Then 거절한다", (picture) => {
+    const body = { products: [{ ...JSON.parse(JSON.stringify(product)), picture }], collections: [] };
+    expect(libraryReadResponseSchema.safeParse(body).success).toBe(false);
   });
 
   it("Given 세션 없음 When 보관함을 읽으면 Then 401이고 서비스를 호출하지 않는다", async () => {
@@ -146,7 +180,7 @@ describe("POST /api/links", () => {
   });
 
   it.each<Product["metadata"]>([
-    { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
+    { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image: { outcome: "absent" } },
     { phase: "failed", generation: 1, attempts: 1, errorCode: "timeout" },
     { phase: "running", generation: 1, attempts: 1, stalled: false },
   ])("Given 수집 단계가 $phase인 중복 상품 When 다시 저장하면 Then 수집을 예약하지 않는다", async (metadata) => {
