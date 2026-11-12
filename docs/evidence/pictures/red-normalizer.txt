@@ -1,0 +1,18 @@
+# Red: src/features/metadata/infrastructure/sharp-normalizer.test.ts (real sharp 0.35.5) with the normalizer still a stub that throws
+# 2026-11-12T12:47:07Z 41cb5d8+working tree
+
+     × Given 회전 정보와 EXIF가 든 JPEG When 정규화하면 Then 바로 세운 WebP이고 메타데이터는 남지 않는다 7ms
+     × Given 4000×3000 사진 When 정규화하면 Then 긴 변이 1200을 넘지 않고 작은 사진은 키우지 않는다 15ms
+     × Given 뒤에 HTML을 붙인 PNG When 정규화하면 Then 픽셀만 다시 인코딩해 덧붙인 내용이 없다 1ms
+     × Given 움직이는 GIF When 정규화하면 Then 첫 장면 하나만 남는다 3ms
+     × Given webp 사진 When 정규화하면 Then WebP로 다시 만든다 1ms
+     × Given avif 사진 When 정규화하면 Then WebP로 다시 만든다 2ms
+     × Given 판별한 형식과 내용이 다른 파일 When 정규화하면 Then 읽을 수 없는 사진이다 1ms
+     × Given 중간에 잘린 JPEG When 정규화하면 Then 읽을 수 없는 사진이다 1ms
+     × Given 머리말만 3만×3만 픽셀인 PNG When 정규화하면 Then 풀지 않고 너무 크다 1ms
+     × Given 저장 한도보다 큰 결과 When 정규화하면 Then 너무 크다 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  10 failed (10)
+
+   9 Error: not implemented
