@@ -3,7 +3,7 @@ import type { CollectionErrorCode } from "../domain/collection-error";
 import type { PageFacts } from "../domain/page-facts";
 import { pickSinglePrice, type Price } from "../domain/price";
 import type { MetadataRetryCommand, MetadataRetryResult } from "./commands";
-import type { ImageCopy, PictureObject } from "./picture-copy";
+import type { ImageCopy, PictureCopier, PictureObject } from "./picture-copy";
 
 export type CollectionRequest = { productId: ProductId; generation: number };
 export type CollectionJob = {
@@ -59,22 +59,28 @@ function settled(settlement: JobSettlement, run: (product: Product) => Collectio
   return settlement.kind === "applied" ? run(settlement.product) : { kind: "stale" };
 }
 
-export function createCollectionRunner({ store, source, read }: {
+// Below the 60 s lease and the routes' maxDuration, leaving room for complete() after the picture copy.
+export const RUN_BUDGET_MS = 40_000;
+
+export function createCollectionRunner({ store, source, read, copier, now = Date.now }: {
   store: CollectionJobStore;
   source: PageSource;
   read: PageReader;
+  copier: PictureCopier;
+  now?: () => number;
 }) {
-  async function collect(job: CollectionJob): Promise<CollectionRun> {
-    const fetched = await source.read(job.sourceUrl);
-    const outcome: CollectionOutcome | { kind: "fail"; code: CollectionErrorCode } = fetched.ok
-      ? decideOutcome(read(fetched.page.html, fetched.page.url))
-      : { kind: "fail", code: fetched.code };
-    if (outcome.kind === "complete") {
-      const image: ImageCopy = outcome.page.imageSourceUrl === null ? { outcome: "absent" } : { outcome: "failed", code: "internal" };
-      return settled(await store.complete(job, outcome.page, image), (product) => ({ kind: "collected", product }));
-    }
-    const { code } = outcome;
+  async function fail(job: CollectionJob, code: CollectionErrorCode): Promise<CollectionRun> {
     return settled(await store.fail(job, code), (product) => ({ kind: "failed", code, product }));
+  }
+
+  async function collect(job: CollectionJob, deadline: number): Promise<CollectionRun> {
+    const fetched = await source.read(job.sourceUrl);
+    if (!fetched.ok) return fail(job, fetched.code);
+    const outcome = decideOutcome(read(fetched.page.html, fetched.page.url));
+    if (outcome.kind === "fail") return fail(job, outcome.code);
+    const task = { imageUrl: outcome.page.imageSourceUrl, pageUrl: fetched.page.url, target: job.picture, deadline };
+    const settlement = await copier.settleWith(task, (image) => store.complete(job, outcome.page, image));
+    return settled(settlement, (product) => ({ kind: "collected", product }));
   }
 
   return {
@@ -87,11 +93,12 @@ export function createCollectionRunner({ store, source, read }: {
         return { kind: "unavailable" };
       }
       if (claim.kind !== "claimed") return claim;
+      const deadline = now() + RUN_BUDGET_MS;
       try {
-        return await collect(claim.job);
+        return await collect(claim.job, deadline);
       } catch {
         try {
-          return settled(await store.fail(claim.job, "internal"), (product) => ({ kind: "failed", code: "internal", product }));
+          return await fail(claim.job, "internal");
         } catch {
           return { kind: "unavailable" };
         }

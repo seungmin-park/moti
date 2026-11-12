@@ -1,0 +1,36 @@
+# Red: application tests for the picture copier and the runner, with createPictureCopier a stub that throws and a runner that ignores its copier
+# 2026-11-12T12:49:02Z a5b2692+working tree
+# The runner cases for a failed page and a throwing complete pass already; they guard behaviour that must not change.
+
+     × Given 읽고 판별하고 정규화한 사진 When 복사하면 Then 예약된 이름에 올리고 사본으로 끝낸다 3ms
+     × Given 사진 주소가 없는 페이지 When 복사하면 Then 요청하지 않고 사진 없음으로 끝낸다 0ms
+     × Given 남은 시간이 5초보다 적음 When 복사하면 Then 요청하지 않고 시간 초과로 끝낸다 0ms
+     × Given 쇼핑몰이 사진 요청을 막음 When 복사하면 Then 그 원인으로 끝내고 정규화하지 않는다 0ms
+     × Given 사진이라고 밝혔지만 HTML인 바이트 When 복사하면 Then 지원하지 않는 형식이고 디코더에 넘기지 않는다 0ms
+     × Given 정규화가 unreadable_image When 복사하면 Then 그 원인으로 끝내고 올리지 않는다 0ms
+     × Given 정규화가 too_large When 복사하면 Then 그 원인으로 끝내고 올리지 않는다 0ms
+     × Given 저장소가 올리기를 거절 When 복사하면 Then 올리기 실패로 끝낸다 0ms
+     × Given 가져오기 단계가 예상하지 못한 오류 When 복사하면 Then 내부 오류로 끝내고 이름과 가격은 저장한다 0ms
+     × Given 정규화 단계가 예상하지 못한 오류 When 복사하면 Then 내부 오류로 끝내고 이름과 가격은 저장한다 0ms
+     × Given 올리기 단계가 예상하지 못한 오류 When 복사하면 Then 내부 오류로 끝내고 이름과 가격은 저장한다 1ms
+     × Given 새 사본이 이전 사본을 대신함 When 끝내면 Then 대신한 이전 사본만 지운다 0ms
+     × Given 그 사이 세대가 바뀜 When 끝내면 Then 반영되지 않은 자기 사본을 지운다 0ms
+     × Given 사본을 올렸지만 끝내기가 실패 When 끝내면 Then 자기 사본을 지우고 그 오류를 그대로 던진다 3ms
+     × Given 올린 것이 없음 When 끝내기가 실패하거나 세대가 바뀌면 Then 지울 것이 없다 1ms
+     × Given 이름과 사진 주소가 있는 페이지 When 실행하면 Then 사진 결과를 이름·가격과 함께 한 번에 끝내고 맡은 뒤 40초를 기한으로 준다 4ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected "vi.fn()" to be called once with arguments: [ { …(4) }, Any<Function> ]
+Error: not implemented
+Error: not implemented
+Error: not implemented
+Error: not implemented
+Error: not implemented
+Error: not implemented
+Error: not implemented
+Error: not implemented
+Error: not implemented
+Error: not implemented
+AssertionError: expected Error: not implemented to be Error: db down // Object.is equality
+AssertionError: expected [Function] to throw error including 'db down' but got 'not implemented'
+ Test Files  2 failed (2)
+      Tests  16 failed | 9 passed (25)

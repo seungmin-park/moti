@@ -1,5 +1,6 @@
 import type { FetchErrorCode, ImageErrorCode } from "../domain/collection-error";
-import type { ImageFormat } from "../domain/picture";
+import { sniffImageFormat, type ImageFormat } from "../domain/picture";
+import type { JobSettlement } from "./collection";
 
 // The name the database reserved for one attempt's copy. Only the database makes one; code passes it along.
 export type PictureObject = string & { readonly __pictureObject: unique symbol };
@@ -15,3 +16,68 @@ export interface ImageSource {
 export type NormalizedPicture = { bytes: Uint8Array; width: number; height: number };
 export type Normalized = { ok: true; picture: NormalizedPicture } | { ok: false; code: "unreadable_image" | "too_large" };
 export type PictureNormalizer = (bytes: Uint8Array, format: ImageFormat) => Promise<Normalized>;
+
+// The private bucket, reached with the owner's token. Storage policies admit only the reserved name of a running job.
+export interface PictureStore {
+  put(object: PictureObject, picture: NormalizedPicture): Promise<boolean>;
+  // Best effort and never throws: an object left behind is unreferenced and a later sweep can remove it.
+  discard(objects: readonly PictureObject[]): Promise<void>;
+}
+
+export type PictureTask = { imageUrl: string | null; pageUrl: string; target: PictureObject; deadline: number };
+export interface PictureCopier {
+  // Copies the page's picture under `task.target`, hands the outcome to `settle` exactly once, then removes the
+  // object the settlement left unreferenced. Never throws for image problems; rethrows only what `settle` throws.
+  settleWith(task: PictureTask, settle: (image: ImageCopy) => Promise<JobSettlement>): Promise<JobSettlement>;
+}
+
+const IMAGE_FETCH_MS = 10_000;
+const MIN_IMAGE_WINDOW_MS = 5_000;
+// Left for complete() after the image fetch gives up.
+const SETTLE_RESERVE_MS = 3_000;
+
+const failed = (code: ImageErrorCode): ImageCopy => ({ outcome: "failed", code });
+
+export function createPictureCopier({ source, normalize, pictures, now = Date.now }: {
+  source: ImageSource;
+  normalize: PictureNormalizer;
+  pictures: PictureStore;
+  now?: () => number;
+}): PictureCopier {
+  async function copy(task: PictureTask): Promise<ImageCopy> {
+    if (task.imageUrl === null) return { outcome: "absent" };
+    const remaining = task.deadline - now();
+    if (remaining < MIN_IMAGE_WINDOW_MS) return failed("timeout");
+    try {
+      const signal = AbortSignal.timeout(Math.min(IMAGE_FETCH_MS, remaining - SETTLE_RESERVE_MS));
+      const read = await source.read(task.imageUrl, { pageUrl: task.pageUrl, signal });
+      if (!read.ok) return failed(read.code);
+      const format = sniffImageFormat(read.bytes);
+      if (format === null) return failed("unsupported_content");
+      const normalized = await normalize(read.bytes, format);
+      if (!normalized.ok) return failed(normalized.code);
+      return (await pictures.put(task.target, normalized.picture)) ? { outcome: "copied" } : failed("upload_failed");
+    } catch {
+      return failed("internal");
+    }
+  }
+
+  return {
+    async settleWith(task, settle) {
+      const image = await copy(task);
+      const uploaded = image.outcome === "copied";
+      let settlement: JobSettlement;
+      try {
+        settlement = await settle(image);
+      } catch (error) {
+        if (uploaded) await pictures.discard([task.target]);
+        throw error;
+      }
+      if (uploaded && settlement.kind === "stale") await pictures.discard([task.target]);
+      if (settlement.kind === "applied" && settlement.replacedPicture !== null) {
+        await pictures.discard([settlement.replacedPicture]);
+      }
+      return settlement;
+    },
+  };
+}

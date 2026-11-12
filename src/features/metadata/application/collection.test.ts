@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Product, ProductId } from "../../library/domain/library";
-import { createCollectionRunner, decideOutcome, type CollectionJob, type CollectionJobStore } from "./collection";
-import type { PictureObject } from "./picture-copy";
+import { createCollectionRunner, decideOutcome, RUN_BUDGET_MS, type CollectionJob, type CollectionJobStore } from "./collection";
+import type { ImageCopy, PictureCopier, PictureObject } from "./picture-copy";
 
 describe("수집 결과 결정", () => {
   it("Given 이름과 하나의 가격 When 결정하면 Then 이름·가격·이미지를 저장한다", () => {
@@ -48,15 +48,72 @@ function store(overrides: Partial<CollectionJobStore> = {}): CollectionJobStore 
   };
 }
 
+// Stands in for the copier: it hands the given outcome to the settlement, as the real one does after copying.
+function copier(image: ImageCopy = { outcome: "absent" }) {
+  return { settleWith: vi.fn<PictureCopier["settleWith"]>(async (_task, settle) => settle(image)) };
+}
+
 describe("수집 실행기", () => {
   const request = { productId: "p-1" as ProductId, generation: 1 };
   const page = { ok: true as const, page: { html: "<title>램프</title>", url: "https://shop.example/p", status: 200 } };
+
+  it("Given 이름과 사진 주소가 있는 페이지 When 실행하면 Then 사진 결과를 이름·가격과 함께 한 번에 끝내고 맡은 뒤 40초를 기한으로 준다", async () => {
+    const jobs = store();
+    const pictures = copier({ outcome: "copied" });
+    const clock = vi.fn().mockReturnValueOnce(5_000).mockReturnValue(9_999);
+    const runner = createCollectionRunner({
+      store: jobs,
+      source: { read: vi.fn(async () => ({ ...page, page: { ...page.page, url: "https://shop.example/p?moved=1" } })) },
+      read: vi.fn(() => ({ title: "램프", prices: [], imageUrl: "https://cdn.shop.example/lamp.png" })),
+      copier: pictures,
+      now: clock,
+    });
+
+    await expect(runner.run(request)).resolves.toEqual({ kind: "collected", product });
+
+    expect(pictures.settleWith).toHaveBeenCalledExactlyOnceWith({
+      imageUrl: "https://cdn.shop.example/lamp.png",
+      pageUrl: "https://shop.example/p?moved=1",
+      target: job.picture,
+      deadline: 5_000 + RUN_BUDGET_MS,
+    }, expect.any(Function));
+    expect(RUN_BUDGET_MS).toBe(40_000);
+    expect(jobs.complete).toHaveBeenCalledExactlyOnceWith(job,
+      { title: "램프", price: null, imageSourceUrl: "https://cdn.shop.example/lamp.png" }, { outcome: "copied" });
+  });
+
+  it("Given 페이지를 읽지 못함 When 실행하면 Then 사진은 가져오지 않고 실패만 기록한다", async () => {
+    const jobs = store();
+    const pictures = copier();
+    const runner = createCollectionRunner({
+      store: jobs,
+      source: { read: vi.fn(async () => ({ ok: false as const, code: "blocked_by_site" as const, status: 403 })) },
+      read: vi.fn(),
+      copier: pictures,
+    });
+    await expect(runner.run(request)).resolves.toEqual({ kind: "failed", code: "blocked_by_site", product });
+    expect(pictures.settleWith).not.toHaveBeenCalled();
+    expect(jobs.complete).not.toHaveBeenCalled();
+  });
+
+  it("Given 사진과 함께 끝내기가 예외 When 실행하면 Then 내부 오류로 실패를 기록한다", async () => {
+    const jobs = store({ complete: vi.fn(async () => { throw new Error("db down"); }) });
+    const runner = createCollectionRunner({
+      store: jobs,
+      source: { read: vi.fn(async () => page) },
+      read: vi.fn(() => ({ title: "램프", prices: [], imageUrl: null })),
+      copier: copier(),
+    });
+    await expect(runner.run(request)).resolves.toEqual({ kind: "failed", code: "internal", product });
+    expect(jobs.fail).toHaveBeenCalledWith(job, "internal");
+  });
 
   it("Given 저장소가 응답하지 않음 When 실행하면 Then 예외 없이 사용할 수 없음을 돌려준다", async () => {
     const runner = createCollectionRunner({
       store: store({ claim: vi.fn(async () => { throw new Error("db down"); }) }),
       source: { read: vi.fn() },
       read: vi.fn(),
+      copier: copier(),
     });
     await expect(runner.run(request)).resolves.toEqual({ kind: "unavailable" });
   });
@@ -67,6 +124,7 @@ describe("수집 실행기", () => {
       store: jobs,
       source: { read: vi.fn(async () => page) },
       read: vi.fn(() => { throw new Error("parser bug"); }),
+      copier: copier(),
     });
     await expect(runner.run(request)).resolves.toEqual({ kind: "failed", code: "internal", product });
     expect(jobs.fail).toHaveBeenCalledWith(job, "internal");
@@ -77,6 +135,7 @@ describe("수집 실행기", () => {
       store: store({ fail: vi.fn(async () => { throw new Error("db down"); }) }),
       source: { read: vi.fn(async () => ({ ok: false as const, code: "timeout" as const, status: null })) },
       read: vi.fn(),
+      copier: copier(),
     });
     await expect(runner.run(request)).resolves.toEqual({ kind: "unavailable" });
   });
@@ -87,6 +146,7 @@ describe("수집 실행기", () => {
       store: store({ claim: vi.fn(async () => ({ kind: "skipped" as const, reason: "busy" as const })) }),
       source,
       read: vi.fn(),
+      copier: copier(),
     });
     await expect(runner.run(request)).resolves.toEqual({ kind: "skipped", reason: "busy" });
     expect(source.read).not.toHaveBeenCalled();

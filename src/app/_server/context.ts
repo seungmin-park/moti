@@ -14,12 +14,15 @@ import {
 } from "@/features/auth/infrastructure/supabase-auth";
 import type { AuthRequestContext } from "@/features/auth/presentation/auth-handlers";
 import { createLibraryService } from "@/features/library/application/library-service";
+import { createPictureStore } from "@/features/library/infrastructure/product-pictures";
 import { createSupabaseLibraryStore } from "@/features/library/infrastructure/supabase-library-store";
 import type { LibraryRequestContext } from "@/features/library/presentation/library-handlers";
 import { createCollectionRunner, type CollectionRequest } from "@/features/metadata/application/collection";
+import { createPictureCopier } from "@/features/metadata/application/picture-copy";
 import { strictFetchPolicy } from "@/features/metadata/infrastructure/address-policy";
 import { readProductPage } from "@/features/metadata/infrastructure/html-reader";
-import { createSafePageSource } from "@/features/metadata/infrastructure/safe-fetch";
+import { createSafeImageSource, createSafePageSource } from "@/features/metadata/infrastructure/safe-fetch";
+import { normalizePicture } from "@/features/metadata/infrastructure/sharp-normalizer";
 import { createSupabaseCollectionStore } from "@/features/metadata/infrastructure/supabase-collection-store";
 
 async function connect() {
@@ -36,10 +39,16 @@ function unavailable(): never {
 // Cookie writes throw once the response is sent, so the collection run never reuses the cookie client.
 function scheduleCollection(config: AuthConfig, accessToken: string | null, request: CollectionRequest) {
   if (!accessToken) return;
+  const client = createAccessTokenClient(config, accessToken, { requestTimeoutMs: 10_000 });
   const runner = createCollectionRunner({
-    store: createSupabaseCollectionStore(createAccessTokenClient(config, accessToken)),
+    store: createSupabaseCollectionStore(client),
     source: createSafePageSource({ policy: strictFetchPolicy }),
     read: readProductPage,
+    copier: createPictureCopier({
+      source: createSafeImageSource({ policy: strictFetchPolicy }),
+      normalize: normalizePicture,
+      pictures: createPictureStore(client),
+    }),
   });
   after(() => runner.run(request));
 }
