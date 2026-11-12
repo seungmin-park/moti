@@ -1,7 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { PictureStore } from "../../metadata/application/picture-copy";
+import { z } from "zod";
+import type { PictureObject, PictureStore } from "../../metadata/application/picture-copy";
 
 export const PICTURE_BUCKET = "product-pictures";
+// A signed link can't be revoked, so it lives one hour; the picture route redirects to a fresh one each time.
+export const PICTURE_LINK_SECONDS = 3600;
+
+const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+// `<owner>/<product>/<job>-<attempt>.webp`, as moti.picture_object makes it.
+export const pictureObjectSchema = z.string().regex(new RegExp(`^${uuid}/${uuid}/${uuid}-[1-3]\\.webp$`))
+  .transform((name) => name as PictureObject);
 
 // The owner's token writes here; the bucket's policies admit only a running job's reserved name, once.
 export function createPictureStore(client: SupabaseClient): PictureStore {

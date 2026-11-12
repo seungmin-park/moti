@@ -1,12 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { callRpc, productRowSchema, readResponse, toProduct } from "../../library/infrastructure/supabase-library-store";
+import { pictureObjectSchema as pictureObject } from "../../library/infrastructure/product-pictures";
 import type { CollectionJob, CollectionJobStore, JobClaim, JobSettlement } from "../application/collection";
-import type { PictureObject } from "../application/picture-copy";
-
-const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-const pictureObject = z.string().regex(new RegExp(`^${uuid}/${uuid}/${uuid}-[1-3]\\.webp$`))
-  .transform((name) => name as PictureObject);
 const jobRowSchema = z.object({
   id: z.uuid(),
   lease_token: z.uuid(),

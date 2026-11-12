@@ -20,4 +20,18 @@ describe("API 문서", () => {
     expect(operation.parameters).toEqual([expect.objectContaining({ name: "productId", in: "path", required: true, schema: expect.objectContaining({ format: "uuid" }) })]);
     expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["202", "400", "401", "403", "404", "409", "413", "415", "503"]));
   });
+
+  it("사진 경로는 UUID 경로 변수, 선택 버전 값과 본문 없는 302를 문서에 남긴다", () => {
+    const operation = buildApiDocument().paths["/api/products/{productId}/picture"]?.get as {
+      parameters: { name: string; in: string; required: boolean }[];
+      responses: Record<string, { content?: unknown; headers?: Record<string, unknown> }>;
+    };
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({ name: "productId", in: "path", required: true }),
+      expect.objectContaining({ name: "v", in: "query", required: false }),
+    ]);
+    expect(operation.responses["302"].content).toBeUndefined();
+    expect(Object.keys(operation.responses["302"].headers ?? {})).toEqual(["Location", "Cache-Control"]);
+    expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["302", "400", "401", "403", "404", "503"]));
+  });
 });

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
 import type { LibraryStore } from "../application/library-store";
+import { PICTURE_BUCKET, PICTURE_LINK_SECONDS, pictureObjectSchema } from "./product-pictures";
 import {
   LibraryError,
   type Collection,
@@ -193,6 +194,16 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
       return toCollection(readResponse(collectionRowSchema, await rpc("moti_create_collection", {
         p_name: command.name,
       })));
+    },
+    async openPicture(command) {
+      const name = readResponse(pictureObjectSchema.nullable(), await rpc("moti_picture_locate", {
+        p_product_id: command.productId,
+      }));
+      if (name === null) return { kind: "missing" };
+      const { data, error } = await client.storage.from(PICTURE_BUCKET).createSignedUrl(name, PICTURE_LINK_SECONDS);
+      if (!error) return { kind: "found", url: data.signedUrl };
+      if ("statusCode" in error && error.statusCode === "404") return { kind: "missing" };
+      throw new LibraryError("storage_unavailable", "사진을 열지 못했어요.");
     },
   };
 }

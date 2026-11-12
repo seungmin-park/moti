@@ -451,6 +451,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -494,6 +495,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -537,6 +539,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1383,6 +1386,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1426,6 +1430,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1469,6 +1474,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1512,6 +1518,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1555,6 +1562,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1598,6 +1606,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1641,6 +1650,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1684,6 +1694,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1800,6 +1811,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1843,6 +1855,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1886,6 +1899,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1929,6 +1943,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -1972,6 +1987,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2015,6 +2031,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2058,6 +2075,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2518,6 +2536,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2561,6 +2580,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2604,6 +2624,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2647,6 +2668,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2690,6 +2712,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2733,6 +2756,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2776,6 +2800,7 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },
@@ -2819,6 +2844,277 @@
                         "identity_conflict",
                         "product_missing",
                         "metadata_not_retryable",
+                        "picture_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{productId}/picture": {
+      "get": {
+        "summary": "상품의 현재 사진 사본으로 보낸다. 화면의 이미지 주소이며 요청마다 비공개 사본의 1시간짜리 서명 주소를 새로 만든다.",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "description": "상품 ID",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "v",
+            "in": "query",
+            "required": false,
+            "description": "사본 버전. 캐시 키로만 쓰고 서버는 언제나 현재 사본으로 보낸다.",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "본문 없이 서명한 Storage 주소로 이동한다.",
+            "headers": {
+              "Location": {
+                "description": "서명한 Storage 주소. 1시간 뒤 만료한다.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "private, max-age=3000",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "상품 ID가 UUID가 아니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "picture_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인 세션이 없다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "picture_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "허용한 Google 계정이 아니면 세션을 종료한다. 다른 출처의 쓰기 요청도 거절한다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "picture_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "상품이 없거나(product_missing) 보여줄 사본이 없다(picture_missing).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "picture_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "소유자 설정이 없거나 저장소·인증 서버를 사용할 수 없다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "picture_missing",
                         "storage_unavailable"
                       ]
                     },

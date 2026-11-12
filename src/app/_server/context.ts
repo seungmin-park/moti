@@ -58,7 +58,12 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
   if (!connection) {
     return {
       access: { kind: "unconfigured" },
-      service: createLibraryService({ snapshot: unavailable, saveLink: unavailable, createCollection: unavailable }),
+      service: createLibraryService({
+        snapshot: unavailable,
+        saveLink: unavailable,
+        createCollection: unavailable,
+        openPicture: unavailable,
+      }),
       signOut: async () => {},
       collect: () => {},
       retry: unavailable,

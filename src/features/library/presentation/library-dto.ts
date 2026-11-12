@@ -103,6 +103,7 @@ export const errorCodes = [
   "identity_conflict",
   "product_missing",
   "metadata_not_retryable",
+  "picture_missing",
   "storage_unavailable",
 ] as const;
 export type ErrorCode = (typeof errorCodes)[number];

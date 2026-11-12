@@ -2,7 +2,7 @@ import type { Access } from "../../auth/domain/access";
 import type { CollectionRequest } from "../../metadata/application/collection";
 import { toMetadataRetryCommand, type MetadataRetryCommand, type MetadataRetryResult } from "../../metadata/application/commands";
 import { isSameOrigin, readJsonBody } from "../../shared/presentation/http";
-import { toCollectionCreateCommand, toLinkSaveCommand } from "../application/commands";
+import { toCollectionCreateCommand, toLinkSaveCommand, toPictureViewCommand } from "../application/commands";
 import type { LibraryService } from "../application/library-service";
 import { LibraryError, type LibraryErrorCode } from "../domain/library";
 import {
@@ -40,6 +40,7 @@ const errorStatus: Record<ErrorCode, number> = {
   identity_conflict: 409,
   product_missing: 404,
   metadata_not_retryable: 409,
+  picture_missing: 404,
   storage_unavailable: 503,
 };
 
@@ -56,6 +57,7 @@ const errorMessages: Record<ErrorCode, string> = {
   identity_conflict: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요.",
   product_missing: "상품을 찾을 수 없어요.",
   metadata_not_retryable: "지금은 정보를 다시 가져올 수 없어요.",
+  picture_missing: "보여줄 사진이 없어요.",
   storage_unavailable: "잠시 뒤 다시 시도해 주세요.",
 };
 
@@ -147,5 +149,13 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
       collect({ productId: id, generation: metadata.generation });
       return json(202, toMetadataRetryResponse(result));
     }, { write: true }),
+    // The src of an <img>: same-origin and stable for one copy. Each request signs a fresh short-lived link, and the
+    // browser keeps the redirect privately for less than that link lives.
+    getPicture: handle<ProductRoute>(async ({ service }, _request, route) => {
+      const { productId } = await route.params;
+      const picture = await service.openPicture(toPictureViewCommand(productId));
+      if (picture.kind === "missing") return failure("picture_missing");
+      return new Response(null, { status: 302, headers: { location: picture.url, "cache-control": "private, max-age=3000" } });
+    }, { write: false }),
   };
 }

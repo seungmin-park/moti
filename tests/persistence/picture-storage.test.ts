@@ -278,6 +278,24 @@ describe("상품 사진 사본 저장소", () => {
     for (const hidden of [job.picture, ".webp", PICTURE_BUCKET, "cdn.shop.example"]) expect(text).not.toContain(hidden);
   });
 
+  it("보관함 저장소는 보여줄 사진을 한 시간짜리 서명 주소로 열고 사본이 없으면 없다고 답한다", async () => {
+    const product = await saved();
+    expect(await library().openPicture({ productId: product.id })).toEqual({ kind: "missing" });
+    const job = await copiedPicture(product);
+
+    const opened = await library().openPicture({ productId: product.id });
+
+    if (opened.kind !== "found") throw new Error("사진을 열지 못했습니다.");
+    const url = new URL(opened.url);
+    expect(url.pathname).toBe(`/storage/v1/object/sign/${PICTURE_BUCKET}/${job.picture}`);
+    const claims = JSON.parse(Buffer.from(url.searchParams.get("token")!.split(".")[1], "base64url").toString("utf8"));
+    expect(claims.exp - claims.iat).toBe(3600);
+    expect(Buffer.from(await (await fetch(url)).arrayBuffer()).equals(webp)).toBe(true);
+    await expect(library().openPicture({ productId: randomUUID() as Product["id"] })).rejects.toMatchObject({ code: "product_missing" });
+    await expect(createSupabaseLibraryStore(fixture.stranger.client).openPicture({ productId: product.id }))
+      .rejects.toMatchObject({ code: "unauthorized" });
+  });
+
   it("사진 정책은 RPC 역할로 실행하는 별도 스키마의 함수이고 공개 REST에 드러나지 않으며 덮어쓰기 정책이 없다", async () => {
     const functions = await fixture.admin.query<{ proname: string; owner: string; prosecdef: boolean; anon_execute: boolean; authenticated_execute: boolean }>(
       `select p.proname, r.rolname as owner, p.prosecdef,
