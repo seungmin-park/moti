@@ -1,6 +1,6 @@
 # 기능 지도
 
-세 화면 경로가 있다. `/`는 허용한 Google 계정의 실제 보관함이다. `/login`은 로그인 진입과 실패 안내다. `/demo`는 예시 데이터 목업이며 상태가 새로고침할 때 초기화된다. 외부 정보 수집, 가격 추적, 공유 저장은 아직 연결하지 않았다.
+세 화면 경로가 있다. `/`는 허용한 Google 계정의 실제 보관함이다. `/login`은 로그인 진입과 실패 안내다. `/demo`는 예시 데이터 목업이며 상태가 새로고침할 때 초기화된다. 실제 보관함은 상품 이름·가격과 사진 사본을 수집한다. 정기 가격 추적과 공유 저장은 아직 연결하지 않았다.
 
 ## 실제 보관함 (`/`, `/login`)
 
@@ -8,9 +8,10 @@
 | --- | --- | --- | --- |
 | 로그인 | `/login` → Google 계정으로 계속하기(`/auth/login`). 오류 코드(`forbidden`, `unconfigured`, `unavailable`, `cancelled`, `callback`)마다 원인과 다음 행동을 보여준다. 알 수 없는 값은 원문을 출력하지 않는다. | `auth/presentation/login-error.ts`의 코드, `auth/screen/login-notice.ts` | Vitest, Playwright(설정 없음) |
 | 보관함 열기 | `/`가 브라우저에서 `GET /api/library`를 호출한다. 세션 없음은 `/login`, 허용하지 않은 계정은 `/login?error=forbidden`, 소유자 설정 없음은 `/login?error=unconfigured`로 이동한다. 저장소 오류는 다시 불러오기를 제공한다. | `library/screen/screen-state.ts`의 `transition`, `library-api.ts`의 오류 대응표 | Vitest, Playwright(설정 없음), 실제 Supabase 브라우저 |
-| 링크 담기 | 링크 추가 → 링크·옵션·컬렉션 선택 → 위시에 담기. 선택 창에서 없는 컬렉션을 바로 만든다. 저장 뒤 상세가 열린다. 저장 응답 직후 서버가 상품 페이지를 읽어 이름과 가격(하나로 분명할 때만)을 채우고, 화면은 수집이 끝날 때까지 다시 읽는다. 같은 링크는 기존 상품을 열어 이미 담았다고 알린다. 선택한 컬렉션이 사라졌으면 안내 후 목록을 새로 불러오고 입력을 유지한다. | 같음. 링크와 컬렉션 이름 규칙은 `wishlist/link.ts`, `wishlist/collection-name.ts`를 서버와 함께 쓴다. | Vitest, 실제 Supabase 브라우저(재접속·새 세션 유지 포함) |
+| 링크 담기 | 링크 추가 → 링크·옵션·컬렉션 선택 → 위시에 담기. 선택 창에서 없는 컬렉션을 바로 만든다. 저장 뒤 상세가 열린다. 저장 응답 직후 서버가 상품 페이지를 읽어 이름과 가격(하나로 분명할 때만)을 채우고 사진의 비공개 사본을 만든다. 화면은 수집이 끝날 때까지 다시 읽는다. 같은 링크는 기존 상품을 열어 이미 담았다고 알린다. 선택한 컬렉션이 사라졌으면 안내 후 목록을 새로 불러오고 입력을 유지한다. | 같음. 링크와 컬렉션 이름 규칙은 `wishlist/link.ts`, `wishlist/collection-name.ts`를 서버와 함께 쓴다. | Vitest, 실제 Supabase 브라우저(재접속·새 세션 유지 포함) |
 | 컬렉션 만들기와 거르기 | 사이드바 또는 모바일 칩의 컬렉션 만들기. 만든 컬렉션으로 바로 거른다. 거르기 상태는 화면 안에만 있어 새로고침하면 전체로 돌아간다. | 같음 | Vitest, 실제 Supabase 브라우저 |
 | 정보 수집 실패와 재시도 | 실패하면 링크는 남고 원인(차단 주소, 쇼핑몰 차단, 시간 초과, 상품 정보 없음 등)을 보여준다. 실패했거나 60초 넘게 멈춘 상품은 상세의 "다시 가져오기"로 재시도한다. | `metadata/` 수집 실행기, DB의 임대·세대 RPC, `screen-state.ts`의 재시도·다시 읽기 | Vitest, 실제 DB, 실제 HTTP, 실제 Supabase 브라우저 |
+| 상품 사진 | 카드와 상세가 비공개 사본을 보인다. 이미지 주소는 같은 출처의 `/api/products/{productId}/picture?v=…`이고 서버가 짧은 서명 주소로 보낸다. 사본이 없으면 중립 회색 자리표시가 가져오는 중·가져오지 못함·링크만 담음을 말하고, 불러오지 못하면 자리표시로 바뀐다. 사진만 실패하면 상세가 이유와 "다시 가져오기"를 보여주고 이름·가격은 남는다. | `metadata/application/picture-copy.ts` 복사기, `domain/picture.ts` 판별, sharp 정규화, DB의 예약 이름·Storage 정책, `screen/product-view.ts`·`ProductPicture.tsx` | Vitest(sharp·로컬 서버 포함), 실제 DB·Storage, 실제 HTTP, 실제 Supabase 브라우저 |
 | 상품 보기 | 카드 → 읽기 전용 상세. 원본 링크(http·https만), 옵션, 컬렉션, 담은 날, 메모를 보여준다. 가격이 없으면 "가격 확인 전"이다. 예시 가격과 수정·구매 기능은 실제 화면에 없다. | `library/screen/product-view.ts` | Vitest, 실제 Supabase 브라우저 |
 | 로그아웃 | 사이드바 또는 모바일 상단의 로그아웃 → 같은 출처 POST `/auth/logout` → `/login`. | 서버 세션 | 실제 Supabase 브라우저 |
 
@@ -44,5 +45,7 @@
 | `GET /api/library` | `LibraryReadResponse` | `library/presentation` → `application` → `infrastructure` | handler, 실제 HTTP |
 | `POST /api/links` | `LinkSaveRequest` → 201 새 상품, 200 중복 | 같음 | handler, 실제 HTTP |
 | `POST /api/collections` | `CollectionCreateRequest` → 201 | 같음 | handler, 실제 HTTP |
+| `POST /api/products/{productId}/metadata` | `MetadataRetryRequest` → 202. 실패·멈춤·사진만 실패한 상품을 다시 수집한다. | 같음 | handler, 실제 HTTP |
+| `GET /api/products/{productId}/picture` | 302 서명한 Storage 주소(개인 캐시 50분), 404 `picture_missing` | 같음 | handler, 실제 DB, 실제 HTTP |
 
 요청·응답·오류 계약은 [OpenAPI 문서](api/openapi.json)에 있다.
