@@ -25,7 +25,7 @@ A를 선택했다. B에서 가격 미상은 정렬의 끝에 두는 규칙과 �
 ## 작업 분리
 
 - Blocking first steps. 인수 기준, 두 설계 비교, Node와 테스트 도구 준비를 먼저 끝낸다.
-- Independent workstreams. 구현 담당자는 `src`와 `tests/e2e`를 소유한다. 조정자는 설정, 정적 이미지, 문서, CI와 전달을 소유한다.
+- Independent workstreams. 구현 담당자는 `src`와 `tests/ui`를 소유한다. 조정자는 설정, 정적 이미지, 문서, CI와 전달을 소유한다.
 - Shared mutable state. 코드 상태는 구현 담당자만 수정한다. 검증 후 수정 시 소유권을 명시적으로 넘긴다.
 - Smallest safe decomposition. 상품과 컬렉션 UI는 하나의 동작이므로 한 구현 담당자가 테스트부터 작성한다. 조정자는 실제 화면과 결과를 별도로 검증한다.
 

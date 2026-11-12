@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: 24
       - run: node scripts/verify-pstack.mjs
-  mockup:
+  app:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -57,7 +57,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium webkit
         timeout-minutes: 10
-      - run: npm run test:e2e
+      - run: npm run test:ui
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
