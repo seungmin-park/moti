@@ -10,7 +10,7 @@
 | 요청 처리 경계 | Vitest Mock 테스트, Given–When–Then | 서비스를 대체하고 요청 파싱, 검증, 인증 결과 처리, 응답 상태·본문과 오류 매핑을 검증한다. |
 | 외부 페이지 가져오기 | `tests/fetcher`의 로컬 HTTP 서버 통합 테스트(`npm test`에 포함) | 차단 주소·리다이렉트·DNS 재바인딩·크기·압축 폭탄·시간 제한을 실제 소켓으로 확인한다. 테스트 전용 주소 정책은 `tests/support`에만 있고 운영 코드는 엄격한 정책 하나만 쓴다. 실제 쇼핑몰은 `scripts/check-real-pages.mjs`로 따로 확인하고 CI에 넣지 않는다. |
 | HTTP API | 실행 중인 테스트 API에 실제 HTTP 요청 | 계약과 통합 동작을 검증한다. API 문서와 요청·응답 계약의 일치를 CI에서 검사한다. |
-| 사용자 흐름 | Playwright | 브라우저 조작에서 화면 결과까지 PC와 모바일 크기에서 확인한다. 목업(`/demo`), `/login`과 설정 누락은 Supabase 없이 실행한다. 실제 보관함(`/`)은 실행 중인 테스트 Supabase와 실제 세션 쿠키로 저장·새로고침·새 세션 유지까지 확인한다. |
+| 사용자 흐름 | Playwright | 브라우저 조작에서 화면 결과까지 PC와 모바일 크기에서 확인한다. 목업(`/demo`), `/login`과 설정 누락은 Supabase 없이 `tests/ui`(`npm run test:ui`, CI `app`)로 실행한다. 실제 보관함(`/`)은 `tests/browser`(`npm run test:database`, CI `database`)가 실행 중인 테스트 Supabase와 실제 세션 쿠키로 저장·새로고침·새 세션 유지까지 확인한다. |
 
 Spring의 `@DataJpaTest`에 대응하는 범위는 persistence 슬라이스다. `@DataJpaTest` 자체도 필요한 Spring 컨텍스트를 올리므로, 여기서는 전체 애플리케이션을 시작하지 않고 저장 계층을 검증한다는 의도를 따른다. 실제 DB 동작을 인메모리 객체나 쿼리 Mock으로 대신 검증했다고 보고하지 않는다.
 

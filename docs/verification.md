@@ -1,5 +1,7 @@
 # 목업 검증 기록
 
+CI 작업 `mockup`은 `app`으로, Supabase 없는 브라우저 검사 `test:e2e`는 `test:ui`로 이름을 바꿨다([변경 기록](changes/naming.md)). 아래 이전 항목의 "브라우저 e2e"는 지금의 `npm run test:ui`다.
+
 저장 뒤 상품 정보 수집(3a)의 검증은 [변경 기록](changes/metadata.md)에 있다. 단위 517개, 실제 DB 85개, 실제 HTTP 14개, 실제 스택 브라우저 16개, 브라우저 e2e 50개가 통과했다.
 
 실제 보관함 화면·로그인·`/demo` 이동(2b)의 검증은 [변경 기록](changes/screen.md)에 있다. 단위 267개, 실제 DB 43개, 실제 HTTP 10개, 실제 스택 브라우저 14개, 브라우저 e2e 50개가 통과했다. 목업은 이제 `/demo`에서 검토한다.

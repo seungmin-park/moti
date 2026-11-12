@@ -19,12 +19,12 @@
 - 최신 PR head는 `4d3928e005db84cfd4676a2b8f6e312f28c95525`, base는 `617c773c4c3364736fbc57df27d361842b780440`이다.
 - 최신 통합 후보는 `69cc1c5c90fb5f3463cc29a55d64f7ffb93591d1`, tree는 `577e6fe1b04f1bbd88bfe685eab432545aef90e6`이다.
 - CI run `42883787163`에서 단위 33개·브라우저 40개가 통과했다. PR #3은 `2026-11-10T19:20:34Z`에 `b9b0ed063698b7b55ae26943f507bac9bb8d9103`으로 실제 병합됐다. 병합 tree가 검증한 통합 후보와 일치하며 전달 체크아웃 main은 깨끗하다.
-- PR #3 당시에는 보호 규칙과 자동 병합 설정이 없었다. 사용자의 명시 요청으로 2026-11-11에 `main` 보호와 GitHub 자동 병합을 적용하고 API로 다시 읽어 확인했다. GitHub Actions app 15368의 `pstack`, `mockup`, `database`가 필수이며 strict base 갱신, 관리자 적용, 대화 해결, 선형 이력을 요구한다. 강제 push·branch 삭제는 금지한다. PR 경로는 필수이고 별도의 사람 승인 인원은 지정하지 않았다. 구현·독립 검토를 마친 각 기능 PR에서 squash 자동 병합을 예약하고 실제 병합을 확인한다.
+- PR #3 당시에는 보호 규칙과 자동 병합 설정이 없었다. 사용자의 명시 요청으로 2026-11-11에 `main` 보호와 GitHub 자동 병합을 적용하고 API로 다시 읽어 확인했다. GitHub Actions app 15368의 `pstack`, `app`, `database`가 필수이며(2026-11-12에 사용자 승인으로 `mockup`을 `app`으로 바꿨다) strict base 갱신, 관리자 적용, 대화 해결, 선형 이력을 요구한다. 강제 push·branch 삭제는 금지한다. PR 경로는 필수이고 별도의 사람 승인 인원은 지정하지 않았다. 구현·독립 검토를 마친 각 기능 PR에서 squash 자동 병합을 예약하고 실제 병합을 확인한다.
 - GitHub 연결 도구의 PR 생성은 통합 권한 오류여서 로그인된 `gh`를 사용한다.
 
 첫 저장 기능은 PR https://github.com/seungmin-park/moti/pull/4 다. 초기 CI 실패 두 번은 SMTP 설정과 fixture의 identity 시각 누락이라는 환경 오류였다. fixture 수정 뒤 CI에서 RPC 미구현으로 36개 실패·7개 통과하는 실제 Red를 확인했다. 이어서 세 RPC·RLS 정책·소유자 확인을 구현했고 로컬 실제 DB에서 43개가 통과했다.
 
-2026-11-11 기준 1단계(PR #4), 계층 리팩터링(PR #5), 2a 인증·HTTP API(PR #6), 2b 화면 연결(PR #7)이 병합됐다. 3단위는 3a(정보 수집)와 3b(이미지 사본)로 나눴다. 3a는 브랜치 `feat/metadata-collection`에서 구현·독립 검토·수정을 마쳤고 PR 자동 병합으로 전달한다. 병합 여부는 `gh pr list --state all`로 먼저 확인한다. 로컬 전체 검증에서 단위 517개, 실제 DB 85개, 실제 HTTP 14개, 실제 스택 브라우저 16개, 브라우저 e2e 50개가 통과했다. 상세 기록은 `docs/changes/metadata.md`에 있다. 다음은 3b다. 로컬 native 스택에서 Storage를 켜 비공개 버킷·업로드·서명 URL이 동작함을 확인했고 공개 읽기는 400으로 거절됐다. Supabase 리전은 서울, 요금제는 Free에서 시작하는 것을 추천했으며 사용자 결정은 아직 없다. 실제 Google OAuth와 운영 Supabase 설정은 아직 검증하지 않았다.
+2026-11-11 기준 1단계(PR #4), 계층 리팩터링(PR #5), 2a 인증·HTTP API(PR #6), 2b 화면 연결(PR #7)이 병합됐다. 3단위는 3a(정보 수집)와 3b(이미지 사본)로 나눴다. 3a는 PR #8로 2026-11-12에 병합됐다. 2026-11-11의 CI는 러너가 Ubuntu 패키지 서버 주소를 찾지 못해 브라우저 의존성 설치에서만 실패했고, 다음 날 같은 head를 다시 실행해 통과했다. 이어서 이름이 역할과 맞지 않던 CI 작업 `mockup`을 `app`으로, Supabase 없는 브라우저 검사 `tests/e2e`·`test:e2e`를 `tests/ui`·`test:ui`로 바꿨다([변경 기록](changes/naming.md)). 3a의 로컬 전체 검증에서 단위 517개, 실제 DB 85개, 실제 HTTP 14개, 실제 스택 브라우저 16개, 브라우저 e2e 50개가 통과했다. 상세 기록은 `docs/changes/metadata.md`에 있다. 다음은 3b다. 로컬 native 스택에서 Storage를 켜 비공개 버킷·업로드·서명 URL이 동작함을 확인했고 공개 읽기는 400으로 거절됐다. Supabase 리전은 서울, 요금제는 Free에서 시작하는 것을 추천했으며 사용자 결정은 아직 없다. 실제 Google OAuth와 운영 Supabase 설정은 아직 검증하지 않았다.
 
 ## 확인된 UI 검증
 
