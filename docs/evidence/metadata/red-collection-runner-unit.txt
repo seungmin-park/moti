@@ -1,0 +1,12 @@
+$ npx vitest run src/features/metadata/application
+ × src/features/metadata/application/collection.test.ts > 수집 결과 결정 > Given 이름과 하나의 가격 When 결정하면 Then 이름·가격·이미지를 저장한다
+ × src/features/metadata/application/collection.test.ts > 수집 결과 결정 > Given 가격이 여럿이거나 통화가 없음 When 결정하면 Then 가격을 지어내지 않고 이름만 저장한다
+ × src/features/metadata/application/collection.test.ts > 수집 결과 결정 > Given 이름이 없는 페이지 When 결정하면 Then 상품 정보 없음으로 실패한다
+ × src/features/metadata/application/collection.test.ts > 수집 실행기 > Given 저장소가 응답하지 않음 When 실행하면 Then 예외 없이 사용할 수 없음을 돌려준다
+ × src/features/metadata/application/collection.test.ts > 수집 실행기 > Given 맡은 뒤 읽기 단계가 예상하지 못한 오류 When 실행하면 Then 내부 오류로 실패를 기록한다
+ × src/features/metadata/application/collection.test.ts > 수집 실행기 > Given 실패 기록도 실패 When 실행하면 Then 예외 없이 사용할 수 없음을 돌려준다
+ × src/features/metadata/application/collection.test.ts > 수집 실행기 > Given 이미 끝났거나 다른 실행이 맡은 작업 When 실행하면 Then 페이지를 요청하지 않는다
+Error: not implemented
+AssertionError: promise rejected "Error: not implemented" instead of resolving
+ Test Files  1 failed (1)
+      Tests  7 failed (7)

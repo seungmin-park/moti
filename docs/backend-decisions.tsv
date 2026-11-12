@@ -18,3 +18,5 @@ ts	phase	decision	why	evidence	result
 2026-11-11T11:55:22Z	design	실제 화면을 별도 screen 모듈로 만들고 목업과는 Dialog·CollectionPicker·순수 규칙만 공유한다	공유 화면 틀은 2b에서 변경과 목업 회귀 위험이 더 크다. 3~5단위에서 재검토한다	docs/architecture.md	같은 모델 계열 후보 2개 비교, 다른 계열 심사 생략
 2026-11-11T11:55:22Z	refactor	컬렉션 이름 규칙을 wishlist/collection-name.ts 하나로 모아 서버 명령과 화면이 함께 쓴다	화면이 규칙을 복사하면 서버와 어긋날 수 있다	src/features/wishlist/collection-name.ts	조정자 검토 요청으로 반영
 2026-11-11T12:27:39Z	harness	실제 HTTP·화면 검사 앱 포트를 56380에서 3180으로 옮겼다	PR #7의 첫 CI에서 56380이 이미 사용 중이어서 앱이 시작하지 못했다. native 스택은 실행 중 내부 포트(로컬 관찰 13635·15702·16461·56353)를 고르고 56380은 OS 임시 포트 범위 안이다. 환경 오류이므로 Red로 세지 않는다	https://github.com/seungmin-park/moti/actions/runs/43019174110	VERIFIED local: 43 DB, 10 HTTP, 14 browser on 3180
+2026-11-11T13:48:58Z	design	3단위를 3a 정보 수집과 3b 이미지 사본으로 나눴다	외부 요청 보안 경계가 페이지와 이미지 두 곳이라 각각 검토·검증하기 위해	docs/backend-implementation.md	적용
+2026-11-11T13:48:58Z	design	수집은 after()에서 소유자 접근 토큰의 갱신하지 않는 클라이언트로 실행한다. 전용 작업자 토큰은 5단위로 미룬다	3a에 새 비밀 값과 익명 실행 RPC를 들이지 않는다. after() 안의 쿠키 쓰기는 Next에서 예외가 난다	docs/changes/metadata.md	두 후보 비교, B 후보도 3a에는 A가 낫다고 평가

@@ -1351,6 +1351,16 @@ h1 {
 .retry-button {
   margin: 0 0 20px;
 }
+.detail-info .retry-button {
+  min-height: 44px;
+  margin: 0 0 8px;
+}
+.detail-info .retry-button:disabled {
+  opacity: 0.55;
+}
+.retry-error {
+  margin: 0 0 16px;
+}
 .duplicate-notice {
   background: var(--surface);
   color: var(--ink-soft);

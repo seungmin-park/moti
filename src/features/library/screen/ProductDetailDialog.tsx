@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Link2, LoaderCircle } from "lucide-react";
+import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Link2, LoaderCircle, RotateCcw } from "lucide-react";
 import { Dialog } from "../../wishlist/Dialog";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
 import { toProductDetailView } from "./product-view";
@@ -9,11 +9,17 @@ export function ProductDetailDialog({
   product,
   collections,
   arrival,
+  retrying,
+  error,
+  onRetry,
   onClose,
 }: {
   product: ProductResponse;
   collections: CollectionResponse[];
   arrival: "added" | "duplicate" | null;
+  retrying: boolean;
+  error: string | null;
+  onRetry: () => void;
   onClose: () => void;
 }) {
   const view = toProductDetailView(product, collections, arrival);
@@ -49,8 +55,8 @@ export function ProductDetailDialog({
             <strong>{view.price.value}</strong>
             {view.price.checked && <p>{view.price.checked}</p>}
           </div>
-          <div className={`metadata-status ${phase}`}>
-            {phase === "failed" ? (
+          <div className={`metadata-status ${view.canRetry ? "failed" : phase}`}>
+            {view.canRetry ? (
               <CircleAlert size={20} aria-hidden="true" />
             ) : phase === "ready" ? (
               <Check size={20} aria-hidden="true" />
@@ -64,6 +70,17 @@ export function ProductDetailDialog({
               <p>{view.status.detail}</p>
             </div>
           </div>
+          {view.canRetry && (
+            <button className="text-button retry-button" type="button" disabled={retrying} onClick={onRetry}>
+              <RotateCcw size={15} aria-hidden="true" />
+              {retrying ? "다시 가져오는 중" : "다시 가져오기"}
+            </button>
+          )}
+          {error && (
+            <p className="form-error retry-error" role="alert">
+              {error}
+            </p>
+          )}
           <dl className="detail-facts">
             <div>
               <dt>컬렉션</dt>

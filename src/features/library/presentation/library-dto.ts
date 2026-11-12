@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { MAX_METADATA_GENERATION, type MetadataRetryResult } from "../../metadata/application/commands";
 import type { LinkSaveResult } from "../application/commands";
+import { collectionErrorCodes } from "../../metadata/domain/collection-error";
 import type { Collection, Library, Product } from "../domain/library";
 
 const timestamp = z.iso.datetime();
@@ -33,9 +35,19 @@ export const productResponseSchema = z.object({
     z.object({ status: z.literal("purchased"), date: z.iso.date().nullable(), price: moneyResponseSchema.nullable() }).strict(),
   ]),
   metadata: z.discriminatedUnion("phase", [
-    z.object({ phase: z.enum(["queued", "running"]), generation: z.number().int(), attempts: z.number().int() }).strict(),
+    z.object({
+      phase: z.enum(["queued", "running"]),
+      generation: z.number().int(),
+      attempts: z.number().int(),
+      stalled: z.boolean(),
+    }).strict(),
     z.object({ phase: z.literal("ready"), generation: z.number().int(), attempts: z.number().int(), completedAt: timestamp }).strict(),
-    z.object({ phase: z.literal("failed"), generation: z.number().int(), attempts: z.number().int(), errorCode: z.string() }).strict(),
+    z.object({
+      phase: z.literal("failed"),
+      generation: z.number().int(),
+      attempts: z.number().int(),
+      errorCode: z.enum(collectionErrorCodes),
+    }).strict(),
   ]),
   lastSuccessfulPrice: moneyResponseSchema.extend({ checkedAt: timestamp }).strict().nullable(),
 }).strict();
@@ -57,6 +69,8 @@ export const linkSaveResponseSchema = z.object({
 }).strict();
 
 export const collectionCreateRequestSchema = z.object({ name: z.string() }).strict();
+export const metadataRetryRequestSchema = z.object({ generation: z.number().int().min(1).max(MAX_METADATA_GENERATION) }).strict();
+export const metadataRetryResponseSchema = z.object({ product: productResponseSchema }).strict();
 export const collectionCreateResponseSchema = collectionResponseSchema;
 
 export const errorCodes = [
@@ -70,6 +84,8 @@ export const errorCodes = [
   "collection_missing",
   "collection_duplicate",
   "identity_conflict",
+  "product_missing",
+  "metadata_not_retryable",
   "storage_unavailable",
 ] as const;
 export type ErrorCode = (typeof errorCodes)[number];
@@ -87,6 +103,8 @@ export type LinkSaveRequest = z.infer<typeof linkSaveRequestSchema>;
 export type LinkSaveResponse = z.infer<typeof linkSaveResponseSchema>;
 export type CollectionCreateRequest = z.infer<typeof collectionCreateRequestSchema>;
 export type CollectionCreateResponse = z.infer<typeof collectionCreateResponseSchema>;
+export type MetadataRetryRequest = z.infer<typeof metadataRetryRequestSchema>;
+export type MetadataRetryResponse = z.infer<typeof metadataRetryResponseSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 export function toCollectionResponse(collection: Collection): CollectionResponse {
@@ -133,4 +151,8 @@ export function toLibraryReadResponse(library: Library): LibraryReadResponse {
 
 export function toLinkSaveResponse(result: LinkSaveResult): LinkSaveResponse {
   return { kind: result.kind, product: toProductResponse(result.product) };
+}
+
+export function toMetadataRetryResponse(result: MetadataRetryResult): MetadataRetryResponse {
+  return { product: toProductResponse(result.product) };
 }

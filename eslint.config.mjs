@@ -41,7 +41,8 @@ export default defineConfig([
     files: ["src/features/*/presentation/**/*.ts"],
     ignores: ["**/*.test.ts"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: ["@supabase/*", "pg", "**/infrastructure/**"] }],
+      // after() and cookies are handed in by the assembly in src/app/_server, never reached for here.
+      "no-restricted-imports": ["error", { patterns: ["@supabase/*", "pg", "**/infrastructure/**", "next/server", "next/headers"] }],
     },
   },
   {

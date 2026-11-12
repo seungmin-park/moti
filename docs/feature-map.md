@@ -8,8 +8,9 @@
 | --- | --- | --- | --- |
 | 로그인 | `/login` → Google 계정으로 계속하기(`/auth/login`). 오류 코드(`forbidden`, `unconfigured`, `unavailable`, `cancelled`, `callback`)마다 원인과 다음 행동을 보여준다. 알 수 없는 값은 원문을 출력하지 않는다. | `auth/presentation/login-error.ts`의 코드, `auth/screen/login-notice.ts` | Vitest, Playwright(설정 없음) |
 | 보관함 열기 | `/`가 브라우저에서 `GET /api/library`를 호출한다. 세션 없음은 `/login`, 허용하지 않은 계정은 `/login?error=forbidden`, 소유자 설정 없음은 `/login?error=unconfigured`로 이동한다. 저장소 오류는 다시 불러오기를 제공한다. | `library/screen/screen-state.ts`의 `transition`, `library-api.ts`의 오류 대응표 | Vitest, Playwright(설정 없음), 실제 Supabase 브라우저 |
-| 링크 담기 | 링크 추가 → 링크·옵션·컬렉션 선택 → 위시에 담기. 선택 창에서 없는 컬렉션을 바로 만든다. 저장 뒤 상세가 열리고 새 링크는 "정보 수집 대기"로 보인다. 같은 링크는 기존 상품을 열어 이미 담았다고 알린다. 선택한 컬렉션이 사라졌으면 안내 후 목록을 새로 불러오고 입력을 유지한다. | 같음. 링크와 컬렉션 이름 규칙은 `wishlist/link.ts`, `wishlist/collection-name.ts`를 서버와 함께 쓴다. | Vitest, 실제 Supabase 브라우저(재접속·새 세션 유지 포함) |
+| 링크 담기 | 링크 추가 → 링크·옵션·컬렉션 선택 → 위시에 담기. 선택 창에서 없는 컬렉션을 바로 만든다. 저장 뒤 상세가 열린다. 저장 응답 직후 서버가 상품 페이지를 읽어 이름과 가격(하나로 분명할 때만)을 채우고, 화면은 수집이 끝날 때까지 다시 읽는다. 같은 링크는 기존 상품을 열어 이미 담았다고 알린다. 선택한 컬렉션이 사라졌으면 안내 후 목록을 새로 불러오고 입력을 유지한다. | 같음. 링크와 컬렉션 이름 규칙은 `wishlist/link.ts`, `wishlist/collection-name.ts`를 서버와 함께 쓴다. | Vitest, 실제 Supabase 브라우저(재접속·새 세션 유지 포함) |
 | 컬렉션 만들기와 거르기 | 사이드바 또는 모바일 칩의 컬렉션 만들기. 만든 컬렉션으로 바로 거른다. 거르기 상태는 화면 안에만 있어 새로고침하면 전체로 돌아간다. | 같음 | Vitest, 실제 Supabase 브라우저 |
+| 정보 수집 실패와 재시도 | 실패하면 링크는 남고 원인(차단 주소, 쇼핑몰 차단, 시간 초과, 상품 정보 없음 등)을 보여준다. 실패했거나 60초 넘게 멈춘 상품은 상세의 "다시 가져오기"로 재시도한다. | `metadata/` 수집 실행기, DB의 임대·세대 RPC, `screen-state.ts`의 재시도·다시 읽기 | Vitest, 실제 DB, 실제 HTTP, 실제 Supabase 브라우저 |
 | 상품 보기 | 카드 → 읽기 전용 상세. 원본 링크(http·https만), 옵션, 컬렉션, 담은 날, 메모를 보여준다. 가격이 없으면 "가격 확인 전"이다. 예시 가격과 수정·구매 기능은 실제 화면에 없다. | `library/screen/product-view.ts` | Vitest, 실제 Supabase 브라우저 |
 | 로그아웃 | 사이드바 또는 모바일 상단의 로그아웃 → 같은 출처 POST `/auth/logout` → `/login`. | 서버 세션 | 실제 Supabase 브라우저 |
 

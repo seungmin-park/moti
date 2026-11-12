@@ -5,6 +5,7 @@ import {
   errorResponseSchema,
   libraryReadResponseSchema,
   linkSaveResponseSchema,
+  metadataRetryResponseSchema,
   type CollectionCreateRequest,
   type CollectionCreateResponse,
   type ErrorCode,
@@ -12,6 +13,8 @@ import {
   type LibraryReadResponse,
   type LinkSaveRequest,
   type LinkSaveResponse,
+  type MetadataRetryRequest,
+  type MetadataRetryResponse,
 } from "../presentation/library-dto";
 
 export type FieldName = "url" | "option" | "collection";
@@ -21,11 +24,12 @@ export type ApiFailure =
   | { kind: "stale"; message: string }
   | { kind: "unavailable"; message: string };
 export type ApiOutcome<T> = { ok: true; value: T } | { ok: false; failure: ApiFailure };
-export type Endpoint = "library.read" | "link.save" | "collection.create";
+export type Endpoint = "library.read" | "link.save" | "collection.create" | "metadata.retry";
 export type LibraryApi = {
   read(): Promise<ApiOutcome<LibraryReadResponse>>;
   saveLink(body: LinkSaveRequest): Promise<ApiOutcome<LinkSaveResponse>>;
   createCollection(body: CollectionCreateRequest): Promise<ApiOutcome<CollectionCreateResponse>>;
+  retryMetadata(productId: string, body: MetadataRetryRequest): Promise<ApiOutcome<MetadataRetryResponse>>;
 };
 
 const connection: ApiFailure = { kind: "unavailable", message: "연결을 확인하고 다시 시도해 주세요." };
@@ -58,6 +62,8 @@ const failures: Record<Endpoint, Mapping> = {
     collection_missing: readFailed,
     collection_duplicate: readFailed,
     identity_conflict: readFailed,
+    product_missing: readFailed,
+    metadata_not_retryable: readFailed,
   },
   "link.save": {
     ...session,
@@ -72,6 +78,8 @@ const failures: Record<Endpoint, Mapping> = {
     collection_missing: stale("선택한 컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요."),
     collection_duplicate: retryLater,
     identity_conflict: unavailable("같은 링크를 확인하지 못했어요. 다시 시도해 주세요."),
+    product_missing: retryLater,
+    metadata_not_retryable: retryLater,
   },
   "collection.create": {
     ...session,
@@ -87,6 +95,21 @@ const failures: Record<Endpoint, Mapping> = {
     collection_missing: retryLater,
     collection_duplicate: stale("같은 이름의 컬렉션이 이미 있어요."),
     identity_conflict: retryLater,
+    product_missing: retryLater,
+    metadata_not_retryable: retryLater,
+  },
+  "metadata.retry": {
+    ...session,
+    storage_unavailable: retryLater,
+    cross_origin: reload,
+    unsupported_media_type: retryLater,
+    payload_too_large: retryLater,
+    invalid_input: reload,
+    collection_missing: retryLater,
+    collection_duplicate: retryLater,
+    identity_conflict: retryLater,
+    product_missing: stale("상품을 찾을 수 없어요. 목록을 새로 불러왔어요."),
+    metadata_not_retryable: stale("상품 상태가 바뀌었어요. 목록을 새로 불러왔어요."),
   },
 };
 
@@ -135,6 +158,9 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
     ]),
     createCollection: (body) => request("collection.create", "/api/collections", post(body), [
       { status: 201, parse: parsed(collectionCreateResponseSchema) },
+    ]),
+    retryMetadata: (productId, body) => request("metadata.retry", `/api/products/${encodeURIComponent(productId)}/metadata`, post(body), [
+      { status: 202, parse: parsed(metadataRetryResponseSchema) },
     ]),
   };
 }

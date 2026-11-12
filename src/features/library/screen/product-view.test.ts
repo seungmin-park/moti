@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
-import { toProductCardView, toProductDetailView } from "./product-view";
+import { canRetry, toProductCardView, toProductDetailView } from "./product-view";
 
 const desk: CollectionResponse = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -25,14 +25,14 @@ const queued: ProductResponse = {
   addedAt: "2026-11-10T16:00:00.000Z",
   updatedAt: "2026-11-10T16:00:00.000Z",
   purchase: { status: "wish" },
-  metadata: { phase: "queued", generation: 1, attempts: 0 },
+  metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
 };
 
 const everyPhase: ProductResponse["metadata"][] = [
-  { phase: "queued", generation: 1, attempts: 0 },
-  { phase: "running", generation: 1, attempts: 1 },
-  { phase: "failed", generation: 1, attempts: 3, errorCode: "blocked" },
+  { phase: "queued", generation: 1, attempts: 0, stalled: false },
+  { phase: "running", generation: 1, attempts: 1, stalled: false },
+  { phase: "failed", generation: 1, attempts: 3, errorCode: "blocked_address" },
   { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
 ];
 
@@ -101,12 +101,13 @@ describe("상품 상세 문구", () => {
       addedOn: "2026. 11. 11.",
       note: null,
       arrival: null,
+      canRetry: false,
     });
   });
 
   it.each([
     ["running", "정보 수집 중", "상품 정보는 아직 가져오지 않았어요. 원본 링크는 보관했어요."],
-    ["failed", "정보를 가져오지 못했어요", "원본 링크는 그대로 보관했어요."],
+    ["failed", "정보를 가져오지 못했어요", "안전을 위해 열지 않는 주소예요. 원본 링크는 그대로 보관했어요."],
     ["ready", "상품 정보를 가져왔어요", "2026. 11. 11.에 확인했어요."],
   ] as const)("Given 수집 단계 %s When 상세로 보이면 Then 그 단계를 설명한다", (phase, title, detail) => {
     const metadata = everyPhase.find((item) => item.phase === phase)!;
@@ -129,6 +130,61 @@ describe("상품 상세 문구", () => {
   it("Given 메모가 있는 상품 When 상세로 보이면 Then 메모를 보여주고 공백뿐이면 숨긴다", () => {
     expect(toProductDetailView({ ...queued, note: "선물용" }, [], null).note).toBe("선물용");
     expect(toProductDetailView({ ...queued, note: "  " }, [], null).note).toBeNull();
+  });
+});
+
+describe("수집 결과와 다시 가져오기", () => {
+  const failed = (errorCode: Extract<ProductResponse["metadata"], { phase: "failed" }>["errorCode"]): ProductResponse =>
+    ({ ...queued, metadata: { phase: "failed", generation: 1, attempts: 1, errorCode } });
+
+  it.each([
+    ["blocked_address", "안전을 위해 열지 않는 주소예요."],
+    ["blocked_by_site", "쇼핑몰이 자동 확인을 막았어요."],
+    ["timeout", "쇼핑몰이 제때 응답하지 않았어요."],
+    ["no_product_data", "페이지에서 상품 정보를 찾지 못했어요."],
+    ["dns_failed", "쇼핑몰 주소를 찾지 못했어요."],
+    ["attempts_exhausted", "여러 번 시도했지만 가져오지 못했어요."],
+  ] as const)("Given %s로 실패 When 상세로 보이면 Then 이유와 링크 보관을 함께 말한다", (code, reason) => {
+    expect(toProductDetailView(failed(code), [], null).status)
+      .toEqual({ title: "정보를 가져오지 못했어요", detail: `${reason} 원본 링크는 그대로 보관했어요.` });
+  });
+
+  it("Given 모든 실패 코드 When 상세로 보이면 Then 저마다 비어 있지 않은 이유가 있다", () => {
+    const codes = ["invalid_url", "blocked_address", "dns_failed", "connect_failed", "timeout", "too_many_redirects",
+      "blocked_by_site", "http_status", "unsupported_content", "too_large", "decode_failed", "no_product_data",
+      "attempts_exhausted", "internal"] as const;
+    const details = codes.map((code) => toProductDetailView(failed(code), [], null).status.detail);
+    expect(new Set(details).size).toBe(codes.length);
+    expect(details.every((detail) => detail.endsWith(" 원본 링크는 그대로 보관했어요."))).toBe(true);
+  });
+
+  it("Given 멈춘 작업 When 카드와 상세로 보이면 Then 멈췄다고 말하고 다시 가져올 수 있다", () => {
+    const stalled: ProductResponse = { ...queued, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } };
+    expect(toProductCardView(stalled, []).status).toBe("정보 수집 멈춤");
+    expect(toProductDetailView(stalled, [], null)).toMatchObject({
+      status: { title: "정보 수집이 멈췄어요", detail: "다시 가져오기를 눌러 주세요. 원본 링크는 그대로 보관했어요." },
+      canRetry: true,
+    });
+  });
+
+  it("Given 수집 단계 When 다시 가져올 수 있는지 보면 Then 실패했거나 멈춘 경우만 가능하다", () => {
+    expect(canRetry(failed("timeout"))).toBe(true);
+    expect(canRetry({ ...queued, metadata: { phase: "queued", generation: 1, attempts: 0, stalled: true } })).toBe(true);
+    for (const metadata of everyPhase.filter((item) => item.phase !== "failed")) {
+      expect(canRetry({ ...queued, metadata })).toBe(false);
+    }
+    expect(toProductDetailView(failed("timeout"), [], null).canRetry).toBe(true);
+  });
+
+  it("Given 정보를 가져온 상품 When 카드와 상세로 보이면 Then 가져온 이름과 가격을 보여준다", () => {
+    const ready: ProductResponse = {
+      ...queued,
+      title: "무선 헤드폰 블랙",
+      metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
+      lastSuccessfulPrice: { amountMinor: 289000, currency: "KRW", checkedAt: "2026-11-11T00:00:00.000Z" },
+    };
+    expect(toProductCardView(ready, [])).toMatchObject({ title: "무선 헤드폰 블랙", status: null, price: { value: "₩289,000" } });
+    expect(toProductDetailView(ready, [], null)).toMatchObject({ title: "무선 헤드폰 블랙", canRetry: false });
   });
 });
 

@@ -1,5 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { isAuthApiError, isAuthSessionMissingError, type SupabaseClient, type User } from "@supabase/supabase-js";
+import { createClient, isAuthApiError, isAuthSessionMissingError, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { GoogleSession } from "../domain/access";
 
@@ -39,6 +39,17 @@ export function createSupabaseServerClient(config: AuthConfig, cookies: CookieJa
       },
     },
   });
+}
+
+// For work that outlives the request: it cannot write cookies, so it cannot refresh and only uses this token.
+export function createAccessTokenClient(config: AuthConfig, accessToken: string): SupabaseClient {
+  return createClient(config.supabaseUrl, config.supabaseKey, { accessToken: async () => accessToken });
+}
+
+// Call after readGoogleSession: that call validated the session and already refreshed an expiring token.
+export async function readAccessToken(client: SupabaseClient): Promise<string | null> {
+  const { data } = await client.auth.getSession();
+  return data.session?.access_token ?? null;
 }
 
 export function toGoogleSession(user: User): GoogleSession {

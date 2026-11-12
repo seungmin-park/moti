@@ -1,4 +1,6 @@
 import type { Access } from "../../auth/domain/access";
+import type { CollectionRequest } from "../../metadata/application/collection";
+import { toMetadataRetryCommand, type MetadataRetryCommand, type MetadataRetryResult } from "../../metadata/application/commands";
 import { isSameOrigin, readJsonBody } from "../../shared/presentation/http";
 import { toCollectionCreateCommand, toLinkSaveCommand } from "../application/commands";
 import type { LibraryService } from "../application/library-service";
@@ -6,9 +8,11 @@ import { LibraryError, type LibraryErrorCode } from "../domain/library";
 import {
   collectionCreateRequestSchema,
   linkSaveRequestSchema,
+  metadataRetryRequestSchema,
   toCollectionResponse,
   toLibraryReadResponse,
   toLinkSaveResponse,
+  toMetadataRetryResponse,
   type ErrorCode,
   type ErrorResponse,
 } from "./library-dto";
@@ -17,7 +21,11 @@ export type LibraryRequestContext = {
   access: Access;
   service: LibraryService;
   signOut(): Promise<void>;
+  // Schedules collection to run after the response is sent; it never delays or fails the request.
+  collect(request: CollectionRequest): void;
+  retry(command: MetadataRetryCommand): Promise<MetadataRetryResult>;
 };
+export type ProductRoute = { params: Promise<{ productId: string }> };
 
 const errorStatus: Record<ErrorCode, number> = {
   signed_out: 401,
@@ -30,6 +38,8 @@ const errorStatus: Record<ErrorCode, number> = {
   collection_missing: 422,
   collection_duplicate: 409,
   identity_conflict: 409,
+  product_missing: 404,
+  metadata_not_retryable: 409,
   storage_unavailable: 503,
 };
 
@@ -44,6 +54,8 @@ const errorMessages: Record<ErrorCode, string> = {
   collection_missing: "선택한 컬렉션을 찾을 수 없어요.",
   collection_duplicate: "같은 이름의 컬렉션이 이미 있어요.",
   identity_conflict: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요.",
+  product_missing: "상품을 찾을 수 없어요.",
+  metadata_not_retryable: "지금은 정보를 다시 가져올 수 없어요.",
   storage_unavailable: "잠시 뒤 다시 시도해 주세요.",
 };
 
@@ -53,6 +65,8 @@ const fromLibraryError: Record<LibraryErrorCode, ErrorCode> = {
   collection_missing: "collection_missing",
   collection_duplicate: "collection_duplicate",
   identity_conflict: "identity_conflict",
+  product_missing: "product_missing",
+  metadata_not_retryable: "metadata_not_retryable",
   storage_unavailable: "storage_unavailable",
 };
 
@@ -65,12 +79,12 @@ function failure(code: ErrorCode, message = errorMessages[code], field?: string)
   return json(errorStatus[code], body);
 }
 
-type Allowed = { service: LibraryService };
-type Action = (allowed: Allowed, request: Request) => Promise<Response>;
+type Allowed = Pick<LibraryRequestContext, "service" | "collect" | "retry">;
+type Action<Route> = (allowed: Allowed, request: Request, route: Route) => Promise<Response>;
 
 export function createLibraryHandlers(context: (request: Request) => Promise<LibraryRequestContext>) {
-  function handle(action: Action, { write }: { write: boolean }) {
-    return async (request: Request): Promise<Response> => {
+  function handle<Route = unknown>(action: Action<Route>, { write }: { write: boolean }) {
+    return async (request: Request, route?: Route): Promise<Response> => {
       if (write && !isSameOrigin(request)) return failure("cross_origin");
       let current: LibraryRequestContext;
       try {
@@ -85,7 +99,7 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
       }
       if (access.kind !== "allowed") return failure(access.kind);
       try {
-        return await action({ service: current.service }, request);
+        return await action(current, request, route as Route);
       } catch (error) {
         if (!(error instanceof LibraryError)) return failure("storage_unavailable");
         const code = fromLibraryError[error.code];
@@ -110,10 +124,12 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
 
   return {
     getLibrary: handle(async ({ service }) => json(200, toLibraryReadResponse(await service.snapshot())), { write: false }),
-    postLink: handle(async ({ service }, request) => {
+    postLink: handle(async ({ service, collect }, request) => {
       const linkSaveRequest = await readRequest(request, (value) => linkSaveRequestSchema.parse(value));
       if (linkSaveRequest instanceof Response) return linkSaveRequest;
       const result = await service.saveLink(toLinkSaveCommand(linkSaveRequest));
+      const { id, metadata } = result.product;
+      if (metadata.phase === "queued") collect({ productId: id, generation: metadata.generation });
       return json(result.kind === "added" ? 201 : 200, toLinkSaveResponse(result));
     }, { write: true }),
     postCollection: handle(async ({ service }, request) => {
@@ -121,6 +137,15 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
       if (collectionCreateRequest instanceof Response) return collectionCreateRequest;
       const collection = await service.createCollection(toCollectionCreateCommand(collectionCreateRequest.name));
       return json(201, toCollectionResponse(collection));
+    }, { write: true }),
+    postMetadataRetry: handle<ProductRoute>(async ({ retry, collect }, request, route) => {
+      const { productId } = await route.params;
+      const metadataRetryRequest = await readRequest(request, (value) => metadataRetryRequestSchema.parse(value));
+      if (metadataRetryRequest instanceof Response) return metadataRetryRequest;
+      const result = await retry(toMetadataRetryCommand(productId, metadataRetryRequest.generation));
+      const { id, metadata } = result.product;
+      collect({ productId: id, generation: metadata.generation });
+      return json(202, toMetadataRetryResponse(result));
     }, { write: true }),
   };
 }

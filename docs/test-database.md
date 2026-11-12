@@ -22,6 +22,6 @@ HTTP 단계가 통과하면 같은 앱과 스택에 `playwright.database.config.
 
 Vitest는 persistence와 service 파일을 한 번에 하나씩 실행한다. 소유자 설정이 하나인 앱의 성격에 맞춘 격리다. JSON 결과에서 두 계층의 실제 통과 개수를 확인하고 테스트 0개·skip·todo·실패를 거절한다. DB 시작·마이그레이션·정리가 실패해도 검증은 실패한다. Ctrl-C나 종료 신호에는 시작 프로세스가 실제로 닫힌 뒤 소유한 스택을 정리한다. CI의 `database` 작업이 같은 명령을 실행한다.
 
-macOS의 임시 폴더는 `/var`와 `/private/var` 두 경로로 보인다. CLI는 실제 경로를 기록하므로 실행기도 `realpath`로 만든 경로를 사용한다. 이전에 로컬 DB를 쓸 수 없다고 기록한 원인은 이 경로 불일치였다. 2026-11-11 Apple Silicon macOS에서 `npm run test:database`가 persistence 33개·service 10개를 실제로 통과했다.
+macOS의 임시 폴더는 `/var`와 `/private/var` 두 경로로 보인다. CLI는 실제 경로를 기록하므로 실행기도 `realpath`로 만든 경로를 사용한다. 이전에 로컬 DB를 쓸 수 없다고 기록한 원인은 이 경로 불일치였다. 2026-11-11 Apple Silicon macOS에서 `npm run test:database`가 persistence 33개·service 10개를 실제로 통과했다. 3a 이후 persistence 59개, service 26개, HTTP 14개, 브라우저 16개다.
 
 `moti_rpc`는 Supabase의 `auth` 스키마 권한을 받을 수 없다. 사용자 ID는 PostgREST가 넣은 `request.jwt.claims`에서 읽고, Google identity 확인만 마이그레이션 소유자의 좁은 읽기 함수 `moti.has_google_identity`로 수행한다. 거절 검사는 원시 오류 코드 `M0001`까지 확인해 권한 오류가 우연히 `unauthorized`로 통과하지 않게 한다.

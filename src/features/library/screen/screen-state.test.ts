@@ -3,7 +3,9 @@ import type { CollectionResponse, LibraryReadResponse, ProductResponse } from ".
 import type { ApiFailure, LibraryApi } from "./library-api";
 import {
   initialScreen,
+  MAX_POLLS,
   perform,
+  pollDelay,
   transition,
   visibleProducts,
   type LibraryScreenState,
@@ -34,7 +36,7 @@ function product(id: string, addedAt: string, collectionIds: string[] = []): Pro
     addedAt,
     updatedAt: addedAt,
     purchase: { status: "wish" },
-    metadata: { phase: "queued", generation: 1, attempts: 0 },
+    metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
     lastSuccessfulPrice: null,
   };
 }
@@ -47,7 +49,7 @@ const unavailable: ApiFailure = { kind: "unavailable", message: "잠시 뒤 다�
 type Ready = Extract<LibraryScreenState, { phase: "ready" }>;
 
 function ready(overrides: Partial<Ready> = {}): Ready {
-  return { phase: "ready", library, collectionId: null, dialog: null, refreshing: false, ...overrides };
+  return { phase: "ready", library, collectionId: null, dialog: null, refreshing: false, retrying: null, ...overrides };
 }
 
 function adding(draft: Partial<{ url: string; option: string; collectionIds: string[] }> = {}, rest: Partial<Extract<ScreenDialog, { kind: "add" }>> = {}): Ready {
@@ -180,7 +182,7 @@ describe("링크 추가", () => {
     expect(call).toBeNull();
     expect(state).toEqual(ready({
       library: { ...library, products: [added, lamp, chair] },
-      dialog: { kind: "detail", productId: added.id, arrival: "added" },
+      dialog: { kind: "detail", productId: added.id, arrival: "added", error: null },
     }));
   });
 
@@ -190,7 +192,7 @@ describe("링크 추가", () => {
       { type: "link.settled", outcome: { ok: true, value: { kind: "duplicate", product: updated } } });
     expect(state).toEqual(ready({
       library: { ...library, products: [updated, chair] },
-      dialog: { kind: "detail", productId: lamp.id, arrival: "duplicate" },
+      dialog: { kind: "detail", productId: lamp.id, arrival: "duplicate", error: null },
     }));
   });
 
@@ -411,11 +413,11 @@ describe("컬렉션 대화상자", () => {
 describe("상세", () => {
   it("Given 보관함 When 상품을 열면 Then 도착 안내 없이 상세를 연다", () => {
     expect(dialogOf(run(ready(), { type: "detail.open", productId: lamp.id }).state))
-      .toEqual({ kind: "detail", productId: lamp.id, arrival: null });
+      .toEqual({ kind: "detail", productId: lamp.id, arrival: null, error: null });
   });
 
   it("Given 상세를 연 상품이 사라짐 When 새 보관함을 받으면 Then 상세를 닫는다", () => {
-    const open = ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null }, refreshing: true });
+    const open = ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null, error: null }, refreshing: true });
     expect(transition(open, { type: "library.settled", outcome: { ok: true, value: { ...library, products: [chair] } } }).state)
       .toMatchObject({ dialog: null });
   });
@@ -450,7 +452,7 @@ describe("뒤로 가기 캐시에서 돌아온 화면", () => {
       ready(),
       ready({ collectionId: desk.id, refreshing: true }),
       adding({}, { saving: true }),
-      ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null } }),
+      ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null, error: null } }),
       { phase: "failed", message: unavailable.message },
     ] satisfies LibraryScreenState[]) {
       expect(transition(state, { type: "resume" })).toEqual(initialScreen);
@@ -471,6 +473,7 @@ describe("요청 실행", () => {
       read: vi.fn(async () => ({ ok: true as const, value: library })),
       saveLink: vi.fn(async () => ({ ok: true as const, value: { kind: "added" as const, product: lamp } })),
       createCollection: vi.fn(async () => ({ ok: true as const, value: created })),
+      retryMetadata: vi.fn(async () => ({ ok: true as const, value: { product: lamp } })),
     };
     await expect(perform(api, { type: "library.read" })).resolves.toEqual({ type: "library.settled", outcome: { ok: true, value: library } });
     const body = { url: "https://a.example", option: "", collectionIds: [] };
@@ -480,5 +483,149 @@ describe("요청 실행", () => {
     await expect(perform(api, { type: "collection.create", body: { name: "주방" }, from: "dialog" }))
       .resolves.toEqual({ type: "collection.settled", from: "dialog", outcome: { ok: true, value: created } });
     expect(api.createCollection).toHaveBeenCalledWith({ name: "주방" });
+    await expect(perform(api, { type: "metadata.retry", productId: lamp.id, body: { generation: 1 } }))
+      .resolves.toEqual({ type: "metadata.settled", productId: lamp.id, outcome: { ok: true, value: { product: lamp } } });
+    expect(api.retryMetadata).toHaveBeenCalledWith(lamp.id, { generation: 1 });
+    await expect(perform(api, { type: "library.poll" })).resolves.toEqual({ type: "poll.settled", outcome: { ok: true, value: library } });
+    expect(api.read).toHaveBeenCalledTimes(2);
+  });
+});
+
+const failedLamp: ProductResponse = { ...lamp, metadata: { phase: "failed", generation: 1, attempts: 1, errorCode: "blocked_address" } };
+const readyLamp: ProductResponse = {
+  ...lamp,
+  title: "책상 조명",
+  metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:05.000Z" },
+  lastSuccessfulPrice: { amountMinor: 59000, currency: "KRW", checkedAt: "2026-11-11T00:00:05.000Z" },
+};
+const withProducts = (products: ProductResponse[], overrides: Partial<Ready> = {}) =>
+  ready({ library: { ...library, products }, ...overrides });
+const settled = (products: ProductResponse[]): ScreenEvent =>
+  ({ type: "poll.settled", outcome: { ok: true, value: { products, collections: library.collections } } });
+const productsOf = (state: LibraryScreenState) => (state as Ready).library.products;
+
+describe("수집 결과 기다리기", () => {
+  const settledChair: ProductResponse = { ...chair, metadata: { phase: "failed", generation: 1, attempts: 1, errorCode: "timeout" } };
+
+  it("Given 수집을 기다리는 상품 When 다음 확인 간격을 정하면 Then 점점 길게 기다리고 40번 뒤에는 멈춘다", () => {
+    const state = ready();
+    expect([0, 1, 2, 3, 4, 5, 20, MAX_POLLS - 1].map((polls) => pollDelay(state, polls)))
+      .toEqual([1500, 2000, 3000, 5000, 8000, 8000, 8000, 8000]);
+    expect(pollDelay(state, MAX_POLLS)).toBeNull();
+  });
+
+  it("Given 기다리는 상품이 없거나 멈춘 상품뿐 When 간격을 정하면 Then 확인하지 않는다", () => {
+    expect(pollDelay(withProducts([readyLamp, settledChair]), 0)).toBeNull();
+    const stalled: ProductResponse = { ...lamp, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } };
+    expect(pollDelay(withProducts([stalled, settledChair]), 0)).toBeNull();
+    expect(pollDelay({ phase: "loading" }, 0)).toBeNull();
+    expect(pollDelay({ phase: "failed", message: "x" }, 0)).toBeNull();
+  });
+
+  it("Given 보관함 When 확인할 때가 되면 Then 새로고침 표시 없이 보관함을 읽는다", () => {
+    expect(transition(ready(), { type: "poll" })).toEqual({ state: ready(), call: { type: "library.poll" } });
+    expect(transition({ phase: "loading" }, { type: "poll" })).toEqual({ state: { phase: "loading" }, call: null });
+  });
+
+  it("Given 확인 결과 When 받으면 Then 화면의 상품에 이름·수집 상태·가격만 반영하고 다른 내용과 순서는 그대로 둔다", () => {
+    const polled = { ...readyLamp, note: "다른 곳에서 고친 메모", collectionIds: [], option: "바뀐 옵션" };
+    const stranger = product("66666666-6666-4666-8666-666666666666", "2026-11-12T00:00:00.000Z");
+    const { state, call } = transition(ready({ dialog: { kind: "detail", productId: lamp.id, arrival: "added", error: null } }), settled([stranger, chair, polled]));
+    expect(call).toBeNull();
+    expect(productsOf(state)).toEqual([
+      { ...lamp, title: readyLamp.title, metadata: readyLamp.metadata, lastSuccessfulPrice: readyLamp.lastSuccessfulPrice },
+      chair,
+    ]);
+    expect(state).toMatchObject({ refreshing: false, dialog: { kind: "detail", productId: lamp.id, arrival: "added" } });
+  });
+
+  it("Given 화면보다 이전 세대의 결과 When 받으면 Then 무시한다", () => {
+    const requeued: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 2, attempts: 0, stalled: false } };
+    const olderReady: ProductResponse = { ...readyLamp, metadata: { ...readyLamp.metadata, generation: 1 } };
+    expect(productsOf(transition(withProducts([requeued]), settled([olderReady])).state)).toEqual([requeued]);
+  });
+
+  it("Given 같은 세대의 더 이른 단계 When 받으면 Then 무시하고, 새 세대는 단계와 무관하게 반영한다", () => {
+    const running: ProductResponse = { ...lamp, metadata: { phase: "running", generation: 1, attempts: 1, stalled: false } };
+    expect(productsOf(transition(withProducts([running]), settled([lamp])).state)).toEqual([running]);
+    expect(productsOf(transition(withProducts([failedLamp]), settled([running])).state)).toEqual([failedLamp]);
+    const next: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 2, attempts: 0, stalled: false } };
+    expect(productsOf(transition(withProducts([failedLamp]), settled([next])).state)).toEqual([next]);
+    const stalled: ProductResponse = { ...lamp, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } };
+    expect(productsOf(transition(withProducts([running]), settled([stalled])).state)).toEqual([stalled]);
+  });
+
+  it("Given 확인이 실패 When 결과를 받으면 Then 세션 만료만 로그인으로 보내고 나머지는 화면을 그대로 둔다", () => {
+    expect(transition(ready(), { type: "poll.settled", outcome: { ok: false, failure: unavailable } })).toEqual({ state: ready(), call: null });
+    expect(transition(ready(), { type: "poll.settled", outcome: { ok: false, failure: { kind: "redirect", to: "/login" } } }).state)
+      .toEqual({ phase: "leaving", to: "/login" });
+  });
+});
+
+describe("다시 가져오기", () => {
+  const detail = (productId = lamp.id): ScreenDialog => ({ kind: "detail", productId, arrival: null, error: null });
+
+  it("Given 실패한 상품의 상세 When 다시 가져오면 Then 그 세대로 요청하고 끝날 때까지 다시 누를 수 없다", () => {
+    const start = withProducts([failedLamp, chair], { dialog: detail() });
+    const { state, call } = transition(start, { type: "metadata.retry", productId: lamp.id });
+    expect(call).toEqual({ type: "metadata.retry", productId: lamp.id, body: { generation: 1 } });
+    expect(state).toMatchObject({ retrying: lamp.id });
+    expect(transition(state, { type: "metadata.retry", productId: lamp.id })).toEqual({ state, call: null });
+  });
+
+  it("Given 멈춘 작업 When 다시 가져오면 Then 같은 세대로 요청한다", () => {
+    const stalled: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 3, attempts: 1, stalled: true } };
+    expect(transition(withProducts([stalled]), { type: "metadata.retry", productId: lamp.id }).call)
+      .toEqual({ type: "metadata.retry", productId: lamp.id, body: { generation: 3 } });
+  });
+
+  it("Given 수집 중이거나 끝났거나 없는 상품, 또는 보관함을 새로 읽는 중 When 다시 가져오면 Then 요청하지 않는다", () => {
+    for (const state of [ready(), withProducts([readyLamp]), withProducts([failedLamp], { refreshing: true })]) {
+      expect(transition(state, { type: "metadata.retry", productId: lamp.id })).toEqual({ state, call: null });
+    }
+    const missing = withProducts([failedLamp]);
+    expect(transition(missing, { type: "metadata.retry", productId: chair.id })).toEqual({ state: missing, call: null });
+  });
+
+  it("Given 다시 가져오기 성공 When 결과를 받으면 Then 상품을 제자리에서 바꾸고 다시 누를 수 있다", () => {
+    const requeued: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 2, attempts: 0, stalled: false } };
+    const start = withProducts([chair, failedLamp], { dialog: detail(), retrying: lamp.id });
+    const { state, call } = transition(start, { type: "metadata.settled", productId: lamp.id, outcome: { ok: true, value: { product: requeued } } });
+    expect(call).toBeNull();
+    expect(state).toMatchObject({ retrying: null, dialog: detail() });
+    expect(productsOf(state)).toEqual([chair, requeued]);
+  });
+
+  it("Given 멈춰서 확인을 멈춘 상품 When 같은 세대로 다시 시작되면 Then 다시 확인한다", () => {
+    const stalled: ProductResponse = { ...lamp, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } };
+    const resumed: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 1, attempts: 1, stalled: false } };
+    const start = withProducts([stalled], { retrying: lamp.id });
+    expect(pollDelay(start, 0)).toBeNull();
+
+    const { state } = transition(start, { type: "metadata.settled", productId: lamp.id, outcome: { ok: true, value: { product: resumed } } });
+
+    expect(pollDelay(state, 0)).toBe(1500);
+  });
+
+  it("Given 상태가 바뀌어 거절 When 결과를 받으면 Then 안내하고 보관함을 새로 읽는다", () => {
+    const start = withProducts([failedLamp], { dialog: detail(), retrying: lamp.id });
+    const failure: ApiFailure = { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." };
+    const { state, call } = transition(start, { type: "metadata.settled", productId: lamp.id, outcome: { ok: false, failure } });
+    expect(call).toEqual({ type: "library.read" });
+    expect(state).toMatchObject({ retrying: null, refreshing: true, dialog: { ...detail(), error: failure.message } });
+  });
+
+  it("Given 일시적 실패 When 결과를 받으면 Then 상세에 안내하고 다시 누를 수 있게 한다", () => {
+    const start = withProducts([failedLamp], { dialog: detail(), retrying: lamp.id });
+    const { state, call } = transition(start, { type: "metadata.settled", productId: lamp.id, outcome: { ok: false, failure: unavailable } });
+    expect(call).toBeNull();
+    expect(state).toEqual({ ...start, retrying: null, dialog: { ...detail(), error: unavailable.message } });
+    expect(transition(state, { type: "metadata.retry", productId: lamp.id }).state).toMatchObject({ retrying: lamp.id, dialog: detail() });
+  });
+
+  it("Given 세션 만료 When 결과를 받으면 Then 로그인으로 보낸다", () => {
+    const start = withProducts([failedLamp], { retrying: lamp.id });
+    expect(transition(start, { type: "metadata.settled", productId: lamp.id, outcome: { ok: false, failure: { kind: "redirect", to: "/login" } } }).state)
+      .toEqual({ phase: "leaving", to: "/login" });
   });
 });

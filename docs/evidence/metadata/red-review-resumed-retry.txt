@@ -1,0 +1,24 @@
+$ npm run test:database   (persistence and service slice; stops before HTTP)
+ FAIL  tests/persistence/metadata-jobs.test.ts > 수집 작업 저장소 > 오래 대기하거나 기한이 지난 작업은 멈춤으로 보이고 시도가 남았으면 같은 세대를 멈추지 않은 대기로 되돌린다
+AssertionError: expected { generation: 1, attempts: +0, …(2) } to deeply equal { Object (phase, generation, ...) }
+
+- Expected
++ Received
+
+  {
+    "attempts": 0,
+    "generation": 1,
+    "phase": "queued",
+-   "stalled": false,
++   "stalled": true,
+  }
+
+ ❯ tests/persistence/metadata-jobs.test.ts:256:38
+    254|     const waiting = await jobs().retry({ productId: product.id, expect…
+    255|     expect(waiting).toEqual({ kind: "resumed", product: await current(…
+    256|     expect(waiting.product.metadata).toEqual({ phase: "queued", genera…
+       |                                      ^
+    257|
+    258|     const job = await claimed(product);
+ Test Files  2 failed | 3 passed (5)
+      Tests  2 failed | 83 passed (85)
