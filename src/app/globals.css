@@ -1268,6 +1268,7 @@ h1 {
   align-items: start;
   margin-top: 10px;
   line-height: 1.5;
+  word-break: keep-all;
 }
 .price-kept svg {
   flex: none;
