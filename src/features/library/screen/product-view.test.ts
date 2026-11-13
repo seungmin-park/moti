@@ -77,6 +77,17 @@ describe("상품 카드 문구", () => {
     expect(toProductCardView(queued, []).purchased).toBe(false);
   });
 
+  it("Given 구매한 상품 When 카드로 보이면 Then 마지막 확인 가격 대신 실구매가와 구매일을 보여주고 0원과 미입력을 구분한다", () => {
+    const checked = { amountMinor: 289000, currency: "KRW", checkedAt: "2026-11-10T16:30:00.000Z" };
+    const bought = (date: string | null, price: { amountMinor: number; currency: string } | null): ProductResponse =>
+      ({ ...queued, lastSuccessfulPrice: checked, purchase: { status: "purchased", date, price } });
+    expect(toProductCardView(bought(null, null), []).price).toEqual({ value: "실구매가 미입력", checked: null });
+    expect(toProductCardView(bought(null, { amountMinor: 0, currency: "KRW" }), []).price).toEqual({ value: "₩0", checked: "실구매가" });
+    expect(toProductCardView(bought("2026-11-01", { amountMinor: 259000, currency: "KRW" }), []).price)
+      .toEqual({ value: "₩259,000", checked: "실구매가 · 2026. 11. 01. 구매" });
+    expect(toProductCardView(bought("2026-11-01", null), []).price).toEqual({ value: "실구매가 미입력", checked: "2026. 11. 01. 구매" });
+  });
+
   it("Given 여러 컬렉션 When 카드로 보이면 Then 첫 컬렉션 이름과 나머지 개수를 보여주고 모르는 id는 세지 않는다", () => {
     const product = { ...queued, collectionIds: [room.id, "99999999-9999-4999-8999-999999999999", desk.id, kitchen.id] };
     expect(toProductCardView(product, [desk, room, kitchen]).collection).toEqual({ filed: true, text: "방 +2" });

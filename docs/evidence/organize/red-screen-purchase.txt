@@ -1,0 +1,992 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/screen/product-view.test.ts (38 tests | 1 failed) 15ms
+   ❯ 상품 카드 문구 (11)
+     × Given 구매한 상품 When 카드로 보이면 Then 마지막 확인 가격 대신 실구매가와 구매일을 보여주고 0원과 미입력을 구분한다 4ms
+ ❯ src/features/library/screen/screen-state.test.ts (75 tests | 25 failed) 25ms
+   ❯ 보관함 불러오기 (4)
+     × Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다 7ms
+   ❯ 목록과 필터 (3)
+     × Given 보관함 When 보이는 상품을 고르면 Then 최근 담은 순, 같은 시각이면 id 순이다 0ms
+     × Given 컬렉션 필터 When 보이는 상품을 고르면 Then 그 컬렉션의 상품만 보여준다 1ms
+   ❯ 요청 실행 (1)
+     × Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다 2ms
+   ❯ 다시 가져오기 (9)
+     × Given 실패한 상품의 상세 When 다시 가져오면 Then 그 세대로 요청하고 끝날 때까지 다시 누를 수 없다 0ms
+     × Given 사진을 가져오지 못한 상품 When 다시 가져오면 Then 그 세대로 요청한다 0ms
+     × Given 멈춘 작업 When 다시 가져오면 Then 같은 세대로 요청한다 0ms
+     × Given 다시 가져오기 성공 When 결과를 받으면 Then 상품을 제자리에서 바꾸고 다시 누를 수 있다 0ms
+     × Given 상태가 바뀌어 거절 When 결과를 받으면 Then 안내하고 보관함을 새로 읽는다 0ms
+     × Given 일시적 실패 When 결과를 받으면 Then 상세에 안내하고 다시 누를 수 있게 한다 1ms
+   ❯ 위시와 구매완료 보기 (2)
+     × Given 위시와 구매한 상품 When 보기를 고르면 Then 그 상태의 상품만 컬렉션 필터와 함께 보여준다 0ms
+     × Given 위시 보기 When 구매완료 보기로 바꾸면 Then 컬렉션 필터는 그대로 두고 알림을 닫는다 1ms
+   ❯ 상품을 화면에 합치기 (5)
+     × Given 화면의 상품 When 더 높은 revision을 받으면 Then 소유자가 바꾼 값까지 모두 바꾼다 0ms
+     × Given 방금 저장한 상품 When 저장 전에 읽은 더 낮은 revision을 받으면 Then 수집 결과가 앞서도 무시한다 0ms
+     × Given 같은 revision When 받으면 Then 앞선 수집 결과만 반영하고 소유자 값은 바꾸지 않는다 0ms
+     × Given 방금 저장한 상품 When 저장 전에 시작한 확인 결과가 오면 Then 이름·수집 상태를 되돌리지 않는다 0ms
+     × Given 다시 읽기 When 상품마다 revision을 비교하면 Then 높은 것은 바꾸고 낮은 것은 화면 값을 지킨다 1ms
+   ❯ 구매완료와 실행 취소 (9)
+     × Given 위시 상품 When 카드에서 구매완료로 옮기면 Then 화면이 본 revision으로 요청하고 끝날 때까지 다른 쓰기를 막는다 0ms
+     × Given 구매 요청 중 When 성공하면 Then 상품을 구매완료로 바꾸고 그 revision의 실행 취소 알림을 띄운다 1ms
+     × Given 구매완료 알림 When 실행 취소하면 Then 알림의 revision으로 위시로 되돌리기를 요청하고, 끝나면 되돌렸다고 알린다 0ms
+     × Given 구매완료 알림 뒤 상품이 다시 바뀜 When 알림을 보거나 실행 취소하면 Then 알림을 숨기고 요청하지 않는다 0ms
+     × Given 다른 곳에서 먼저 바뀐 상품 When 구매 요청이 거절되면 Then 이유를 알리고 보관함을 새로 읽는다 0ms
+     × Given 구매 요청 중 When 일시적으로 실패하거나 세션이 끝나면 Then 알리고 다시 누를 수 있게 하거나 로그인으로 보낸다 1ms
+     × Given 알림 When 닫거나 필터·대화상자를 바꾸면 Then 알림을 닫는다 0ms
+     × Given 알림 When 대화상자가 열려 있으면 Then 보이지 않는다 0ms
+ ❯ src/features/library/screen/library-api.test.ts (96 tests | 8 failed) 34ms
+   ❯ API 오류 응답의 화면 결과 (80)
+     × Given product.change의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 4ms
+     × Given product.change의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given product.change의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given product.change의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given product.change의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given 상품 정리의 이름·구매일·실구매가 오류 When 결과로 바꾸면 Then 그 칸에 서버 문구를 붙이고, 모르는 필드는 새로고침을 안내한다 0ms
+   ❯ 보관함 API 클라이언트 (16)
+     × Given 상품 정리 When 요청하면 Then 상품 경로에 PATCH로 revision과 변경을 보내고 200 상품을 돌려준다 1ms
+     × Given 상품 정리에 200이 아닌 성공 코드 When 요청하면 Then 연결 안내로 실패한다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 34 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.change의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+AssertionError: expected { kind: 'unavailable', …(1) } to deeply equal { Object (kind, field, ...) }
+
+- Expected
++ Received
+
+  {
+-   "field": "note",
+-   "kind": "invalid",
+-   "message": "메모가 너무 길어요.",
++   "kind": "unavailable",
++   "message": "잠시 뒤 다시 시도해 주세요.",
+  }
+
+ ❯ src/features/library/screen/library-api.test.ts:158:77
+    156| describe("API 오류 응답의 화면 결과", () => {
+    157|   it.each(cases)("Given %s의 %s 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다", (en…
+    158|     expect(toApiFailure(endpoint, status[code], errorBody(endpoint, co…
+       |                                                                             ^
+    159|   });
+    160|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/34]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.change의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+AssertionError: expected { kind: 'unavailable', …(1) } to deeply equal { Object (kind, field, ...) }
+
+- Expected
++ Received
+
+  {
+-   "field": "note",
+-   "kind": "invalid",
+-   "message": "메모는 3,000자까지 적을 수 있어요.",
++   "kind": "unavailable",
++   "message": "화면을 새로고침한 뒤 다시 시도해 주세요.",
+  }
+
+ ❯ src/features/library/screen/library-api.test.ts:158:77
+    156| describe("API 오류 응답의 화면 결과", () => {
+    157|   it.each(cases)("Given %s의 %s 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다", (en…
+    158|     expect(toApiFailure(endpoint, status[code], errorBody(endpoint, co…
+       |                                                                             ^
+    159|   });
+    160|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/34]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.change의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+AssertionError: expected { kind: 'unavailable', …(1) } to deeply equal { kind: 'stale', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "kind": "stale",
+-   "message": "선택한 컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요.",
++   "kind": "unavailable",
++   "message": "잠시 뒤 다시 시도해 주세요.",
+  }
+
+ ❯ src/features/library/screen/library-api.test.ts:158:77
+    156| describe("API 오류 응답의 화면 결과", () => {
+    157|   it.each(cases)("Given %s의 %s 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다", (en…
+    158|     expect(toApiFailure(endpoint, status[code], errorBody(endpoint, co…
+       |                                                                             ^
+    159|   });
+    160|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/34]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.change의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+AssertionError: expected { kind: 'stale', …(1) } to deeply equal { kind: 'unavailable', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "kind": "unavailable",
+-   "message": "잠시 뒤 다시 시도해 주세요.",
++   "kind": "stale",
++   "message": "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요.",
+  }
+
+ ❯ src/features/library/screen/library-api.test.ts:158:77
+    156| describe("API 오류 응답의 화면 결과", () => {
+    157|   it.each(cases)("Given %s의 %s 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다", (en…
+    158|     expect(toApiFailure(endpoint, status[code], errorBody(endpoint, co…
+       |                                                                             ^
+    159|   });
+    160|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/34]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.change의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+AssertionError: expected { kind: 'unavailable', …(1) } to deeply equal { kind: 'stale', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "kind": "stale",
+-   "message": "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 저장해 주세요.",
++   "kind": "unavailable",
++   "message": "잠시 뒤 다시 시도해 주세요.",
+  }
+
+ ❯ src/features/library/screen/library-api.test.ts:158:77
+    156| describe("API 오류 응답의 화면 결과", () => {
+    157|   it.each(cases)("Given %s의 %s 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다", (en…
+    158|     expect(toApiFailure(endpoint, status[code], errorBody(endpoint, co…
+       |                                                                             ^
+    159|   });
+    160|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/34]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given 상품 정리의 이름·구매일·실구매가 오류 When 결과로 바꾸면 Then 그 칸에 서버 문구를 붙이고, 모르는 필드는 새로고침을 안내한다
+AssertionError: expected { kind: 'unavailable', …(1) } to deeply equal { kind: 'invalid', …(2) }
+
+- Expected
++ Received
+
+  {
+-   "field": "title",
+-   "kind": "invalid",
+-   "message": "서버 문구",
++   "kind": "unavailable",
++   "message": "화면을 새로고침한 뒤 다시 시도해 주세요.",
+  }
+
+ ❯ src/features/library/screen/library-api.test.ts:183:10
+    181|     for (const field of ["title", "note", "collection", "date", "price…
+    182|       expect(toApiFailure("product.change", 400, { error: "invalid_inp…
+    183|         .toEqual({ kind: "invalid", field, message: "서버 문구" });
+       |          ^
+    184|     }
+    185|     expect(toApiFailure("product.change", 400, { error: "invalid_input…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/34]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 상품 정리 When 요청하면 Then 상품 경로에 PATCH로 revision과 변경을 보내고 200 상품을 돌려준다
+Error: not implemented
+ ❯ Object.changeProduct src/features/library/screen/library-api.ts:174:34
+    172|       { status: 201, parse: parsed(collectionCreateResponseSchema) },
+    173|     ]),
+    174|     changeProduct: () => { throw new Error("not implemented"); },
+       |                                  ^
+    175|     retryMetadata: (productId, body) => request("metadata.retry", `/ap…
+    176|       { status: 202, parse: parsed(metadataRetryResponseSchema) },
+ ❯ src/features/library/screen/library-api.test.ts:258:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/34]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 상품 정리에 200이 아닌 성공 코드 When 요청하면 Then 연결 안내로 실패한다
+Error: not implemented
+ ❯ Object.changeProduct src/features/library/screen/library-api.ts:174:34
+    172|       { status: 201, parse: parsed(collectionCreateResponseSchema) },
+    173|     ]),
+    174|     changeProduct: () => { throw new Error("not implemented"); },
+       |                                  ^
+    175|     retryMetadata: (productId, body) => request("metadata.retry", `/ap…
+    176|       { status: 202, parse: parsed(metadataRetryResponseSchema) },
+ ❯ src/features/library/screen/library-api.test.ts:268:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/34]⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 카드 문구 > Given 구매한 상품 When 카드로 보이면 Then 마지막 확인 가격 대신 실구매가와 구매일을 보여주고 0원과 미입력을 구분한다
+AssertionError: expected { value: '₩289,000', …(1) } to deeply equal { value: '실구매가 미입력', checked: null }
+
+- Expected
++ Received
+
+  {
+-   "checked": null,
+-   "value": "실구매가 미입력",
++   "checked": "마지막 확인 2026. 11. 11.",
++   "value": "₩289,000",
+  }
+
+ ❯ src/features/library/screen/product-view.test.ts:84:61
+     82|     const bought = (date: string | null, price: { amountMinor: number;…
+     83|       ({ ...queued, lastSuccessfulPrice: checked, purchase: { status: …
+     84|     expect(toProductCardView(bought(null, null), []).price).toEqual({ …
+       |                                                             ^
+     85|     expect(toProductCardView(bought(null, { amountMinor: 0, currency: …
+     86|     expect(toProductCardView(bought("2026-11-01", { amountMinor: 25900…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 보관함 불러오기 > Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다
+AssertionError: expected { phase: 'ready', …(5) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -71,9 +71,7 @@
+        },
+      ],
+    },
+    "phase": "ready",
+    "refreshing": false,
+-   "toast": null,
+-   "view": "wish",
+-   "writing": null,
++   "retrying": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:91:19
+     89|   it("Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다", () => {
+     90|     const { state, call } = transition({ phase: "loading" }, { type: "…
+     91|     expect(state).toEqual(ready());
+       |                   ^
+     92|     expect(call).toBeNull();
+     93|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 목록과 필터 > Given 보관함 When 보이는 상품을 고르면 Then 최근 담은 순, 같은 시각이면 id 순이다
+AssertionError: expected [] to deeply equal [ …(3) ]
+
+- Expected
++ Received
+
+- [
+-   "00000000-0000-4000-8000-000000000000",
+-   "44444444-4444-4444-8444-444444444444",
+-   "22222222-2222-4222-8222-222222222222",
+- ]
++ []
+
+ ❯ src/features/library/screen/screen-state.test.ts:122:8
+    120|     const twin = product("00000000-0000-4000-8000-000000000000", chair…
+    121|     expect(visibleProducts({ ...library, products: [lamp, chair, twin]…
+    122|       .toEqual([twin.id, chair.id, lamp.id]);
+       |        ^
+    123|   });
+    124|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 목록과 필터 > Given 컬렉션 필터 When 보이는 상품을 고르면 Then 그 컬렉션의 상품만 보여준다
+AssertionError: expected [] to deeply equal [ { …(15) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "addedAt": "2026-11-10T00:00:00.000Z",
+-     "collectionIds": [
+-       "11111111-1111-4111-8111-111111111111",
+-     ],
+-     "id": "22222222-2222-4222-8222-222222222222",
+-     "identityUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+-     "lastSuccessfulPrice": null,
+-     "metadata": {
+-       "attempts": 0,
+-       "generation": 1,
+-       "phase": "queued",
+-       "stalled": false,
+-     },
+-     "note": "",
+-     "option": "",
+-     "picture": null,
+-     "purchase": {
+-       "status": "wish",
+-     },
+-     "revision": 1,
+-     "shop": "example.com",
+-     "sourceUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+-     "title": "새로 담은 상품",
+-     "updatedAt": "2026-11-10T00:00:00.000Z",
+-   },
+- ]
++ []
+
+ ❯ src/features/library/screen/screen-state.test.ts:126:55
+    124|
+    125|   it("Given 컬렉션 필터 When 보이는 상품을 고르면 Then 그 컬렉션의 상품만 보여준다", () => {
+    126|     expect(visibleProducts(library, "wish", desk.id)).toEqual([lamp]);
+       |                                                       ^
+    127|     expect(visibleProducts(library, "wish", room.id)).toEqual([]);
+    128|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 요청 실행 > Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다
+AssertionError: expected undefined to deeply equal { type: 'change.settled', …(3) }
+
+- Expected:
+{
+  "intent": "purchase",
+  "outcome": {
+    "ok": true,
+    "value": {
+      "product": {
+        "addedAt": "2026-11-10T00:00:00.000Z",
+        "collectionIds": [
+          "11111111-1111-4111-8111-111111111111",
+        ],
+        "id": "22222222-2222-4222-8222-222222222222",
+        "identityUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+        "lastSuccessfulPrice": null,
+        "metadata": {
+          "attempts": 0,
+          "generation": 1,
+          "phase": "queued",
+          "stalled": false,
+        },
+        "note": "",
+        "option": "",
+        "picture": null,
+        "purchase": {
+          "status": "wish",
+        },
+        "revision": 1,
+        "shop": "example.com",
+        "sourceUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+        "title": "새로 담은 상품",
+        "updatedAt": "2026-11-10T00:00:00.000Z",
+      },
+    },
+  },
+  "productId": "22222222-2222-4222-8222-222222222222",
+  "type": "change.settled",
+}
+
++ Received:
+undefined
+
+ ❯ src/features/library/screen/screen-state.test.ts:496:93
+    494|     expect(api.retryMetadata).toHaveBeenCalledWith(lamp.id, { generati…
+    495|     const change = { revision: 1, change: { type: "purchase" as const …
+    496|     await expect(perform(api, { type: "product.change", productId: lam…
+       |                                                                                             ^
+    497|       .resolves.toEqual({ type: "change.settled", productId: lamp.id, …
+    498|     expect(api.changeProduct).toHaveBeenCalledWith(lamp.id, change);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 다시 가져오기 > Given 실패한 상품의 상세 When 다시 가져오면 Then 그 세대로 요청하고 끝날 때까지 다시 누를 수 없다
+AssertionError: expected null to deeply equal { type: 'metadata.retry', …(2) }
+
+- Expected:
+{
+  "body": {
+    "generation": 1,
+  },
+  "productId": "22222222-2222-4222-8222-222222222222",
+  "type": "metadata.retry",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:592:18
+    590|     const start = withProducts([failedLamp, chair], { dialog: detail()…
+    591|     const { state, call } = transition(start, { type: "metadata.retry"…
+    592|     expect(call).toEqual({ type: "metadata.retry", productId: lamp.id,…
+       |                  ^
+    593|     expect(state).toMatchObject({ writing: { productId: lamp.id, inten…
+    594|     expect(transition(state, { type: "metadata.retry", productId: lamp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 다시 가져오기 > Given 사진을 가져오지 못한 상품 When 다시 가져오면 Then 그 세대로 요청한다
+AssertionError: expected null to deeply equal { type: 'metadata.retry', …(2) }
+
+- Expected:
+{
+  "body": {
+    "generation": 1,
+  },
+  "productId": "22222222-2222-4222-8222-222222222222",
+  "type": "metadata.retry",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:603:8
+    601|     };
+    602|     expect(transition(withProducts([pictureFailed]), { type: "metadata…
+    603|       .toEqual({ type: "metadata.retry", productId: lamp.id, body: { g…
+       |        ^
+    604|   });
+    605|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 다시 가져오기 > Given 멈춘 작업 When 다시 가져오면 Then 같은 세대로 요청한다
+AssertionError: expected null to deeply equal { type: 'metadata.retry', …(2) }
+
+- Expected:
+{
+  "body": {
+    "generation": 3,
+  },
+  "productId": "22222222-2222-4222-8222-222222222222",
+  "type": "metadata.retry",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:609:8
+    607|     const stalled: ProductResponse = { ...lamp, metadata: { phase: "qu…
+    608|     expect(transition(withProducts([stalled]), { type: "metadata.retry…
+    609|       .toEqual({ type: "metadata.retry", productId: lamp.id, body: { g…
+       |        ^
+    610|   });
+    611|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 다시 가져오기 > Given 다시 가져오기 성공 When 결과를 받으면 Then 상품을 제자리에서 바꾸고 다시 누를 수 있다
+AssertionError: expected { phase: 'ready', …(8) } to match object { writing: null, dialog: { …(4) } }
+(9 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -3,7 +3,10 @@
+      "arrival": null,
+      "error": null,
+      "kind": "detail",
+      "productId": "22222222-2222-4222-8222-222222222222",
+    },
+-   "writing": null,
++   "writing": {
++     "intent": "retry",
++     "productId": "22222222-2222-4222-8222-222222222222",
++   },
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:625:19
+    623|     const { state, call } = transition(start, { type: "metadata.settle…
+    624|     expect(call).toBeNull();
+    625|     expect(state).toMatchObject({ writing: null, dialog: detail() });
+       |                   ^
+    626|     expect(productsOf(state)).toEqual([chair, requeued]);
+    627|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 다시 가져오기 > Given 상태가 바뀌어 거절 When 결과를 받으면 Then 안내하고 보관함을 새로 읽는다
+AssertionError: expected { phase: 'ready', …(8) } to match object { writing: null, …(2) }
+(8 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -4,7 +4,10 @@
+      "error": "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요.",
+      "kind": "detail",
+      "productId": "22222222-2222-4222-8222-222222222222",
+    },
+    "refreshing": true,
+-   "writing": null,
++   "writing": {
++     "intent": "retry",
++     "productId": "22222222-2222-4222-8222-222222222222",
++   },
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:645:19
+    643|     const { state, call } = transition(start, { type: "metadata.settle…
+    644|     expect(call).toEqual({ type: "library.read" });
+    645|     expect(state).toMatchObject({ writing: null, refreshing: true, dia…
+       |                   ^
+    646|   });
+    647|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 다시 가져오기 > Given 일시적 실패 When 결과를 받으면 Then 상세에 안내하고 다시 누를 수 있게 한다
+AssertionError: expected { phase: 'ready', …(8) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -52,9 +52,13 @@
+        },
+      ],
+    },
+    "phase": "ready",
+    "refreshing": false,
++   "retrying": null,
+    "toast": null,
+    "view": "wish",
+-   "writing": null,
++   "writing": {
++     "intent": "retry",
++     "productId": "22222222-2222-4222-8222-222222222222",
++   },
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:652:19
+    650|     const { state, call } = transition(start, { type: "metadata.settle…
+    651|     expect(call).toBeNull();
+    652|     expect(state).toEqual({ ...start, writing: null, dialog: { ...deta…
+       |                   ^
+    653|     expect(transition(state, { type: "metadata.retry", productId: lamp…
+    654|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 위시와 구매완료 보기 > Given 위시와 구매한 상품 When 보기를 고르면 Then 그 상태의 상품만 컬렉션 필터와 함께 보여준다
+AssertionError: expected [] to deeply equal [ { …(15) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "addedAt": "2026-11-11T00:00:00.000Z",
+-     "collectionIds": [],
+-     "id": "44444444-4444-4444-8444-444444444444",
+-     "identityUrl": "https://example.com/44444444-4444-4444-8444-444444444444",
+-     "lastSuccessfulPrice": null,
+-     "metadata": {
+-       "attempts": 0,
+-       "generation": 1,
+-       "phase": "queued",
+-       "stalled": false,
+-     },
+-     "note": "",
+-     "option": "",
+-     "picture": null,
+-     "purchase": {
+-       "status": "wish",
+-     },
+-     "revision": 1,
+-     "shop": "example.com",
+-     "sourceUrl": "https://example.com/44444444-4444-4444-8444-444444444444",
+-     "title": "새로 담은 상품",
+-     "updatedAt": "2026-11-11T00:00:00.000Z",
+-   },
+- ]
++ []
+
+ ❯ src/features/library/screen/screen-state.test.ts:673:53
+    671|   it("Given 위시와 구매한 상품 When 보기를 고르면 Then 그 상태의 상품만 컬렉션 필터와 함께 보여준다", (…
+    672|     const products = { ...library, products: [purchasedLamp, chair] };
+    673|     expect(visibleProducts(products, "wish", null)).toEqual([chair]);
+       |                                                     ^
+    674|     expect(visibleProducts(products, "purchased", null)).toEqual([purc…
+    675|     expect(visibleProducts(products, "purchased", desk.id)).toEqual([p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 위시와 구매완료 보기 > Given 위시 보기 When 구매완료 보기로 바꾸면 Then 컬렉션 필터는 그대로 두고 알림을 닫는다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -73,10 +73,13 @@
+          },
+        ],
+      },
+      "phase": "ready",
+      "refreshing": false,
+-     "toast": null,
+-     "view": "purchased",
++     "toast": {
++       "kind": "notice",
++       "message": "위시리스트로 되돌렸어요",
++     },
++     "view": "wish",
+      "writing": null,
+    },
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:681:68
+    679|   it("Given 위시 보기 When 구매완료 보기로 바꾸면 Then 컬렉션 필터는 그대로 두고 알림을 닫는다", () =…
+    680|     const start = ready({ collectionId: desk.id, toast: { kind: "notic…
+    681|     expect(transition(start, { type: "view", view: "purchased" })).toE…
+       |                                                                    ^
+    682|       state: ready({ collectionId: desk.id, view: "purchased" }), call…
+    683|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상품을 화면에 합치기 > Given 화면의 상품 When 더 높은 revision을 받으면 Then 소유자가 바꾼 값까지 모두 바꾼다
+Error: not implemented
+ ❯ mergeProduct src/features/library/screen/screen-state.ts:366:9
+    364| export function mergeProduct(shown: ProductResponse, incoming: Product…
+    365|   void shown; void incoming;
+    366|   throw new Error("not implemented");
+       |         ^
+    367| }
+    368|
+ ❯ src/features/library/screen/screen-state.test.ts:691:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상품을 화면에 합치기 > Given 방금 저장한 상품 When 저장 전에 읽은 더 낮은 revision을 받으면 Then 수집 결과가 앞서도 무시한다
+Error: not implemented
+ ❯ mergeProduct src/features/library/screen/screen-state.ts:366:9
+    364| export function mergeProduct(shown: ProductResponse, incoming: Product…
+    365|   void shown; void incoming;
+    366|   throw new Error("not implemented");
+       |         ^
+    367| }
+    368|
+ ❯ src/features/library/screen/screen-state.test.ts:696:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상품을 화면에 합치기 > Given 같은 revision When 받으면 Then 앞선 수집 결과만 반영하고 소유자 값은 바꾸지 않는다
+Error: not implemented
+ ❯ mergeProduct src/features/library/screen/screen-state.ts:366:9
+    364| export function mergeProduct(shown: ProductResponse, incoming: Product…
+    365|   void shown; void incoming;
+    366|   throw new Error("not implemented");
+       |         ^
+    367| }
+    368|
+ ❯ src/features/library/screen/screen-state.test.ts:700:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상품을 화면에 합치기 > Given 방금 저장한 상품 When 저장 전에 시작한 확인 결과가 오면 Then 이름·수집 상태를 되돌리지 않는다
+AssertionError: expected [ { …(15) } ] to deeply equal [ { …(15) } ]
+
+- Expected
++ Received
+
+@@ -4,25 +4,32 @@
+      "collectionIds": [
+        "11111111-1111-4111-8111-111111111111",
+      ],
+      "id": "22222222-2222-4222-8222-222222222222",
+      "identityUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+-     "lastSuccessfulPrice": null,
++     "lastSuccessfulPrice": {
++       "amountMinor": 59000,
++       "checkedAt": "2026-11-11T00:00:05.000Z",
++       "currency": "KRW",
++     },
+      "metadata": {
+-       "attempts": 0,
++       "attempts": 1,
++       "completedAt": "2026-11-11T00:00:05.000Z",
+        "generation": 1,
+-       "phase": "queued",
+-       "stalled": false,
++       "image": {
++         "outcome": "absent",
++       },
++       "phase": "ready",
+      },
+      "note": "",
+      "option": "",
+      "picture": null,
+      "purchase": {
+        "status": "wish",
+      },
+      "revision": 2,
+      "shop": "example.com",
+      "sourceUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+-     "title": "내가 고친 이름",
++     "title": "책상 조명",
+      "updatedAt": "2026-11-10T00:00:00.000Z",
+    },
+  ]
+
+ ❯ src/features/library/screen/screen-state.test.ts:706:92
+    704|   it("Given 방금 저장한 상품 When 저장 전에 시작한 확인 결과가 오면 Then 이름·수집 상태를 되돌리지 않는다…
+    705|     const saved = { ...lamp, revision: 2, title: "내가 고친 이름" };
+    706|     expect(productsOf(transition(withProducts([saved]), settled([ready…
+       |                                                                                            ^
+    707|   });
+    708|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상품을 화면에 합치기 > Given 다시 읽기 When 상품마다 revision을 비교하면 Then 높은 것은 바꾸고 낮은 것은 화면 값을 지킨다
+AssertionError: expected [ { …(15) }, { …(15) } ] to deeply equal [ { …(15) }, { …(15) } ]
+
+- Expected
++ Received
+
+@@ -42,17 +42,17 @@
+        "attempts": 0,
+        "generation": 1,
+        "phase": "queued",
+        "stalled": false,
+      },
+-     "note": "방금 저장",
++     "note": "",
+      "option": "",
+      "picture": null,
+      "purchase": {
+        "status": "wish",
+      },
+-     "revision": 3,
++     "revision": 2,
+      "shop": "example.com",
+      "sourceUrl": "https://example.com/44444444-4444-4444-8444-444444444444",
+      "title": "새로 담은 상품",
+      "updatedAt": "2026-11-11T00:00:00.000Z",
+    },
+
+ ❯ src/features/library/screen/screen-state.test.ts:715:31
+    713|       outcome: { ok: true, value: { products: [readyLampAt(2, "다른 곳"),…
+    714|     });
+    715|     expect(productsOf(state)).toEqual([readyLampAt(2, "다른 곳"), saved]);
+       |                               ^
+    716|   });
+    717| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 구매완료와 실행 취소 > Given 위시 상품 When 카드에서 구매완료로 옮기면 Then 화면이 본 revision으로 요청하고 끝날 때까지 다른 쓰기를 막는다
+AssertionError: expected null to deeply equal { type: 'product.change', …(2) }
+
+- Expected:
+{
+  "body": {
+    "change": {
+      "type": "purchase",
+    },
+    "revision": 1,
+  },
+  "productId": "22222222-2222-4222-8222-222222222222",
+  "type": "product.change",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:723:18
+    721|     const start = ready({ toast: { kind: "notice", message: "이전 알림" } …
+    722|     const { state, call } = transition(start, { type: "product.purchas…
+    723|     expect(call).toEqual({ type: "product.change", productId: lamp.id,…
+       |                  ^
+    724|     expect(state).toEqual(ready({ writing: purchasing }));
+    725|     for (const event of [
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 구매완료와 실행 취소 > Given 구매 요청 중 When 성공하면 Then 상품을 구매완료로 바꾸고 그 revision의 실행 취소 알림을 띄운다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -35,15 +35,13 @@
+          },
+          "note": "",
+          "option": "",
+          "picture": null,
+          "purchase": {
+-           "date": null,
+-           "price": null,
+-           "status": "purchased",
++           "status": "wish",
+          },
+-         "revision": 2,
++         "revision": 1,
+          "shop": "example.com",
+          "sourceUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+          "title": "새로 담은 상품",
+          "updatedAt": "2026-11-10T00:00:00.000Z",
+        },
+@@ -73,13 +71,12 @@
+        },
+      ],
+    },
+    "phase": "ready",
+    "refreshing": false,
+-   "toast": {
+-     "kind": "purchased",
++   "toast": null,
++   "view": "wish",
++   "writing": {
++     "intent": "purchase",
+      "productId": "22222222-2222-4222-8222-222222222222",
+-     "revision": 2,
+    },
+-   "view": "wish",
+-   "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:743:19
+    741|     const { state, call } = transition(ready({ writing: purchasing }),…
+    742|     expect(call).toBeNull();
+    743|     expect(state).toEqual(ready({
+       |                   ^
+    744|       library: { ...library, products: [purchasedLamp, chair] },
+    745|       toast: { kind: "purchased", productId: lamp.id, revision: 2 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 구매완료와 실행 취소 > Given 구매완료 알림 When 실행 취소하면 Then 알림의 revision으로 위시로 되돌리기를 요청하고, 끝나면 되돌렸다고 알린다
+AssertionError: expected null to deeply equal { type: 'product.change', …(2) }
+
+- Expected:
+{
+  "body": {
+    "change": {
+      "type": "wish",
+    },
+    "revision": 2,
+  },
+  "productId": "22222222-2222-4222-8222-222222222222",
+  "type": "product.change",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:754:23
+    752|     const start = withProducts([purchasedLamp, chair], { toast: { kind…
+    753|     const undo = transition(start, { type: "toast.undo" });
+    754|     expect(undo.call).toEqual({ type: "product.change", productId: lam…
+       |                       ^
+    755|     expect(undo.state).toMatchObject({ writing: { productId: lamp.id, …
+    756|     expect(transition(undo.state, { type: "toast.undo" })).toEqual({ s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 구매완료와 실행 취소 > Given 구매완료 알림 뒤 상품이 다시 바뀜 When 알림을 보거나 실행 취소하면 Then 알림을 숨기고 요청하지 않는다
+Error: not implemented
+ ❯ visibleToast src/features/library/screen/screen-state.ts:371:9
+    369| export function visibleToast(state: LibraryScreenState): { message: st…
+    370|   void state;
+    371|   throw new Error("not implemented");
+       |         ^
+    372| }
+    373|
+ ❯ src/features/library/screen/screen-state.test.ts:766:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 구매완료와 실행 취소 > Given 다른 곳에서 먼저 바뀐 상품 When 구매 요청이 거절되면 Then 이유를 알리고 보관함을 새로 읽는다
+AssertionError: expected null to deeply equal { type: 'library.read' }
+
+- Expected:
+{
+  "type": "library.read",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:773:18
+    771|     const failure: ApiFailure = { kind: "stale", message: "다른 곳에서 먼저 바…
+    772|     const { state, call } = transition(ready({ writing: purchasing }),…
+    773|     expect(call).toEqual({ type: "library.read" });
+       |                  ^
+    774|     expect(state).toEqual(ready({ refreshing: true, toast: { kind: "no…
+    775|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 구매완료와 실행 취소 > Given 구매 요청 중 When 일시적으로 실패하거나 세션이 끝나면 Then 알리고 다시 누를 수 있게 하거나 로그인으로 보낸다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -73,13 +73,13 @@
+          },
+        ],
+      },
+      "phase": "ready",
+      "refreshing": false,
+-     "toast": {
+-       "kind": "notice",
+-       "message": "잠시 뒤 다시 시도해 주세요.",
+-     },
++     "toast": null,
+      "view": "wish",
+-     "writing": null,
++     "writing": {
++       "intent": "purchase",
++       "productId": "22222222-2222-4222-8222-222222222222",
++     },
+    },
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:779:8
+    777|   it("Given 구매 요청 중 When 일시적으로 실패하거나 세션이 끝나면 Then 알리고 다시 누를 수 있게 하거나 로…
+    778|     expect(transition(ready({ writing: purchasing }), failedChange(una…
+    779|       .toEqual({ state: ready({ toast: { kind: "notice", message: unav…
+       |        ^
+    780|     expect(transition(ready({ writing: purchasing }), failedChange({ k…
+    781|       .toEqual({ phase: "leaving", to: "/login" });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 구매완료와 실행 취소 > Given 알림 When 닫거나 필터·대화상자를 바꾸면 Then 알림을 닫는다
+AssertionError: expected { phase: 'ready', …(7) } to match object { toast: null }
+(9 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "toast": null,
++   "toast": {
++     "kind": "notice",
++     "message": "위시리스트로 되돌렸어요",
++   },
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:793:57
+    791|       { type: "detail.open", productId: lamp.id },
+    792|     ] satisfies ScreenEvent[]) {
+    793|       expect(transition(ready({ toast }), event).state).toMatchObject(…
+       |                                                         ^
+    794|     }
+    795|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/34]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 구매완료와 실행 취소 > Given 알림 When 대화상자가 열려 있으면 Then 보이지 않는다
+Error: not implemented
+ ❯ visibleToast src/features/library/screen/screen-state.ts:371:9
+    369| export function visibleToast(state: LibraryScreenState): { message: st…
+    370|   void state;
+    371|   throw new Error("not implemented");
+       |         ^
+    372| }
+    373|
+ ❯ src/features/library/screen/screen-state.test.ts:799:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/34]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  34 failed | 175 passed (209)
+   Start at  18:35:57
+   Duration  309ms (transform 56%, import 23%, tests 19%, worker 2%)
+

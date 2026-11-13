@@ -8,27 +8,37 @@ import type {
   LinkSaveResponse,
   MetadataRetryRequest,
   MetadataRetryResponse,
+  ProductChangeRequest,
+  ProductChangeResponse,
   ProductResponse,
 } from "../presentation/library-dto";
 import type { ApiFailure, ApiOutcome, FieldName, LibraryApi } from "./library-api";
 import { canRetry } from "./product-view";
 
+export type View = "wish" | "purchased";
 export type LinkDraft = { url: string; option: string; collectionIds: string[] };
 export type FormError = { field: FieldName | null; message: string };
 export type ScreenDialog =
   | { kind: "add"; draft: LinkDraft; saving: boolean; creating: string | null; error: FormError | null }
   | { kind: "collection"; name: string; saving: boolean; error: FormError | null }
   | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; error: string | null };
+export type ProductChange = ProductChangeRequest["change"];
+export type ProductIntent = "retry" | ProductChange["type"];
+// The purchase toast offers undo only while the product still has the revision the purchase gave it.
+export type Toast = { kind: "purchased"; productId: string; revision: number } | { kind: "notice"; message: string };
 export type LibraryScreenState =
   | { phase: "loading" }
   | { phase: "failed"; message: string }
   | {
     phase: "ready";
     library: LibraryReadResponse;
+    view: View;
     collectionId: string | null;
     dialog: ScreenDialog | null;
     refreshing: boolean;
-    retrying: string | null;
+    // One product write at a time; every button that would write waits for it.
+    writing: { productId: string; intent: ProductIntent } | null;
+    toast: Toast | null;
   }
   | { phase: "leaving"; to: string };
 export type ApiCall =
@@ -36,10 +46,12 @@ export type ApiCall =
   | { type: "link.save"; body: LinkSaveRequest }
   | { type: "collection.create"; body: CollectionCreateRequest; from: "picker" | "dialog" }
   | { type: "metadata.retry"; productId: string; body: MetadataRetryRequest }
+  | { type: "product.change"; productId: string; body: ProductChangeRequest }
   | { type: "library.poll" };
 export type ScreenEvent =
   | { type: "retry" }
   | { type: "resume" }
+  | { type: "view"; view: View }
   | { type: "filter"; collectionId: string | null }
   | { type: "add.open" }
   | { type: "add.edit"; url?: string; option?: string }
@@ -50,12 +62,16 @@ export type ScreenEvent =
   | { type: "collection.edit"; name: string }
   | { type: "collection.submit" }
   | { type: "detail.open"; productId: string }
+  | { type: "product.purchase"; productId: string }
+  | { type: "toast.undo" }
+  | { type: "toast.dismiss" }
   | { type: "dialog.close" }
   | { type: "library.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "link.settled"; outcome: ApiOutcome<LinkSaveResponse> }
   | { type: "collection.settled"; from: "picker" | "dialog"; outcome: ApiOutcome<CollectionCreateResponse> }
   | { type: "metadata.retry"; productId: string }
   | { type: "metadata.settled"; productId: string; outcome: ApiOutcome<MetadataRetryResponse> }
+  | { type: "change.settled"; productId: string; intent: ProductChange["type"]; outcome: ApiOutcome<ProductChangeResponse> }
   | { type: "poll" }
   | { type: "poll.settled"; outcome: ApiOutcome<LibraryReadResponse> };
 export type Transition = { state: LibraryScreenState; call: ApiCall | null };
@@ -90,42 +106,68 @@ function upsert(products: ProductResponse[], product: ProductResponse): ProductR
   return [product, ...products.filter((item) => item.id !== product.id)];
 }
 
-function replace(products: ProductResponse[], product: ProductResponse): ProductResponse[] {
-  return products.map((item) => (item.id === product.id ? product : item));
-}
-
 const phaseOrder: Record<ProductResponse["metadata"]["phase"], number> = { queued: 0, running: 1, ready: 2, failed: 2 };
 
-// A poll can arrive after a newer save or retry; only collection progress moves forward on screen.
-function isLater(polled: ProductResponse["metadata"], shown: ProductResponse["metadata"]): boolean {
-  if (polled.generation !== shown.generation) return polled.generation > shown.generation;
-  return phaseOrder[polled.phase] >= phaseOrder[shown.phase];
+// A read can arrive after a newer save or retry; only collection progress moves forward on screen.
+function isLater(incoming: ProductResponse["metadata"], shown: ProductResponse["metadata"]): boolean {
+  if (incoming.generation !== shown.generation) return incoming.generation > shown.generation;
+  return phaseOrder[incoming.phase] >= phaseOrder[shown.phase];
 }
 
-function withProgress(products: ProductResponse[], polled: ProductResponse[]): ProductResponse[] {
+// The title moves with collection: it is the collected name unless the owner set one at this revision.
+function withProgress(shown: ProductResponse, incoming: ProductResponse): ProductResponse {
+  if (!isLater(incoming.metadata, shown.metadata)) return shown;
+  return { ...shown, title: incoming.title, metadata: incoming.metadata, lastSuccessfulPrice: incoming.lastSuccessfulPrice, picture: incoming.picture };
+}
+
+// Write responses and full reads. A higher revision carries owner changes made since; a lower one was read before
+// them and would bring old values back.
+export function mergeProduct(shown: ProductResponse, incoming: ProductResponse): ProductResponse {
+  if (incoming.revision !== shown.revision) return incoming.revision > shown.revision ? incoming : shown;
+  return withProgress(shown, incoming);
+}
+
+// A poll moves only collection progress; one that was read before an owner change is ignored.
+function withPolled(products: ProductResponse[], polled: ProductResponse[]): ProductResponse[] {
   const latest = new Map(polled.map((product) => [product.id, product]));
   return products.map((product) => {
     const next = latest.get(product.id);
-    if (!next || !isLater(next.metadata, product.metadata)) return product;
-    return { ...product, title: next.title, metadata: next.metadata, lastSuccessfulPrice: next.lastSuccessfulPrice, picture: next.picture };
+    return next && next.revision >= product.revision ? withProgress(product, next) : product;
   });
+}
+
+function withResponse(products: ProductResponse[], product: ProductResponse): ProductResponse[] {
+  return products.map((item) => (item.id === product.id ? mergeProduct(item, product) : item));
+}
+
+// A retry deliberately resets collection (a resumed job goes back to queued), so its answer replaces the product.
+function replace(products: ProductResponse[], product: ProductResponse): ProductResponse[] {
+  return products.map((item) => (item.id === product.id ? product : item));
 }
 
 function withDetailError(dialog: ScreenDialog | null, error: string | null): ScreenDialog | null {
   return dialog?.kind === "detail" ? { ...dialog, error } : dialog;
 }
 
+function findProduct(state: Ready, productId: string): ProductResponse | undefined {
+  return state.library.products.find((item) => item.id === productId);
+}
+
+function canWrite(state: Ready): boolean {
+  return state.writing === null && !state.refreshing;
+}
+
 function onRetry(state: Ready, productId: string): Transition {
-  const product = state.library.products.find((item) => item.id === productId);
-  if (state.retrying !== null || state.refreshing || !product || !canRetry(product)) return stay(state);
+  const product = findProduct(state, productId);
+  if (!canWrite(state) || !product || !canRetry(product)) return stay(state);
   return {
-    state: { ...state, retrying: productId, dialog: withDetailError(state.dialog, null) },
+    state: { ...state, writing: { productId, intent: "retry" }, dialog: withDetailError(state.dialog, null) },
     call: { type: "metadata.retry", productId, body: { generation: product.metadata.generation } },
   };
 }
 
 function onRetried(state: Ready, outcome: ApiOutcome<MetadataRetryResponse>): Transition {
-  const next: Ready = { ...state, retrying: null };
+  const next: Ready = { ...state, writing: null };
   if (outcome.ok) {
     return stay({ ...next, library: { ...next.library, products: replace(next.library.products, outcome.value.product) } });
   }
@@ -136,6 +178,44 @@ function onRetried(state: Ready, outcome: ApiOutcome<MetadataRetryResponse>): Tr
   return stay({ ...next, dialog });
 }
 
+function write(state: Ready, product: ProductResponse, change: ProductChange): Transition {
+  return {
+    state: { ...state, writing: { productId: product.id, intent: change.type }, toast: null },
+    call: { type: "product.change", productId: product.id, body: { revision: product.revision, change } },
+  };
+}
+
+function onPurchase(state: Ready, productId: string, to: "purchased" | "wish"): Transition {
+  const product = findProduct(state, productId);
+  if (!product || !canWrite(state) || product.purchase.status === to) return stay(state);
+  return write(state, product, { type: to === "purchased" ? "purchase" : "wish" });
+}
+
+function onUndo(state: Ready): Transition {
+  const { toast } = state;
+  if (toast?.kind !== "purchased") return stay(state);
+  const product = findProduct(state, toast.productId);
+  if (!product || product.revision !== toast.revision) return stay(state);
+  return onPurchase(state, product.id, "wish");
+}
+
+function onChanged(state: Ready, productId: string, outcome: ApiOutcome<ProductChangeResponse>): Transition {
+  const next: Ready = { ...state, writing: null };
+  if (outcome.ok) {
+    const products = withResponse(next.library.products, outcome.value.product);
+    const shown = products.find((item) => item.id === productId) ?? outcome.value.product;
+    const toast: Toast = shown.purchase.status === "purchased"
+      ? { kind: "purchased", productId, revision: shown.revision }
+      : { kind: "notice", message: "위시리스트로 되돌렸어요" };
+    return stay({ ...next, library: { ...next.library, products }, toast });
+  }
+  const { failure } = outcome;
+  if (failure.kind === "redirect") return leave(failure.to);
+  const toast: Toast = { kind: "notice", message: failure.message };
+  if (failure.kind === "stale") return { state: { ...next, toast, refreshing: true }, call: refresh };
+  return stay({ ...next, toast });
+}
+
 function withCollection(library: LibraryReadResponse, collection: CollectionCreateResponse): LibraryReadResponse {
   if (library.collections.some((item) => item.id === collection.id)) return library;
   return { ...library, collections: [...library.collections, collection] };
@@ -143,17 +223,22 @@ function withCollection(library: LibraryReadResponse, collection: CollectionCrea
 
 function settledLibrary(state: Ready, library: LibraryReadResponse): Ready {
   const ids = new Set(library.collections.map((collection) => collection.id));
+  const shown = new Map(state.library.products.map((product) => [product.id, product]));
+  const products = library.products.map((product) => {
+    const before = shown.get(product.id);
+    return before ? mergeProduct(before, product) : product;
+  });
   let dialog = state.dialog;
   if (dialog?.kind === "add") {
     dialog = { ...dialog, draft: { ...dialog.draft, collectionIds: dialog.draft.collectionIds.filter((id) => ids.has(id)) } };
   }
   if (dialog?.kind === "detail") {
     const { productId } = dialog;
-    if (!library.products.some((product) => product.id === productId)) dialog = null;
+    if (!products.some((product) => product.id === productId)) dialog = null;
   }
   return {
     ...state,
-    library,
+    library: { products, collections: library.collections },
     collectionId: state.collectionId !== null && ids.has(state.collectionId) ? state.collectionId : null,
     dialog,
     refreshing: false,
@@ -233,11 +318,13 @@ function onCollection(state: Ready, dialog: CollectionDialog, event: ScreenEvent
 function onReady(state: Ready, event: ScreenEvent): Transition {
   const { dialog } = state;
   switch (event.type) {
+    case "view":
+      return stay({ ...state, view: event.view, toast: null });
     case "filter":
-      return stay({ ...state, collectionId: event.collectionId });
+      return stay({ ...state, collectionId: event.collectionId, toast: null });
     case "add.open":
       if (busy(dialog)) return stay(state);
-      return stay({ ...state, dialog: {
+      return stay({ ...state, toast: null, dialog: {
         kind: "add",
         draft: { url: "", option: "", collectionIds: state.collectionId ? [state.collectionId] : [] },
         saving: false,
@@ -246,10 +333,10 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       } });
     case "collection.open":
       if (busy(dialog)) return stay(state);
-      return stay({ ...state, dialog: { kind: "collection", name: "", saving: false, error: null } });
+      return stay({ ...state, toast: null, dialog: { kind: "collection", name: "", saving: false, error: null } });
     case "detail.open":
       if (busy(dialog)) return stay(state);
-      return stay({ ...state, dialog: { kind: "detail", productId: event.productId, arrival: null, error: null } });
+      return stay({ ...state, toast: null, dialog: { kind: "detail", productId: event.productId, arrival: null, error: null } });
     case "dialog.close":
       return busy(dialog) ? stay(state) : stay({ ...state, dialog: null });
     case "library.settled":
@@ -271,11 +358,19 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       return onRetry(state, event.productId);
     case "metadata.settled":
       return onRetried(state, event.outcome);
+    case "product.purchase":
+      return onPurchase(state, event.productId, "purchased");
+    case "toast.undo":
+      return onUndo(state);
+    case "toast.dismiss":
+      return stay({ ...state, toast: null });
+    case "change.settled":
+      return onChanged(state, event.productId, event.outcome);
     case "poll":
       return { state, call: { type: "library.poll" } };
     case "poll.settled":
       if (event.outcome.ok) {
-        return stay({ ...state, library: { ...state.library, products: withProgress(state.library.products, event.outcome.value.products) } });
+        return stay({ ...state, library: { ...state.library, products: withPolled(state.library.products, event.outcome.value.products) } });
       }
       return leaveOrStay(state, event.outcome.failure);
     case "collection.settled": {
@@ -318,7 +413,10 @@ export function transition(state: LibraryScreenState, event: ScreenEvent): Trans
     case "loading": {
       if (event.type !== "library.settled") return stay(state);
       if (event.outcome.ok) {
-        return stay({ phase: "ready", library: event.outcome.value, collectionId: null, dialog: null, refreshing: false, retrying: null });
+        return stay({
+          phase: "ready", library: event.outcome.value, view: "wish", collectionId: null,
+          dialog: null, refreshing: false, writing: null, toast: null,
+        });
       }
       const { failure } = event.outcome;
       return failure.kind === "redirect" ? leave(failure.to) : stay({ phase: "failed", message: failure.message });
@@ -340,6 +438,13 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       return { type: "collection.settled", from: call.from, outcome: await api.createCollection(call.body) };
     case "metadata.retry":
       return { type: "metadata.settled", productId: call.productId, outcome: await api.retryMetadata(call.productId, call.body) };
+    case "product.change":
+      return {
+        type: "change.settled",
+        productId: call.productId,
+        intent: call.body.change.type,
+        outcome: await api.changeProduct(call.productId, call.body),
+      };
     case "library.poll":
       return { type: "poll.settled", outcome: await api.read() };
   }
@@ -355,8 +460,20 @@ export function pollDelay(state: LibraryScreenState, polls: number): number | nu
   return waiting ? pollDelays[Math.min(polls, pollDelays.length - 1)] : null;
 }
 
-export function visibleProducts(library: LibraryReadResponse, collectionId: string | null): ProductResponse[] {
+export function visibleProducts(library: LibraryReadResponse, view: View, collectionId: string | null): ProductResponse[] {
   return library.products
-    .filter((product) => collectionId === null || product.collectionIds.includes(collectionId))
+    .filter((product) => product.purchase.status === view && (collectionId === null || product.collectionIds.includes(collectionId)))
     .sort((a, b) => Date.parse(b.addedAt) - Date.parse(a.addedAt) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+export type ToastView = { message: string; undo: boolean };
+
+// Hidden while a dialog is open, as in the mockup. The purchase toast goes away once the product changes again.
+export function visibleToast(state: Ready): ToastView | null {
+  const { toast } = state;
+  if (toast === null || state.dialog !== null) return null;
+  if (toast.kind === "notice") return { message: toast.message, undo: false };
+  const product = findProduct(state, toast.productId);
+  if (!product || product.revision !== toast.revision) return null;
+  return { message: "구매완료 목록으로 옮겼어요", undo: true };
 }

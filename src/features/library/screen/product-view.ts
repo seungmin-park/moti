@@ -86,12 +86,23 @@ const imageFailure = (metadata: Metadata): ImageFailureCode | null =>
 const stalled = (metadata: Metadata) => (metadata.phase === "queued" || metadata.phase === "running") && metadata.stalled;
 const arrivals = { added: "위시에 담았어요", duplicate: "이미 담아둔 상품이에요" } as const;
 
+function money(price: { amountMinor: number; currency: string }): string {
+  const format = new Intl.NumberFormat("ko-KR", { style: "currency", currency: price.currency });
+  const digits = format.resolvedOptions().maximumFractionDigits ?? 0;
+  return format.format(price.amountMinor / 10 ** digits);
+}
+
 function priceOf(product: ProductResponse): PriceView {
   const price = product.lastSuccessfulPrice;
   if (!price) return { value: "가격 확인 전", checked: null };
-  const format = new Intl.NumberFormat("ko-KR", { style: "currency", currency: price.currency });
-  const digits = format.resolvedOptions().maximumFractionDigits ?? 0;
-  return { value: format.format(price.amountMinor / 10 ** digits), checked: `마지막 확인 ${onSeoulDate(price.checkedAt)}` };
+  return { value: money(price), checked: `마지막 확인 ${onSeoulDate(price.checkedAt)}` };
+}
+
+// A purchased card shows what was paid, not the last checked price; an empty record and 0 are different.
+function paidPriceOf(purchase: Extract<ProductResponse["purchase"], { status: "purchased" }>): PriceView {
+  const bought = purchase.date && `${onSeoulDate(`${purchase.date}T00:00:00+09:00`)} 구매`;
+  if (!purchase.price) return { value: "실구매가 미입력", checked: bought || null };
+  return { value: money(purchase.price), checked: bought ? `실구매가 · ${bought}` : "실구매가" };
 }
 
 function namesOf(product: ProductResponse, collections: CollectionResponse[]): string[] {
@@ -146,7 +157,7 @@ export function toProductCardView(product: ProductResponse, collections: Collect
     option: product.option || "옵션 미입력",
     status: stalled(product.metadata) ? "정보 수집 멈춤" : statusChip[product.metadata.phase],
     purchased: product.purchase.status === "purchased",
-    price: priceOf(product),
+    price: product.purchase.status === "purchased" ? paidPriceOf(product.purchase) : priceOf(product),
     collection: first === undefined
       ? { filed: false, text: "아직 분류하지 않았어요" }
       : { filed: true, text: rest.length > 0 ? `${first} +${rest.length}` : first },

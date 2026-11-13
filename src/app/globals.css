@@ -539,6 +539,10 @@ h1 {
 .quick-purchase:hover {
   background: var(--active);
 }
+.quick-purchase:disabled,
+.toast button:disabled {
+  opacity: 0.55;
+}
 .product-copy {
   padding: 15px 2px 0;
   overflow-wrap: anywhere;
