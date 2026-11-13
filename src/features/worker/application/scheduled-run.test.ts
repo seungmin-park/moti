@@ -129,6 +129,23 @@ describe("예약 실행", () => {
     expect(store.complete).toHaveBeenCalledTimes(RUN_MAX_ITEMS);
   });
 
+  it("Given 다음 일 고르기가 한 번 실패하고 일이 끝없이 있음 When 실행하면 Then 그 자리를 돌려줘 정확히 60개를 시작한다", async () => {
+    const { service, store } = given({ items: 1000 });
+    store.next.mockRejectedValueOnce(new WorkerError("storage_unavailable", "x"));
+
+    expect(await service.run({ secret })).toMatchObject({ kind: "finished", stop: "deadline" });
+    expect(store.complete).toHaveBeenCalledTimes(RUN_MAX_ITEMS);
+  });
+
+  it("Given 다음 일 고르기가 계속 실패 When 실행하면 Then 줄마다 두 번 이어 실패한 뒤 멈추고 deadline으로 끝낸다", async () => {
+    const { service, store } = given({ items: 100 });
+    store.next.mockRejectedValue(new WorkerError("storage_unavailable", "x"));
+
+    expect(await service.run({ secret })).toEqual({ kind: "finished", stop: "deadline", ...counts });
+    expect(store.next).toHaveBeenCalledTimes(RUN_LANES * 2);
+    expect(store.complete).not.toHaveBeenCalled();
+  });
+
   it("Given 끝내기가 실패 When 실행하면 Then 예외 없이 저장소 장애로 거절한다", async () => {
     const { service, store } = given({ items: 1 });
     store.finish.mockRejectedValueOnce(new Error("timeout"));
