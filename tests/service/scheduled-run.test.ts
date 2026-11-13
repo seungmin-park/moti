@@ -160,7 +160,11 @@ describe("실제 저장소를 쓰는 매일 가격 확인", () => {
 
     expect(source.read).toHaveBeenCalledExactlyOnceWith("https://shop.example/headphones");
     const [after] = (await owner().snapshot()).products;
-    expect(after).toEqual({ ...before, lastSuccessfulPrice: { amountMinor: 129000, currency: "KRW", checkedAt: expect.any(String) } });
+    expect(after).toEqual({
+      ...before,
+      lastSuccessfulPrice: { amountMinor: 129000, currency: "KRW", checkedAt: expect.any(String) },
+      priceCheck: { checkedAt: expect.any(String), code: null },
+    });
     expect(Date.parse(after.lastSuccessfulPrice!.checkedAt)).toBeGreaterThan(Date.parse(before.lastSuccessfulPrice!.checkedAt));
     expect(after).toMatchObject({ title: "무선 헤드폰 블랙", metadata: { image: { outcome: "waiting" } }, picture: null });
     expect(await objects()).toBe(0);
