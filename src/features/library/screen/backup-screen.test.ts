@@ -179,6 +179,27 @@ describe("백업과 복원 대화상자", () => {
     }
   });
 
+  it("Given 바꾸는 중 When 구매·위시 되돌리기·다시 수집·실행 취소가 들어오면 Then 복원 전 revision으로 쓰기를 시작하지 않는다", () => {
+    const bought = { ...chair, purchase: { status: "purchased" as const, date: null, price: null } };
+    const failed = product("66666666-6666-4666-8666-666666666666", "desk", { metadata: { phase: "failed", generation: 1, attempts: 3, errorCode: "blocked_address" } });
+    const restoring = ready({
+      library: { products: [lamp, bought, failed], collections: [desk] },
+      view: "wish",
+      dialog: { kind: "backup", step: { name: "restoring", incoming: { products: 2, collections: 2 } }, notice: null },
+      toast: { kind: "purchased", productId: lamp.id, revision: lamp.revision },
+    });
+    for (const event of [
+      { type: "product.purchase", productId: lamp.id },
+      { type: "product.wish", productId: bought.id },
+      { type: "metadata.retry", productId: failed.id },
+      { type: "toast.undo" },
+    ] as const) {
+      const { state, call } = run(restoring, event);
+      expect(call, event.type).toBeNull();
+      expect((state as Ready).writing, event.type).toBeNull();
+    }
+  });
+
   it("Given 바꾸는 중 When 복원이 끝나면 Then 보관함을 응답으로 바꾸고 위시 전체 보기로 돌아가 대화상자를 닫고 알린다", () => {
     const sofa = product("55555555-5555-4555-8555-555555555555", "sofa", { metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false } });
     const restored: LibraryReadResponse = { products: [{ ...lamp, revision: 2, title: "조명" }, sofa], collections: [desk] };
@@ -206,7 +227,7 @@ describe("백업과 복원 대화상자", () => {
     expect(backupOf(state)).toEqual({
       kind: "backup",
       step: { name: "menu" },
-      notice: { kind: "info", message: "복원을 마쳤는지 확인하지 못했어요. 최신 보관함을 불러왔어요. 필요하면 같은 파일로 다시 복원해 주세요." },
+      notice: { kind: "info", message: "복원을 마쳤는지 확인하지 못했어요. 최신 보관함을 다시 불러와요. 필요하면 같은 파일로 다시 복원해 주세요." },
     });
     expect((state as Ready).refreshing).toBe(true);
     expect(call).toEqual({ type: "library.read" });

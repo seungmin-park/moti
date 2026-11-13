@@ -247,8 +247,10 @@ function findProduct(state: Ready, productId: string): ProductResponse | undefin
   return state.library.products.find((item) => item.id === productId);
 }
 
+// A restore replaces every product, so no other write may start from a revision it is about to change.
 function canWrite(state: Ready): boolean {
-  return state.writing === null && !state.refreshing;
+  const restoring = state.dialog?.kind === "backup" && state.dialog.step.name === "restoring";
+  return state.writing === null && !state.refreshing && !restoring;
 }
 
 function write(state: Ready, product: ProductResponse, change: ProductChange): Transition {
@@ -503,7 +505,7 @@ const backupProblems: Record<BackupProblem, string> = {
   invalid: "백업 파일이 손상되었거나 바뀌었어요. 보관함은 바뀌지 않았어요.",
 };
 const restoredNotice = "보관함을 복원했어요. 새 상품의 사진은 차례로 다시 가져와요.";
-const restoreUnknown = "복원을 마쳤는지 확인하지 못했어요. 최신 보관함을 불러왔어요. 필요하면 같은 파일로 다시 복원해 주세요.";
+const restoreUnknown = "복원을 마쳤는지 확인하지 못했어요. 최신 보관함을 다시 불러와요. 필요하면 같은 파일로 다시 복원해 주세요.";
 
 const linkKey = (identityUrl: string, option: string) => JSON.stringify([identityUrl, option]);
 

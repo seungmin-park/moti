@@ -154,7 +154,7 @@ export function BackupDialog({ step, notice, blocked, send }: { step: BackupStep
   const working = progress[step.name];
   return (
     <Dialog title="백업과 복원" onClose={() => send({ type: "dialog.close" })}>
-      <div className="backup-body" aria-busy={working !== undefined}>
+      <div className="backup-body">
         {working !== undefined && (
           <p className="backup-progress" role="status">
             <LoaderCircle size={16} aria-hidden="true" />
