@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import type { Product } from "../../src/features/library/domain/library";
@@ -204,6 +205,67 @@ describe("상품 사진 사본 저장소", () => {
     expect(await stored(`${fixture.owner.id}/`)).toEqual([second.picture]);
   });
 
+  it("완료는 보여줄 사본의 저장 버전을 작업과 함께 기록하고 둘 중 하나만 남길 수 없다", async () => {
+    const product = await saved();
+    const job = await copiedPicture(product);
+
+    const { rows } = await fixture.admin.query<{ same: boolean }>(
+      `select p.picture_object_version = o.version as same from moti.products p
+       join storage.objects o on o.bucket_id = $2 and o.name = $3 where p.id = $1`,
+      [product.id, PICTURE_BUCKET, job.picture],
+    );
+    expect(rows).toEqual([{ same: true }]);
+    await expect(fixture.admin.query("update moti.products set picture_object_version = null where id = $1", [product.id]))
+      .rejects.toMatchObject({ code: "23514" });
+    const bare = await saved();
+    await expect(fixture.admin.query("update moti.products set picture_object_version = 'v' where id = $1", [bare.id]))
+      .rejects.toMatchObject({ code: "23514" });
+  });
+
+  it("임대 중에 받은 서명 업로드 주소로 완료 뒤 사본을 바꾸면 그 사본은 다시 찾지도 서명하지도 않는다", async () => {
+    const product = await saved();
+    const job = await claimed(product);
+    // While the lease lasts the insert policy admits the reserved name, so Storage signs a two-hour upload link that may upsert.
+    const link = await pictures(fixture.owner.client).createSignedUploadUrl(job.picture, { upsert: true });
+    expect(link.error).toBeNull();
+    expect((await upload(fixture.owner.client, job.picture)).error).toBeNull();
+    expect(await jobs().complete(job, page, copied)).toMatchObject({ kind: "applied" });
+    const opened = await library().openPicture({ productId: product.id });
+    if (opened.kind !== "found") throw new Error("사진을 열지 못했습니다.");
+
+    const changed = await sharp({ create: { width: 2, height: 2, channels: 3, background: "#0000ff" } }).webp({ lossless: true }).toBuffer();
+    const overwrite = await pictures(fixture.owner.client).uploadToSignedUrl(job.picture, link.data!.token, changed, { contentType: "image/webp" });
+    // Storage writes through the link as its own superuser, so no update policy is consulted.
+    expect(overwrite.error).toBeNull();
+    const { data } = await pictures(fixture.owner.client).download(job.picture);
+    expect(Buffer.from(await data!.arrayBuffer()).equals(changed)).toBe(true);
+
+    expect(await fixture.owner.client.rpc("moti_picture_locate", { p_product_id: product.id })).toMatchObject({ data: null, error: null });
+    expect(await library().openPicture({ productId: product.id })).toEqual({ kind: "missing" });
+    // A signed link names the object, not its version: one signed before the change delivers the new bytes until it expires.
+    const earlier = await fetch(opened.url);
+    expect(earlier.status).toBe(200);
+    expect(Buffer.from(await earlier.arrayBuffer()).equals(changed)).toBe(true);
+  });
+
+  it("작업이 끝난 뒤 서명 업로드 주소로 예약된 이름에 써도 보여줄 사진은 바뀌지 않는다", async () => {
+    const product = await saved();
+    const kept = await copiedPicture(product);
+    const job = await claimed(product, await nextGeneration(product));
+    const link = await pictures(fixture.owner.client).createSignedUploadUrl(job.picture, { upsert: true });
+    expect(link.error).toBeNull();
+    await jobs().complete(job, page, { outcome: "failed", code: "upload_failed" });
+
+    expect((await pictures(fixture.owner.client).uploadToSignedUrl(job.picture, link.data!.token, webp, { contentType: "image/webp" })).error)
+      .toBeNull();
+
+    expect(await stored(`${fixture.owner.id}/`)).toEqual([kept.picture, job.picture].toSorted());
+    expect((await current(product)).picture).toEqual({ version: kept.id });
+    const opened = await library().openPicture({ productId: product.id });
+    if (opened.kind !== "found") throw new Error("사진을 열지 못했습니다.");
+    expect(new URL(opened.url).pathname).toBe(`/storage/v1/object/sign/${PICTURE_BUCKET}/${kept.picture}`);
+  });
+
   it.each<[string, Record<string, unknown>]>([
     ["알 수 없는 결과", { p_image: "nope" }],
     ["결과 없음", { p_image: null }],
@@ -275,7 +337,8 @@ describe("상품 사진 사본 저장소", () => {
     expect(snapshot.error).toBeNull();
     const text = JSON.stringify(snapshot.data);
     expect(text).toContain(`"picture_version":"${job.id}"`);
-    for (const hidden of [job.picture, ".webp", PICTURE_BUCKET, "cdn.shop.example"]) expect(text).not.toContain(hidden);
+    const { rows } = await fixture.admin.query<{ version: string }>("select picture_object_version as version from moti.products where id = $1", [product.id]);
+    for (const hidden of [job.picture, ".webp", PICTURE_BUCKET, "cdn.shop.example", rows[0].version]) expect(text).not.toContain(hidden);
   });
 
   it("보관함 저장소는 보여줄 사진을 한 시간짜리 서명 주소로 열고 사본이 없으면 없다고 답한다", async () => {

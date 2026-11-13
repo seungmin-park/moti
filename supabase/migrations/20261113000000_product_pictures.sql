@@ -17,10 +17,11 @@ language sql immutable set search_path = '' as $$
   select p_owner::text || '/' || p_product::text || '/' || p_job::text || '-' || p_attempt::text || '.webp'
 $$;
 
--- moti_rpc cannot read the storage schema, so this narrow check runs as the migration owner.
-create function moti.picture_stored(p_name text) returns boolean
+-- The stored object's version, or null when there is none. Storage gives an overwritten object a new version.
+-- moti_rpc cannot read the storage schema, so this narrow read runs as the migration owner.
+create function moti.stored_picture_version(p_name text) returns text
 language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from storage.objects o where o.bucket_id = 'product-pictures' and o.name = p_name)
+  select o.version from storage.objects o where o.bucket_id = 'product-pictures' and o.name = p_name
 $$;
 
 -- require_owner without raising: a policy that raises turns Storage's refusal into a server error.
@@ -36,7 +37,9 @@ alter table moti.products
     check (metadata_image_error_code is null or moti.is_image_error(metadata_image_error_code)),
   add column picture_job_id uuid,
   add column picture_attempt integer check (picture_attempt between 1 and 3),
-  add column picture_copied_at timestamptz;
+  add column picture_copied_at timestamptz,
+  -- The version of the object complete saw; a copy with any other version is never shown.
+  add column picture_object_version text;
 
 -- Runs settled before pictures existed did not look for one.
 update moti.products set metadata_image = 'absent' where metadata_phase = 'ready';
@@ -45,8 +48,9 @@ alter table moti.products
   add check ((metadata_phase = 'ready') = (metadata_image is not null)),
   add check ((metadata_image is not distinct from 'failed') = (metadata_image_error_code is not null)),
   add check (
-    (picture_job_id is null and picture_attempt is null and picture_copied_at is null)
-    or (picture_job_id is not null and picture_attempt is not null and picture_copied_at is not null)
+    (picture_job_id is null and picture_attempt is null and picture_copied_at is null and picture_object_version is null)
+    or (picture_job_id is not null and picture_attempt is not null and picture_copied_at is not null
+      and picture_object_version is not null)
   );
 
 create or replace function moti.product_json(p moti.products) returns jsonb
@@ -141,6 +145,7 @@ declare
   v_job moti.metadata_jobs;
   v_price boolean;
   v_copied boolean := p_image = 'copied';
+  v_version text;
   v_replaced text;
 begin
   if p_job_id is null or p_lease is null
@@ -165,7 +170,8 @@ begin
 
   select * into v_job from moti.metadata_jobs j where j.id = p_job_id;
   if v_copied then
-    if not moti.picture_stored(moti.picture_object(v_job.owner_id, v_job.product_id, v_job.id, v_job.attempts)) then
+    v_version := moti.stored_picture_version(moti.picture_object(v_job.owner_id, v_job.product_id, v_job.id, v_job.attempts));
+    if v_version is null then
       raise exception using errcode = 'M0002', message = 'picture not stored';
     end if;
     if v_product.picture_job_id is not null then
@@ -188,6 +194,7 @@ begin
       picture_job_id = case when v_copied then v_job.id else p.picture_job_id end,
       picture_attempt = case when v_copied then v_job.attempts else p.picture_attempt end,
       picture_copied_at = case when v_copied then now() else p.picture_copied_at end,
+      picture_object_version = case when v_copied then v_version else p.picture_object_version end,
       last_success_amount_minor = case when v_price then p_amount_minor else p.last_success_amount_minor end,
       last_success_currency = case when v_price then p_currency else p.last_success_currency end,
       last_success_at = case when v_price then now() else p.last_success_at end
@@ -253,6 +260,7 @@ create function moti.picture_locate(p_owner uuid, p_product_id uuid) returns tex
 language plpgsql stable set search_path = '' as $$
 declare
   v_product moti.products;
+  v_name text;
 begin
   select * into v_product from moti.products p where p.id = p_product_id and p.owner_id = p_owner;
   if v_product.id is null then
@@ -261,16 +269,21 @@ begin
   if v_product.picture_job_id is null then
     return null;
   end if;
-  return moti.picture_object(v_product.owner_id, v_product.id, v_product.picture_job_id, v_product.picture_attempt);
+  v_name := moti.picture_object(v_product.owner_id, v_product.id, v_product.picture_job_id, v_product.picture_attempt);
+  -- An object changed after complete, or gone, is not the copy complete recorded: no new link is signed for it.
+  if moti.stored_picture_version(v_name) is distinct from v_product.picture_object_version then
+    return null;
+  end if;
+  return v_name;
 end
 $$;
 
 revoke all on function moti.is_image_error(text), moti.picture_object(uuid, uuid, uuid, integer),
-  moti.picture_stored(text), moti.owner_or_null(),
+  moti.stored_picture_version(text), moti.owner_or_null(),
   moti.metadata_complete(uuid, uuid, uuid, text, bigint, text, text, text, text),
   moti.picture_locate(uuid, uuid) from public;
 grant execute on function moti.is_image_error(text), moti.picture_object(uuid, uuid, uuid, integer),
-  moti.picture_stored(text), moti.owner_or_null(),
+  moti.stored_picture_version(text), moti.owner_or_null(),
   moti.metadata_complete(uuid, uuid, uuid, text, bigint, text, text, text, text),
   moti.picture_locate(uuid, uuid) to moti_rpc;
 
@@ -345,7 +358,11 @@ revoke all on function moti_storage.may_write(text), moti_storage.may_read(text)
 grant execute on function moti_storage.may_write(text), moti_storage.may_read(text), moti_storage.may_discard(text)
   to authenticated;
 
--- No update policy: an upsert is impossible, so a stored copy never changes after it is written.
+-- No update policy, so an upsert with the owner's token is refused. A signed upload link is different: Storage checks
+-- only the insert policy when it issues one (there is no object yet, so the upsert probe never reaches an update) and
+-- then writes as its own role. A link issued during the lease can create or overwrite the reserved name for its two
+-- hours. complete records the object's version and picture_locate signs no other, so a copy changed after complete is
+-- never signed again; the most it costs is the picture. Unit 5 sweeps the unreferenced objects.
 create policy moti_pictures_insert on storage.objects for insert to authenticated
   with check (bucket_id = 'product-pictures' and moti_storage.may_write(name));
 create policy moti_pictures_select on storage.objects for select to authenticated

@@ -11,7 +11,7 @@ const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 export const pictureObjectSchema = z.string().regex(new RegExp(`^${uuid}/${uuid}/${uuid}-[1-3]\\.webp$`))
   .transform((name) => name as PictureObject);
 
-// The owner's token writes here; the bucket's policies admit only a running job's reserved name, once.
+// The owner's token writes here; the bucket's policies admit only a running job's reserved name, and no overwrite.
 export function createPictureStore(client: SupabaseClient): PictureStore {
   const bucket = () => client.storage.from(PICTURE_BUCKET);
   return {

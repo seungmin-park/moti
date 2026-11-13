@@ -1,0 +1,57 @@
+# Red: review finding S1, signed upload overwrite, against the d67ead5 migration on a local native stack with Storage (supabase.lock pins)
+# 2026-11-13T07:34:57Z d67ead5+working tree (only tests/persistence/picture-storage.test.ts changed)
+# The overwrite through a signed upload link issued during the lease succeeded after complete (overwrite.error null, the download returned the new bytes),
+# and moti_picture_locate still returned the object name, so the changed copy would be signed and shown. The version test fails because complete records no version.
+# The post-job test passes already: it guards that a write to a reserved name after the job ended never becomes the shown picture.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ tests/persistence/picture-storage.test.ts (26 tests | 2 failed | 23 skipped) 985ms
+   ❯ 상품 사진 사본 저장소 (26)
+     × 완료는 보여줄 사본의 저장 버전을 작업과 함께 기록하고 둘 중 하나만 남길 수 없다 355ms
+     × 임대 중에 받은 서명 업로드 주소로 완료 뒤 사본을 바꾸면 그 사본은 다시 찾지도 서명하지도 않는다 313ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/picture-storage.test.ts > 상품 사진 사본 저장소 > 완료는 보여줄 사본의 저장 버전을 작업과 함께 기록하고 둘 중 하나만 남길 수 없다
+error: column p.picture_object_version does not exist
+ ❯ node_modules/pg-pool/index.js:45:11
+ ❯ tests/persistence/picture-storage.test.ts:212:22
+    210|     const job = await copiedPicture(product);
+    211|
+    212|     const { rows } = await fixture.admin.query<{ same: boolean }>(
+       |                      ^
+    213|       `select p.picture_object_version = o.version as same from moti.p…
+    214|        join storage.objects o on o.bucket_id = $2 and o.name = $3 wher…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/persistence/picture-storage.test.ts > 상품 사진 사본 저장소 > 임대 중에 받은 서명 업로드 주소로 완료 뒤 사본을 바꾸면 그 사본은 다시 찾지도 서명하지도 않는다
+AssertionError: expected { success: true, error: null, …(4) } to match object { data: null, error: null }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "data": null,
++   "data": "753ad2a5-1c3b-405e-adc1-30bfaf4e1ab1/5e85a200-f596-47e4-92f4-72d7eedcf445/e5ae8a8a-c4f2-4d6f-9d17-f4012c1c174e-1.webp",
+    "error": null,
+  }
+
+ ❯ tests/persistence/picture-storage.test.ts:243:97
+    241|     expect(Buffer.from(await data!.arrayBuffer()).equals(changed)).toB…
+    242|
+    243|     expect(await fixture.owner.client.rpc("moti_picture_locate", { p_p…
+       |                                                                                                 ^
+    244|     expect(await library().openPicture({ productId: product.id })).toE…
+    245|     // A signed link names the object, not its version: one signed bef…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed | 23 skipped (26)
+   Start at  16:34:45
+   Duration  1.15s (tests 91%, import 6%, transform 3%)
+
