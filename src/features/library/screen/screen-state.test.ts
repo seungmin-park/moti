@@ -482,6 +482,8 @@ describe("요청 실행", () => {
       retryMetadata: vi.fn(async () => ({ ok: true as const, value: { product: lamp } })),
       changeProduct: vi.fn(async () => ({ ok: true as const, value: { product: lamp } })),
       renameCollection: vi.fn(async () => ({ ok: true as const, value: { ...desk, name: "작업 공간", revision: 2 } })),
+      exportBackup: vi.fn(async () => ({ ok: false as const, failure: unavailable })),
+      restore: vi.fn(async () => ({ ok: true as const, value: library })),
     };
     await expect(perform(api, { type: "library.read" })).resolves.toEqual({ type: "library.settled", outcome: { ok: true, value: library } });
     const body = { url: "https://a.example", option: "", collectionIds: [] };

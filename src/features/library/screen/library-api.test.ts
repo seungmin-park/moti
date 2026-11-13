@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CollectionResponse, ErrorCode, ProductResponse } from "../presentation/library-dto";
+import { MAX_BACKUP_BYTES, toLibraryBackupDocument } from "../presentation/library-backup";
 import { createLibraryApi, toApiFailure, type ApiFailure, type Endpoint } from "./library-api";
 
 const collection: CollectionResponse = {
@@ -58,7 +59,41 @@ const signedIn: Record<"signed_out" | "forbidden" | "unconfigured", ApiFailure> 
   unconfigured: { kind: "redirect", to: "/login?error=unconfigured" },
 };
 
+const backupFailed: ApiFailure = { kind: "unavailable", message: "백업을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요." };
+const restoreUnknown: ApiFailure = { kind: "unavailable", message: "복원을 마쳤는지 확인하지 못했어요." };
+const unchanged = (message: string): ApiFailure => ({ kind: "invalid", field: null, message: `${message} 보관함은 바뀌지 않았어요.` });
+
 const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
+  "library.backup": {
+    ...signedIn,
+    storage_unavailable: backupFailed,
+    cross_origin: backupFailed,
+    unsupported_media_type: backupFailed,
+    payload_too_large: backupFailed,
+    invalid_input: backupFailed,
+    collection_missing: backupFailed,
+    collection_duplicate: backupFailed,
+    identity_conflict: backupFailed,
+    product_missing: backupFailed,
+    metadata_not_retryable: backupFailed,
+    revision_conflict: backupFailed,
+    picture_missing: backupFailed,
+  },
+  "library.restore": {
+    ...signedIn,
+    storage_unavailable: restoreUnknown,
+    cross_origin: unchanged("화면을 새로고침한 뒤 다시 시도해 주세요."),
+    unsupported_media_type: unchanged("복원 요청을 보내지 못했어요."),
+    payload_too_large: unchanged("4MB보다 큰 백업은 한 번에 복원할 수 없어요."),
+    invalid_input: unchanged("백업 파일이 손상되었거나 바뀌었어요."),
+    collection_missing: restoreUnknown,
+    collection_duplicate: restoreUnknown,
+    identity_conflict: restoreUnknown,
+    product_missing: restoreUnknown,
+    metadata_not_retryable: restoreUnknown,
+    revision_conflict: restoreUnknown,
+    picture_missing: restoreUnknown,
+  },
   "library.read": {
     ...signedIn,
     storage_unavailable: { kind: "unavailable", message: readFailed },
@@ -153,6 +188,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
 
 function errorBody(endpoint: Endpoint, code: ErrorCode) {
   if (code !== "invalid_input") return { error: code, message: "서버 문구" };
+  if (endpoint === "library.restore") return { error: code, message: "백업 파일이 손상되었거나 바뀌었어요.", field: "products.0.sourceUrl" };
   if (endpoint === "product.change") return { error: code, message: "메모는 3,000자까지 적을 수 있어요.", field: "note" };
   return endpoint === "collection.create" || endpoint === "collection.rename"
     ? { error: code, message: "컬렉션 이름은 1~40자로 입력해 주세요.", field: "collection" }
@@ -332,5 +368,77 @@ describe("보관함 API 클라이언트", () => {
   it("Given 계약에 맞는 오류 응답 When 요청하면 Then 매핑한 실패를 돌려준다", async () => {
     const { api } = respond({ error: "collection_missing", message: "선택한 컬렉션을 찾을 수 없어요." }, { status: 422 });
     await expect(api.saveLink(link)).resolves.toEqual({ ok: false, failure: expected["link.save"].collection_missing });
+  });
+});
+
+describe("백업 API 클라이언트", () => {
+  const backup = toLibraryBackupDocument({
+    collections: [{ name: "책상", createdAt: "2026-11-11T00:00:00.000Z" }],
+    products: [{
+      sourceUrl: "https://example.com/item", identityUrl: "https://example.com/item", option: "", shop: "example.com",
+      collectedTitle: "새로 담은 상품", ownerTitle: null, note: "", collectionNames: ["책상"], addedAt: "2026-11-11T00:00:00.000Z",
+      purchase: { status: "wish" }, lastSuccessfulPrice: null,
+    }],
+  }, new Date("2026-11-13T05:12:00.000Z"));
+
+  it("Given 계약에 맞는 백업 When 내려받으면 Then 읽기 함수로 확인한 글자 그대로와 서울 시각 이름·개수를 돌려준다", async () => {
+    const text = JSON.stringify(backup);
+    const { fetcher, api } = respond(text, { status: 200, headers: { "content-type": "application/json" } });
+
+    await expect(api.exportBackup()).resolves.toEqual({
+      ok: true,
+      value: { name: "moti-backup-20261113-1412.json", text, counts: { products: 1, collections: 1 }, restorable: true },
+    });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe("/api/library/backup");
+    expect(init).toMatchObject({ method: "GET", cache: "no-store" });
+  });
+
+  it("Given 4MiB를 넘는 백업 When 내려받으면 Then 파일은 주되 한 번에 복원할 수 없다고 표시한다", async () => {
+    const large = { ...backup, products: [{ ...backup.products[0], note: "가".repeat(3000) }] };
+    const text = JSON.stringify(large) + " ".repeat(MAX_BACKUP_BYTES);
+    const { api } = respond(text, { status: 200 });
+    await expect(api.exportBackup()).resolves.toMatchObject({ ok: true, value: { restorable: false } });
+  });
+
+  it.each([
+    ["백업이 아닌 200", { products: [] }],
+    ["JSON이 아닌 200", "<html></html>"],
+  ])("Given %s When 내려받으면 Then 백업을 만들지 못했다고 실패한다", async (_, body) => {
+    const { api } = respond(body, { status: 200 });
+    await expect(api.exportBackup()).resolves.toEqual({ ok: false, failure: backupFailed });
+  });
+
+  it("Given 세션 없음 When 내려받으면 Then 로그인으로 보낸다", async () => {
+    const { api } = respond({ error: "signed_out", message: "로그인이 필요해요." }, { status: 401 });
+    await expect(api.exportBackup()).resolves.toEqual({ ok: false, failure: signedIn.signed_out });
+  });
+
+  it("Given 고른 파일의 글자 When 복원하면 Then 그 글자를 그대로 JSON으로 보내고 바뀐 보관함을 돌려준다", async () => {
+    const text = `${JSON.stringify(backup, null, 2)}\n`;
+    const { fetcher, api } = respond({ products: [product], collections: [collection] }, { status: 200 });
+
+    await expect(api.restore(text)).resolves.toEqual({ ok: true, value: { products: [product], collections: [collection] } });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe("/api/library/restore");
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+    expect(init?.body).toBe(text);
+  });
+
+  it("Given 큰 보관함의 복원 When 요청하면 Then 다른 요청의 15초 대신 60초까지 기다린다", async () => {
+    const timeouts: number[] = [];
+    const spy = vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) => {
+      timeouts.push(ms);
+      return new AbortController().signal;
+    });
+    try {
+      const { api } = respond({ products: [], collections: [] }, { status: 200 });
+      await api.restore("{}");
+      await api.read();
+      expect(timeouts).toEqual([60_000, 15_000]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

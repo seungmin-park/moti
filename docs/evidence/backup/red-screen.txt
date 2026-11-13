@@ -1,0 +1,1075 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/screen/backup-screen.test.ts (22 tests | 21 failed) 16ms
+   ❯ 백업과 복원 대화상자 (20)
+     × Given 보관함 When 백업과 복원을 열면 Then 처음 단계의 대화상자가 열리고 알림을 닫는다 4ms
+     × Given 처음 단계 When 백업 만들기를 누르면 Then 만드는 중이고 백업을 요청하며, 받으면 내려받기 단계가 된다 1ms
+     × Given 백업을 만들지 못함 When 결과가 오면 Then 처음 단계에 오류를 보이고, 세션이 끝났으면 로그인으로 떠난다 1ms
+     × Given 만드는 중·읽는 중·바꾸는 중 When 닫거나 다른 단계를 누르면 Then 그대로다 1ms
+     × Given 처음 단계 When 4MB보다 큰 파일을 고르면 Then 읽지 않고 오류를 보인다 0ms
+     × Given 처음 단계 When 파일을 고르면 Then 읽는 중이고 그 파일을 읽는다 0ms
+     × Given 읽은 백업 When 확인 단계가 되면 Then 지금과 파일의 개수, 파일에 없어 지워질 상품 수와 백업 시각을 보인다 0ms
+     × Given JSON이 아닌 파일 When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다 0ms
+     × Given 다른 JSON When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다 0ms
+     × Given 더 새로운 버전 When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다 0ms
+     × Given 바뀐 파일 When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다 0ms
+     × Given 읽지 못한 파일 When 결과가 오면 Then 처음 단계에 오류를 보인다 0ms
+     × Given 확인 단계 When 취소하면 Then 요청 없이 처음 단계로 돌아간다 1ms
+     × Given 확인 단계 When 보관함 바꾸기를 누르면 Then 바꾸는 중이고 고른 파일의 글자를 그대로 보낸다 0ms
+     × Given 바꾸는 중 When 복원이 끝나면 Then 보관함을 응답으로 바꾸고 위시 전체 보기로 돌아가 대화상자를 닫고 알린다 1ms
+     × Given 바꾸는 중 When 서버가 파일을 거절하면 Then 처음 단계에 바뀌지 않았다는 오류를 보이고 다시 읽지 않는다 0ms
+     × Given 바꾸는 중 When 연결이 끊기거나 저장소가 응답하지 않으면 Then 결과를 모른다고 알리고 보관함을 다시 읽는다 0ms
+     × Given 바꾸는 중 When 세션이 끝났으면 Then 로그인으로 떠난다 0ms
+     × Given 내려받기 단계 When 처음으로를 누르거나 닫으면 Then 처음 단계로 가거나 대화상자를 닫는다 0ms
+   ❯ 백업 요청 실행 (2)
+     × Given 백업·복원 호출 When 실행하면 Then 결과 사건으로 돌려준다 2ms
+     × Given 고른 파일 When 읽으면 Then 이름과 글자를 돌려주고, 읽지 못하면 읽지 못했다고 돌려준다 0ms
+ ❯ src/features/library/screen/library-api.test.ts (149 tests | 37 failed) 38ms
+   ❯ API 오류 응답의 화면 결과 (125)
+     × Given library.backup의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 4ms
+     × Given library.backup의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.backup의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 1ms
+     × Given library.restore의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given library.restore의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+   ❯ 백업 API 클라이언트 (7)
+     × Given 계약에 맞는 백업 When 내려받으면 Then 읽기 함수로 확인한 글자 그대로와 서울 시각 이름·개수를 돌려준다 0ms
+     × Given 4MiB를 넘는 백업 When 내려받으면 Then 파일은 주되 한 번에 복원할 수 없다고 표시한다 0ms
+     × Given 백업이 아닌 200 When 내려받으면 Then 백업을 만들지 못했다고 실패한다 0ms
+     × Given JSON이 아닌 200 When 내려받으면 Then 백업을 만들지 못했다고 실패한다 0ms
+     × Given 세션 없음 When 내려받으면 Then 로그인으로 보낸다 0ms
+     × Given 고른 파일의 글자 When 복원하면 Then 그 글자를 그대로 JSON으로 보내고 바뀐 보관함을 돌려준다 0ms
+     × Given 큰 보관함의 복원 When 요청하면 Then 다른 요청의 15초 대신 60초까지 기다린다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 58 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 보관함 When 백업과 복원을 열면 Then 처음 단계의 대화상자가 열리고 알림을 닫는다
+AssertionError: expected null to deeply equal { kind: 'backup', …(2) }
+
+- Expected:
+{
+  "kind": "backup",
+  "notice": null,
+  "step": {
+    "name": "menu",
+  },
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/backup-screen.test.ts:82:29
+     80|   it("Given 보관함 When 백업과 복원을 열면 Then 처음 단계의 대화상자가 열리고 알림을 닫는다", () => {
+     81|     const { state, call } = run(ready({ toast: { kind: "notice", messa…
+     82|     expect(backupOf(state)).toEqual({ kind: "backup", step: { name: "m…
+       |                             ^
+     83|     expect((state as Ready).toast).toBeNull();
+     84|     expect(call).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 처음 단계 When 백업 만들기를 누르면 Then 만드는 중이고 백업을 요청하며, 받으면 내려받기 단계가 된다
+AssertionError: expected { name: 'menu' } to deeply equal { name: 'exporting' }
+
+- Expected
++ Received
+
+  {
+-   "name": "exporting",
++   "name": "menu",
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:89:42
+     87|   it("Given 처음 단계 When 백업 만들기를 누르면 Then 만드는 중이고 백업을 요청하며, 받으면 내려받기 단계가…
+     88|     const started = run(menu(), { type: "backup.export" });
+     89|     expect(backupOf(started.state).step).toEqual({ name: "exporting" }…
+       |                                          ^
+     90|     expect(started.call).toEqual({ type: "backup.export" });
+     91|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 백업을 만들지 못함 When 결과가 오면 Then 처음 단계에 오류를 보이고, 세션이 끝났으면 로그인으로 떠난다
+AssertionError: expected { kind: 'backup', …(2) } to deeply equal { kind: 'backup', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+-   "notice": {
+-     "kind": "error",
+-     "message": "연결을 확인하고 다시 시도해 주세요.",
+-   },
++   "notice": null,
+    "step": {
+-     "name": "menu",
++     "name": "exporting",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:98:36
+     96|   it("Given 백업을 만들지 못함 When 결과가 오면 Then 처음 단계에 오류를 보이고, 세션이 끝났으면 로그인으로…
+     97|     const failed = run(atStep({ name: "exporting" }), { type: "backup.…
+     98|     expect(backupOf(failed.state)).toEqual({ kind: "backup", step: { n…
+       |                                    ^
+     99|
+    100|     const redirected = run(atStep({ name: "exporting" }), { type: "bac…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 만드는 중·읽는 중·바꾸는 중 When 닫거나 다른 단계를 누르면 Then 그대로다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -1,16 +1,10 @@
+  {
+    "call": null,
+    "state": {
+      "collectionId": "11111111-1111-4111-8111-111111111111",
+-     "dialog": {
+-       "kind": "backup",
+-       "notice": null,
+-       "step": {
+-         "name": "exporting",
+-       },
+-     },
++     "dialog": null,
+      "library": {
+        "collections": [
+          {
+            "createdAt": "2026-11-10T00:00:00.000Z",
+            "id": "11111111-1111-4111-8111-111111111111",
+
+ ❯ src/features/library/screen/backup-screen.test.ts:108:34
+    106|       const busy = atStep(step);
+    107|       for (const event of [{ type: "dialog.close" }, { type: "backup.e…
+    108|         expect(run(busy, event)).toEqual({ state: busy, call: null });
+       |                                  ^
+    109|       }
+    110|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 처음 단계 When 4MB보다 큰 파일을 고르면 Then 읽지 않고 오류를 보인다
+AssertionError: expected { kind: 'backup', …(2) } to deeply equal { kind: 'backup', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+-   "notice": {
+-     "kind": "error",
+-     "message": "4MB보다 큰 백업은 한 번에 복원할 수 없어요.",
+-   },
++   "notice": null,
+    "step": {
+      "name": "menu",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:116:29
+    114|     const file = { name: "big.json", size: MAX_BACKUP_BYTES + 1 } as F…
+    115|     const { state, call } = run(menu(), { type: "backup.choose", file …
+    116|     expect(backupOf(state)).toEqual({ kind: "backup", step: { name: "m…
+       |                             ^
+    117|     expect(call).toBeNull();
+    118|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 처음 단계 When 파일을 고르면 Then 읽는 중이고 그 파일을 읽는다
+AssertionError: expected { name: 'menu' } to deeply equal { name: 'reading', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "fileName": "moti-backup.json",
+-   "name": "reading",
++   "name": "menu",
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:123:34
+    121|     const file = new File([fileText], "moti-backup.json", { type: "app…
+    122|     const { state, call } = run(menu(), { type: "backup.choose", file …
+    123|     expect(backupOf(state).step).toEqual({ name: "reading", fileName: …
+       |                                  ^
+    124|     expect(call).toEqual({ type: "backup.file", file });
+    125|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 읽은 백업 When 확인 단계가 되면 Then 지금과 파일의 개수, 파일에 없어 지워질 상품 수와 백업 시각을 보인다
+AssertionError: expected { Object (kind, step, ...) } to deeply equal { kind: 'backup', notice: null, …(1) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+    "notice": null,
+    "step": {
+-     "current": {
+-       "collections": 1,
+-       "products": 2,
+-     },
+-     "exportedAt": "2026-11-12T05:30:00.000Z",
+      "fileName": "moti-backup.json",
+-     "incoming": {
+-       "collections": 2,
+-       "products": 2,
+-     },
+-     "name": "confirm",
+-     "removed": 1,
+-     "text": "{\"format\":\"moti.library-backup\",\"version\":1,\"exportedAt\":\"2026-11-12T05:30:00.000Z\",\"collections\":[{\"name\":\"Desk\",\"createdAt\":\"2026-11-10T00:00:00.000Z\"},{\"name\":\"거실\",\"createdAt\":\"2026-11-11T00:00:00.000Z\"}],\"products\":[{\"sourceUrl\":\"https://example.com/lamp?utm_source=x\",\"option\":\"\",\"collectedTitle\":\"조명\",\"ownerTitle\":null,\"note\":\"\",\"collections\":[\"Desk\"],\"addedAt\":\"2026-11-10T00:00:00.000Z\",\"purchase\":{\"status\":\"wish\"},\"lastSuccessfulPrice\":null},{\"sourceUrl\":\"https://example.com/sofa\",\"option\":\"\",\"collectedTitle\":\"소파\",\"ownerTitle\":null,\"note\":\"\",\"collections\":[],\"addedAt\":\"2026-11-09T00:00:00.000Z\",\"purchase\":{\"status\":\"wish\"},\"lastSuccessfulPrice\":null}]}",
++     "name": "reading",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:129:29
+    127|   it("Given 읽은 백업 When 확인 단계가 되면 Then 지금과 파일의 개수, 파일에 없어 지워질 상품 수와 백업 …
+    128|     const { state } = run(atStep({ name: "reading", fileName: "moti-ba…
+    129|     expect(backupOf(state)).toEqual({
+       |                             ^
+    130|       kind: "backup",
+    131|       notice: null,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given JSON이 아닌 파일 When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 다른 JSON When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다
+AssertionError: expected { Object (kind, step, ...) } to deeply equal { kind: 'backup', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+-   "notice": {
+-     "kind": "error",
+-     "message": "moti 백업 파일이 아니에요.",
+-   },
++   "notice": null,
+    "step": {
+-     "name": "menu",
++     "fileName": "x.json",
++     "name": "reading",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:151:29
+    149|   ])("Given %s When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다", (_, text, message)…
+    150|     const { state, call } = run(atStep({ name: "reading", fileName: "x…
+    151|     expect(backupOf(state)).toEqual({ kind: "backup", step: { name: "m…
+       |                             ^
+    152|     expect(call).toBeNull();
+    153|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 더 새로운 버전 When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다
+AssertionError: expected { Object (kind, step, ...) } to deeply equal { kind: 'backup', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+-   "notice": {
+-     "kind": "error",
+-     "message": "더 새로운 moti에서 만든 백업이에요. 화면을 새로고침한 뒤 다시 시도해 주세요.",
+-   },
++   "notice": null,
+    "step": {
+-     "name": "menu",
++     "fileName": "x.json",
++     "name": "reading",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:151:29
+    149|   ])("Given %s When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다", (_, text, message)…
+    150|     const { state, call } = run(atStep({ name: "reading", fileName: "x…
+    151|     expect(backupOf(state)).toEqual({ kind: "backup", step: { name: "m…
+       |                             ^
+    152|     expect(call).toBeNull();
+    153|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 바뀐 파일 When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다
+AssertionError: expected { Object (kind, step, ...) } to deeply equal { kind: 'backup', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+-   "notice": {
+-     "kind": "error",
+-     "message": "백업 파일이 손상되었거나 바뀌었어요. 보관함은 바뀌지 않았어요.",
+-   },
++   "notice": null,
+    "step": {
+-     "name": "menu",
++     "fileName": "x.json",
++     "name": "reading",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:151:29
+    149|   ])("Given %s When 읽으면 Then 요청 없이 처음 단계에 오류를 보인다", (_, text, message)…
+    150|     const { state, call } = run(atStep({ name: "reading", fileName: "x…
+    151|     expect(backupOf(state)).toEqual({ kind: "backup", step: { name: "m…
+       |                             ^
+    152|     expect(call).toBeNull();
+    153|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 읽지 못한 파일 When 결과가 오면 Then 처음 단계에 오류를 보인다
+AssertionError: expected null to deeply equal { kind: 'error', …(1) }
+
+- Expected:
+{
+  "kind": "error",
+  "message": "파일을 읽지 못했어요.",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/backup-screen.test.ts:157:36
+    155|   it("Given 읽지 못한 파일 When 결과가 오면 Then 처음 단계에 오류를 보인다", () => {
+    156|     const { state } = run(atStep({ name: "reading", fileName: "x.json"…
+    157|     expect(backupOf(state).notice).toEqual({ kind: "error", message: "…
+       |                                    ^
+    158|   });
+    159|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 확인 단계 When 취소하면 Then 요청 없이 처음 단계로 돌아간다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -4,11 +4,12 @@
+      "collectionId": "11111111-1111-4111-8111-111111111111",
+      "dialog": {
+        "kind": "backup",
+        "notice": null,
+        "step": {
+-         "name": "menu",
++         "fileName": "moti-backup.json",
++         "name": "reading",
+        },
+      },
+      "library": {
+        "collections": [
+          {
+
+ ❯ src/features/library/screen/backup-screen.test.ts:166:56
+    164|
+    165|   it("Given 확인 단계 When 취소하면 Then 요청 없이 처음 단계로 돌아간다", () => {
+    166|     expect(run(confirming(), { type: "backup.back" })).toEqual({ state…
+       |                                                        ^
+    167|   });
+    168|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 확인 단계 When 보관함 바꾸기를 누르면 Then 바꾸는 중이고 고른 파일의 글자를 그대로 보낸다
+AssertionError: expected { name: 'reading', …(1) } to deeply equal { name: 'restoring', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "incoming": {
+-     "collections": 2,
+-     "products": 2,
+-   },
+-   "name": "restoring",
++   "fileName": "moti-backup.json",
++   "name": "reading",
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:171:34
+    169|   it("Given 확인 단계 When 보관함 바꾸기를 누르면 Then 바꾸는 중이고 고른 파일의 글자를 그대로 보낸다", …
+    170|     const { state, call } = run(confirming(), { type: "backup.restore"…
+    171|     expect(backupOf(state).step).toEqual({ name: "restoring", incoming…
+       |                                  ^
+    172|     expect(call).toEqual({ type: "library.restore", text: fileText });
+    173|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 바꾸는 중 When 복원이 끝나면 Then 보관함을 응답으로 바꾸고 위시 전체 보기로 돌아가 대화상자를 닫고 알린다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -1,8 +1,15 @@
+  {
+-   "collectionId": null,
+-   "dialog": null,
++   "collectionId": "11111111-1111-4111-8111-111111111111",
++   "dialog": {
++     "kind": "backup",
++     "notice": null,
++     "step": {
++       "fileName": "moti-backup.json",
++       "name": "reading",
++     },
++   },
+    "library": {
+      "collections": [
+        {
+          "createdAt": "2026-11-10T00:00:00.000Z",
+          "id": "11111111-1111-4111-8111-111111111111",
+@@ -33,46 +40,46 @@
+          "option": "",
+          "picture": null,
+          "purchase": {
+            "status": "wish",
+          },
+-         "revision": 2,
++         "revision": 1,
+          "shop": "example.com",
+          "sourceUrl": "https://example.com/lamp",
+-         "title": "조명",
++         "title": "새로 담은 상품",
+          "updatedAt": "2026-11-10T00:00:00.000Z",
+        },
+        {
+          "addedAt": "2026-11-10T00:00:00.000Z",
+          "collectionIds": [],
+-         "id": "55555555-5555-4555-8555-555555555555",
+-         "identityUrl": "https://example.com/sofa",
++         "id": "44444444-4444-4444-8444-444444444444",
++         "identityUrl": "https://example.com/chair",
+          "lastSuccessfulPrice": null,
+          "metadata": {
+-           "attempts": 0,
++           "attempts": 1,
++           "completedAt": "2026-11-10T00:00:01.000Z",
+            "generation": 1,
+-           "phase": "queued",
+-           "stalled": false,
++           "image": {
++             "outcome": "absent",
++           },
++           "phase": "ready",
+          },
+          "note": "",
+          "option": "",
+          "picture": null,
+          "purchase": {
+            "status": "wish",
+          },
+          "revision": 1,
+          "shop": "example.com",
+-         "sourceUrl": "https://example.com/sofa",
++         "sourceUrl": "https://example.com/chair",
+          "title": "새로 담은 상품",
+          "updatedAt": "2026-11-10T00:00:00.000Z",
+        },
+      ],
+    },
+    "phase": "ready",
+    "refreshing": false,
+-   "toast": {
+-     "kind": "notice",
+-     "message": "보관함을 복원했어요. 새 상품의 사진은 차례로 다시 가져와요.",
+-   },
+-   "view": "wish",
++   "toast": null,
++   "view": "purchased",
+    "writing": null,
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:189:19
+    187|     const { state, call } = run(restoring, { type: "restore.settled", …
+    188|
+    189|     expect(state).toEqual(ready({ library: restored, view: "wish", col…
+       |                   ^
+    190|     expect(call).toBeNull();
+    191|     expect(visibleToast(state as Ready)).toEqual({ message: "보관함을 복원했어…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 바꾸는 중 When 서버가 파일을 거절하면 Then 처음 단계에 바뀌지 않았다는 오류를 보이고 다시 읽지 않는다
+AssertionError: expected { Object (kind, step, ...) } to deeply equal { kind: 'backup', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+-   "notice": {
+-     "kind": "error",
+-     "message": "백업 파일이 손상되었거나 바뀌었어요. 보관함은 바뀌지 않았어요.",
+-   },
++   "notice": null,
+    "step": {
+-     "name": "menu",
++     "fileName": "moti-backup.json",
++     "name": "reading",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:198:29
+    196|     const refused: ApiFailure = { kind: "invalid", field: null, messag…
+    197|     const { state, call } = run(restoring, { type: "restore.settled", …
+    198|     expect(backupOf(state)).toEqual({ kind: "backup", step: { name: "m…
+       |                             ^
+    199|     expect((state as Ready).library).toEqual(library);
+    200|     expect(call).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 바꾸는 중 When 연결이 끊기거나 저장소가 응답하지 않으면 Then 결과를 모른다고 알리고 보관함을 다시 읽는다
+AssertionError: expected { Object (kind, step, ...) } to deeply equal { kind: 'backup', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+-   "notice": {
+-     "kind": "info",
+-     "message": "복원을 마쳤는지 확인하지 못했어요. 최신 보관함을 불러왔어요. 필요하면 같은 파일로 다시 복원해 주세요.",
+-   },
++   "notice": null,
+    "step": {
+-     "name": "menu",
++     "fileName": "moti-backup.json",
++     "name": "reading",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:206:29
+    204|     const restoring = run(confirming(), { type: "backup.restore" }).st…
+    205|     const { state, call } = run(restoring, { type: "restore.settled", …
+    206|     expect(backupOf(state)).toEqual({
+       |                             ^
+    207|       kind: "backup",
+    208|       step: { name: "menu" },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 바꾸는 중 When 세션이 끝났으면 Then 로그인으로 떠난다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'leaving', to: '/login' }
+
+- Expected
++ Received
+
+  {
+-   "phase": "leaving",
+-   "to": "/login",
++   "collectionId": "11111111-1111-4111-8111-111111111111",
++   "dialog": {
++     "kind": "backup",
++     "notice": null,
++     "step": {
++       "fileName": "moti-backup.json",
++       "name": "reading",
++     },
++   },
++   "library": {
++     "collections": [
++       {
++         "createdAt": "2026-11-10T00:00:00.000Z",
++         "id": "11111111-1111-4111-8111-111111111111",
++         "name": "Desk",
++         "revision": 1,
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++     ],
++     "products": [
++       {
++         "addedAt": "2026-11-10T00:00:00.000Z",
++         "collectionIds": [
++           "11111111-1111-4111-8111-111111111111",
++         ],
++         "id": "22222222-2222-4222-8222-222222222222",
++         "identityUrl": "https://example.com/lamp",
++         "lastSuccessfulPrice": null,
++         "metadata": {
++           "attempts": 1,
++           "completedAt": "2026-11-10T00:00:01.000Z",
++           "generation": 1,
++           "image": {
++             "outcome": "absent",
++           },
++           "phase": "ready",
++         },
++         "note": "",
++         "option": "",
++         "picture": null,
++         "purchase": {
++           "status": "wish",
++         },
++         "revision": 1,
++         "shop": "example.com",
++         "sourceUrl": "https://example.com/lamp",
++         "title": "새로 담은 상품",
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++       {
++         "addedAt": "2026-11-10T00:00:00.000Z",
++         "collectionIds": [],
++         "id": "44444444-4444-4444-8444-444444444444",
++         "identityUrl": "https://example.com/chair",
++         "lastSuccessfulPrice": null,
++         "metadata": {
++           "attempts": 1,
++           "completedAt": "2026-11-10T00:00:01.000Z",
++           "generation": 1,
++           "image": {
++             "outcome": "absent",
++           },
++           "phase": "ready",
++         },
++         "note": "",
++         "option": "",
++         "picture": null,
++         "purchase": {
++           "status": "wish",
++         },
++         "revision": 1,
++         "shop": "example.com",
++         "sourceUrl": "https://example.com/chair",
++         "title": "새로 담은 상품",
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++     ],
++   },
++   "phase": "ready",
++   "refreshing": false,
++   "toast": null,
++   "view": "purchased",
++   "writing": null,
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:218:8
+    216|     const restoring = run(confirming(), { type: "backup.restore" }).st…
+    217|     expect(run(restoring, { type: "restore.settled", outcome: { ok: fa…
+    218|       .toEqual({ phase: "leaving", to: "/login" });
+       |        ^
+    219|   });
+    220|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업과 복원 대화상자 > Given 내려받기 단계 When 처음으로를 누르거나 닫으면 Then 처음 단계로 가거나 대화상자를 닫는다
+AssertionError: expected { Object (kind, step, ...) } to deeply equal { kind: 'backup', …(2) }
+
+- Expected
++ Received
+
+  {
+    "kind": "backup",
+    "notice": null,
+    "step": {
+-     "name": "menu",
++     "file": {
++       "counts": {
++         "collections": 2,
++         "products": 2,
++       },
++       "name": "moti-backup-20261113-1412.json",
++       "restorable": true,
++       "text": "{\"format\":\"moti.library-backup\",\"version\":1,\"exportedAt\":\"2026-11-12T05:30:00.000Z\",\"collections\":[{\"name\":\"Desk\",\"createdAt\":\"2026-11-10T00:00:00.000Z\"},{\"name\":\"거실\",\"createdAt\":\"2026-11-11T00:00:00.000Z\"}],\"products\":[{\"sourceUrl\":\"https://example.com/lamp?utm_source=x\",\"option\":\"\",\"collectedTitle\":\"조명\",\"ownerTitle\":null,\"note\":\"\",\"collections\":[\"Desk\"],\"addedAt\":\"2026-11-10T00:00:00.000Z\",\"purchase\":{\"status\":\"wish\"},\"lastSuccessfulPrice\":null},{\"sourceUrl\":\"https://example.com/sofa\",\"option\":\"\",\"collectedTitle\":\"소파\",\"ownerTitle\":null,\"note\":\"\",\"collections\":[],\"addedAt\":\"2026-11-09T00:00:00.000Z\",\"purchase\":{\"status\":\"wish\"},\"lastSuccessfulPrice\":null}]}",
++     },
++     "name": "exported",
+    },
+  }
+
+ ❯ src/features/library/screen/backup-screen.test.ts:223:64
+    221|   it("Given 내려받기 단계 When 처음으로를 누르거나 닫으면 Then 처음 단계로 가거나 대화상자를 닫는다", ()…
+    222|     const done = atStep({ name: "exported", file: exported });
+    223|     expect(backupOf(run(done, { type: "backup.back" }).state)).toEqual…
+       |                                                                ^
+    224|     expect((run(done, { type: "dialog.close" }).state as Ready).dialog…
+    225|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업 요청 실행 > Given 백업·복원 호출 When 실행하면 Then 결과 사건으로 돌려준다
+AssertionError: expected undefined to deeply equal { type: 'backup.exported', …(1) }
+
+- Expected:
+{
+  "outcome": {
+    "ok": true,
+    "value": {
+      "counts": {
+        "collections": 2,
+        "products": 2,
+      },
+      "name": "moti-backup-20261113-1412.json",
+      "restorable": true,
+      "text": "{\"format\":\"moti.library-backup\",\"version\":1,\"exportedAt\":\"2026-11-12T05:30:00.000Z\",\"collections\":[{\"name\":\"Desk\",\"createdAt\":\"2026-11-10T00:00:00.000Z\"},{\"name\":\"거실\",\"createdAt\":\"2026-11-11T00:00:00.000Z\"}],\"products\":[{\"sourceUrl\":\"https://example.com/lamp?utm_source=x\",\"option\":\"\",\"collectedTitle\":\"조명\",\"ownerTitle\":null,\"note\":\"\",\"collections\":[\"Desk\"],\"addedAt\":\"2026-11-10T00:00:00.000Z\",\"purchase\":{\"status\":\"wish\"},\"lastSuccessfulPrice\":null},{\"sourceUrl\":\"https://example.com/sofa\",\"option\":\"\",\"collectedTitle\":\"소파\",\"ownerTitle\":null,\"note\":\"\",\"collections\":[],\"addedAt\":\"2026-11-09T00:00:00.000Z\",\"purchase\":{\"status\":\"wish\"},\"lastSuccessfulPrice\":null}]}",
+    },
+  },
+  "type": "backup.exported",
+}
+
++ Received:
+undefined
+
+ ❯ src/features/library/screen/backup-screen.test.ts:235:58
+    233|
+    234|   it("Given 백업·복원 호출 When 실행하면 Then 결과 사건으로 돌려준다", async () => {
+    235|     await expect(perform(api, { type: "backup.export" })).resolves.toE…
+       |                                                          ^
+    236|     await expect(perform(api, { type: "library.restore", text: fileTex…
+    237|     expect(api.restore).toHaveBeenCalledWith(fileText);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/58]⎯
+
+ FAIL  src/features/library/screen/backup-screen.test.ts > 백업 요청 실행 > Given 고른 파일 When 읽으면 Then 이름과 글자를 돌려주고, 읽지 못하면 읽지 못했다고 돌려준다
+AssertionError: expected undefined to deeply equal { type: 'backup.read', …(2) }
+
+- Expected:
+{
+  "fileName": "moti-backup.json",
+  "text": "{\"format\":\"moti.library-backup\",\"version\":1,\"exportedAt\":\"2026-11-12T05:30:00.000Z\",\"collections\":[{\"name\":\"Desk\",\"createdAt\":\"2026-11-10T00:00:00.000Z\"},{\"name\":\"거실\",\"createdAt\":\"2026-11-11T00:00:00.000Z\"}],\"products\":[{\"sourceUrl\":\"https://example.com/lamp?utm_source=x\",\"option\":\"\",\"collectedTitle\":\"조명\",\"ownerTitle\":null,\"note\":\"\",\"collections\":[\"Desk\"],\"addedAt\":\"2026-11-10T00:00:00.000Z\",\"purchase\":{\"status\":\"wish\"},\"lastSuccessfulPrice\":null},{\"sourceUrl\":\"https://example.com/sofa\",\"option\":\"\",\"collectedTitle\":\"소파\",\"ownerTitle\":null,\"note\":\"\",\"collections\":[],\"addedAt\":\"2026-11-09T00:00:00.000Z\",\"purchase\":{\"status\":\"wish\"},\"lastSuccessfulPrice\":null}]}",
+  "type": "backup.read",
+}
+
++ Received:
+undefined
+
+ ❯ src/features/library/screen/backup-screen.test.ts:242:62
+    240|   it("Given 고른 파일 When 읽으면 Then 이름과 글자를 돌려주고, 읽지 못하면 읽지 못했다고 돌려준다", as…
+    241|     const file = new File([fileText], "moti-backup.json");
+    242|     await expect(perform(api, { type: "backup.file", file })).resolves…
+       |                                                              ^
+    243|     const broken = { name: "broken.json", size: 1, text: () => Promise…
+    244|     await expect(perform(api, { type: "backup.file", file: broken })).…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'signed_out')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'forbidden')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'unconfigured')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'storage_unavailable')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'cross_origin')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'unsupported_media_type')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'payload_too_large')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'invalid_input')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'collection_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'collection_duplicate')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'identity_conflict')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'product_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'metadata_not_retryable')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'revision_conflict')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.backup의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given library.restore의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'picture_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:168:47
+    166| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    167|   const error = errorResponseSchema.safeParse(body);
+    168|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    169|   return status === 401 ? session.signed_out() : connection;
+    170| }
+ ❯ src/features/library/screen/library-api.test.ts:209:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 백업 API 클라이언트 > Given 계약에 맞는 백업 When 내려받으면 Then 읽기 함수로 확인한 글자 그대로와 서울 시각 이름·개수를 돌려준다
+TypeError: api.exportBackup is not a function
+ ❯ src/features/library/screen/library-api.test.ts:388:22
+    386|     const { fetcher, api } = respond(text, { status: 200, headers: { "…
+    387|
+    388|     await expect(api.exportBackup()).resolves.toEqual({
+       |                      ^
+    389|       ok: true,
+    390|       value: { name: "moti-backup-20261113-1412.json", text, counts: {…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 백업 API 클라이언트 > Given 4MiB를 넘는 백업 When 내려받으면 Then 파일은 주되 한 번에 복원할 수 없다고 표시한다
+TypeError: api.exportBackup is not a function
+ ❯ src/features/library/screen/library-api.test.ts:401:22
+    399|     const text = JSON.stringify(large) + " ".repeat(MAX_BACKUP_BYTES);
+    400|     const { api } = respond(text, { status: 200 });
+    401|     await expect(api.exportBackup()).resolves.toMatchObject({ ok: true…
+       |                      ^
+    402|   });
+    403|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 백업 API 클라이언트 > Given 백업이 아닌 200 When 내려받으면 Then 백업을 만들지 못했다고 실패한다
+ FAIL  src/features/library/screen/library-api.test.ts > 백업 API 클라이언트 > Given JSON이 아닌 200 When 내려받으면 Then 백업을 만들지 못했다고 실패한다
+TypeError: api.exportBackup is not a function
+ ❯ src/features/library/screen/library-api.test.ts:409:22
+    407|   ])("Given %s When 내려받으면 Then 백업을 만들지 못했다고 실패한다", async (_, body) => {
+    408|     const { api } = respond(body, { status: 200 });
+    409|     await expect(api.exportBackup()).resolves.toEqual({ ok: false, fai…
+       |                      ^
+    410|   });
+    411|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 백업 API 클라이언트 > Given 세션 없음 When 내려받으면 Then 로그인으로 보낸다
+TypeError: api.exportBackup is not a function
+ ❯ src/features/library/screen/library-api.test.ts:414:22
+    412|   it("Given 세션 없음 When 내려받으면 Then 로그인으로 보낸다", async () => {
+    413|     const { api } = respond({ error: "signed_out", message: "로그인이 필요해요…
+    414|     await expect(api.exportBackup()).resolves.toEqual({ ok: false, fai…
+       |                      ^
+    415|   });
+    416|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 백업 API 클라이언트 > Given 고른 파일의 글자 When 복원하면 Then 그 글자를 그대로 JSON으로 보내고 바뀐 보관함을 돌려준다
+TypeError: api.restore is not a function
+ ❯ src/features/library/screen/library-api.test.ts:421:22
+    419|     const { fetcher, api } = respond({ products: [product], collection…
+    420|
+    421|     await expect(api.restore(text)).resolves.toEqual({ ok: true, value…
+       |                      ^
+    422|     const [path, init] = fetcher.mock.calls[0];
+    423|     expect(path).toBe("/api/library/restore");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/58]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 백업 API 클라이언트 > Given 큰 보관함의 복원 When 요청하면 Then 다른 요청의 15초 대신 60초까지 기다린다
+TypeError: api.restore is not a function
+ ❯ src/features/library/screen/library-api.test.ts:437:17
+    435|     try {
+    436|       const { api } = respond({ products: [], collections: [] }, { sta…
+    437|       await api.restore("{}");
+       |                 ^
+    438|       await api.read();
+    439|       expect(timeouts).toEqual([60_000, 15_000]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/58]⎯
+
+
+ Test Files  2 failed | 2 passed (4)
+      Tests  58 failed | 248 passed (306)
+   Start at  20:28:29
+   Duration  300ms (import 41%, transform 34%, tests 22%, worker 2%)
+

@@ -5,8 +5,8 @@ import { createLibraryApi } from "./library-api";
 import { initialScreen, perform, pollDelay, transition, type LibraryScreenState, type ScreenEvent } from "./screen-state";
 
 const api = createLibraryApi();
-// A new link or retry starts a fresh round of polling with the short intervals again.
-const restartsPolling: ReadonlySet<ScreenEvent["type"]> = new Set(["link.settled", "metadata.settled"]);
+// A new link, retry or restore starts a fresh round of polling with the short intervals again.
+const restartsPolling: ReadonlySet<ScreenEvent["type"]> = new Set(["link.settled", "metadata.settled", "restore.settled"]);
 
 function usePageVisible() {
   const [visible, setVisible] = useState(true);
