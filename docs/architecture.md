@@ -130,3 +130,15 @@ claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트
 
 키의 힘은 함수 본문이 아니라 `moti_share` 역할의 열 단위 권한과 정책이 정하고, catalog 테스트가 목록을 고정한다. 키 검사·링크 검사·사용 창은 PostgREST로 직접 불러도 지켜지도록 SQL에 있다. `share-context.ts`와 단축어 경로는 ESLint가 `next/headers`·`@supabase/ssr`·쿠키 컨텍스트를 막는다. 설계 비교와 검증은 [changes/share.md](changes/share.md)에 있다.
 
+## 예약 실행
+
+`src/features/worker/`가 예약 실행과 작업 키를 소유한다. 도메인은 키 형식과 `Authorization` 읽기(`WorkerSecret`, `readWorkerSecret`), 키·실행 기록 타입(`WorkerKey`, `WorkerRun`, `WorkerCounts`)과 `WorkerError`, 응용 계층은 명령(`WorkerKeyIssueCommand`, `ScheduledRunCommand` 등), 두 포트(`WorkerKeyStore`, `WorkerRunStore`)와 실행(`createScheduledRunService`), 인프라는 `WorkerKeyRow`·`WorkerRunRow`·`WorkerItemRow`를 읽는 Supabase 어댑터, presentation은 계약(`worker-dto.ts`)과 예약 경로 처리기다. 소유자 키 경로는 공유 키처럼 보관함 처리기에 붙어 같은 관문과 오류표를 쓴다. 화면의 키 패널(`key-panel-state.ts`, `KeyPanel.tsx`)은 엔드포인트(`share`·`worker`)를 받아 두 키가 같은 로직을 쓴다.
+
+```text
+GitHub: POST /api/scheduled-runs → 키 형식 → worker-context(쿠키 없는 익명 클라이언트) → begin(90초 임대)
+        → 세 줄 × 20초: next → 안전한 가져오기 → 읽기 → complete(이름·가격, 사진 waiting) | fail → finish → 셈
+소유자: GET/POST /api/worker-keys, DELETE /api/worker-keys/{id} → 보관함 관문 → moti_worker_*(moti_rpc)
+화면: 보관함을 받음 → 시도 0인 대기 또는 사진 waiting → POST /api/library/metadata → 새 세대로 재대기 → 응답 뒤 소유자 토큰으로 사진 복사
+```
+
+작업자의 힘은 `moti_worker` 역할의 열 단위 권한과 정책이 정하고 catalog 테스트가 목록을 고정한다. 키·실행 임대·대상 선택·정산 검사는 PostgREST로 직접 불러도 지켜지도록 SQL에 있다. 작업자는 Storage에 닿지 않는다. ESLint가 `src/features/worker`와 예약 경로에서 사진 모듈을, 예약 경로에서 `next/headers`·`@supabase/ssr`·쿠키 컨텍스트를 막는다. 설계 비교와 검증은 [changes/scheduled-runs.md](changes/scheduled-runs.md)에 있다.
