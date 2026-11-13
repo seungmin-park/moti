@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Product, ProductId } from "../../library/domain/library";
-import { createCollectionRunner, decideOutcome, RUN_BUDGET_MS, type CollectionJob, type CollectionJobStore } from "./collection";
+import { createCollectionRunner, decideOutcome, type CollectionJob, type CollectionJobStore } from "./collection";
 import type { ImageCopy, PictureCopier, PictureObject } from "./picture-copy";
 
 describe("수집 결과 결정", () => {
@@ -57,16 +57,14 @@ describe("수집 실행기", () => {
   const request = { productId: "p-1" as ProductId, generation: 1 };
   const page = { ok: true as const, page: { html: "<title>램프</title>", url: "https://shop.example/p", status: 200 } };
 
-  it("Given 이름과 사진 주소가 있는 페이지 When 실행하면 Then 사진 결과를 이름·가격과 함께 한 번에 끝내고 맡은 뒤 40초를 기한으로 준다", async () => {
+  it("Given 이름과 사진 주소가 있는 페이지 When 실행하면 Then 사진 결과를 이름·가격과 함께 한 번에 끝낸다", async () => {
     const jobs = store();
     const pictures = copier({ outcome: "copied" });
-    const clock = vi.fn().mockReturnValueOnce(5_000).mockReturnValue(9_999);
     const runner = createCollectionRunner({
       store: jobs,
       source: { read: vi.fn(async () => ({ ...page, page: { ...page.page, url: "https://shop.example/p?moved=1" } })) },
       read: vi.fn(() => ({ title: "램프", prices: [], imageUrl: "https://cdn.shop.example/lamp.png" })),
       copier: pictures,
-      now: clock,
     });
 
     await expect(runner.run(request)).resolves.toEqual({ kind: "collected", product });
@@ -75,9 +73,7 @@ describe("수집 실행기", () => {
       imageUrl: "https://cdn.shop.example/lamp.png",
       pageUrl: "https://shop.example/p?moved=1",
       target: job.picture,
-      deadline: 5_000 + RUN_BUDGET_MS,
     }, expect.any(Function));
-    expect(RUN_BUDGET_MS).toBe(40_000);
     expect(jobs.complete).toHaveBeenCalledExactlyOnceWith(job,
       { title: "램프", price: null, imageSourceUrl: "https://cdn.shop.example/lamp.png" }, { outcome: "copied" });
   });

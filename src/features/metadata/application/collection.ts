@@ -59,26 +59,25 @@ function settled(settlement: JobSettlement, run: (product: Product) => Collectio
   return settlement.kind === "applied" ? run(settlement.product) : { kind: "stale" };
 }
 
-// Below the 60 s lease and the routes' maxDuration, leaving room for complete() after the picture copy.
-export const RUN_BUDGET_MS = 40_000;
-
-export function createCollectionRunner({ store, source, read, copier, now = Date.now }: {
+// Each step has its own bound: the page 15 s, the image 10 s, normalisation 5 s and every Supabase call 10 s. The worst
+// case (claim, page, image, normalisation, upload, complete, discard) passes the routes' 60 s maxDuration; a run cut
+// there leaves its job to stall after the lease, and the owner retries. Nothing saved before is lost.
+export function createCollectionRunner({ store, source, read, copier }: {
   store: CollectionJobStore;
   source: PageSource;
   read: PageReader;
   copier: PictureCopier;
-  now?: () => number;
 }) {
   async function fail(job: CollectionJob, code: CollectionErrorCode): Promise<CollectionRun> {
     return settled(await store.fail(job, code), (product) => ({ kind: "failed", code, product }));
   }
 
-  async function collect(job: CollectionJob, deadline: number): Promise<CollectionRun> {
+  async function collect(job: CollectionJob): Promise<CollectionRun> {
     const fetched = await source.read(job.sourceUrl);
     if (!fetched.ok) return fail(job, fetched.code);
     const outcome = decideOutcome(read(fetched.page.html, fetched.page.url));
     if (outcome.kind === "fail") return fail(job, outcome.code);
-    const task = { imageUrl: outcome.page.imageSourceUrl, pageUrl: fetched.page.url, target: job.picture, deadline };
+    const task = { imageUrl: outcome.page.imageSourceUrl, pageUrl: fetched.page.url, target: job.picture };
     const settlement = await copier.settleWith(task, (image) => store.complete(job, outcome.page, image));
     return settled(settlement, (product) => ({ kind: "collected", product }));
   }
@@ -93,9 +92,8 @@ export function createCollectionRunner({ store, source, read, copier, now = Date
         return { kind: "unavailable" };
       }
       if (claim.kind !== "claimed") return claim;
-      const deadline = now() + RUN_BUDGET_MS;
       try {
-        return await collect(claim.job, deadline);
+        return await collect(claim.job);
       } catch {
         try {
           return await fail(claim.job, "internal");

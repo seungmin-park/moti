@@ -17,8 +17,7 @@ const webp: NormalizedPicture = { bytes: Uint8Array.from([1, 2, 3]), width: 10, 
 const target = "owner/product/job-1.webp" as PictureObject;
 const replaced = "owner/product/older-1.webp" as PictureObject;
 const product = { id: "p-1" } as Product;
-const now = 1_000_000;
-const task: PictureTask = { imageUrl: "https://cdn.shop.example/a.png", pageUrl: "https://shop.example/p?ref=mail", target, deadline: now + 30_000 };
+const task: PictureTask = { imageUrl: "https://cdn.shop.example/a.png", pageUrl: "https://shop.example/p?ref=mail", target };
 
 function given(overrides: { source?: ImageSource["read"]; normalize?: PictureNormalizer; put?: PictureStore["put"] } = {}) {
   const source = { read: vi.fn<ImageSource["read"]>(overrides.source ?? (async () => ({ ok: true, bytes: png }))) };
@@ -27,7 +26,7 @@ function given(overrides: { source?: ImageSource["read"]; normalize?: PictureNor
     put: vi.fn<PictureStore["put"]>(overrides.put ?? (async () => true)),
     discard: vi.fn<PictureStore["discard"]>(async () => {}),
   };
-  const copier = createPictureCopier({ source, normalize, pictures, now: () => now });
+  const copier = createPictureCopier({ source, normalize, pictures });
   return { source, normalize, pictures, copier };
 }
 
@@ -60,12 +59,6 @@ describe("사진 사본 복사", () => {
     expect((await settledWith(copier, { imageUrl: null })).image).toEqual({ outcome: "absent" });
     expect(source.read).not.toHaveBeenCalled();
     expect(pictures.discard).not.toHaveBeenCalled();
-  });
-
-  it("Given 남은 시간이 5초보다 적음 When 복사하면 Then 요청하지 않고 시간 초과로 끝낸다", async () => {
-    const { source, copier } = given();
-    expect((await settledWith(copier, { deadline: now + 4_999 })).image).toEqual({ outcome: "failed", code: "timeout" });
-    expect(source.read).not.toHaveBeenCalled();
   });
 
   it("Given 쇼핑몰이 사진 요청을 막음 When 복사하면 Then 그 원인으로 끝내고 정규화하지 않는다", async () => {

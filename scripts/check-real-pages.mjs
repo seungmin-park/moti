@@ -18,7 +18,6 @@ registerHooks({
 const metadata = new URL("../src/features/metadata/", import.meta.url);
 const { createSafeImageSource, createSafePageSource } = await import(new URL("infrastructure/safe-fetch.ts", metadata).href);
 const { createPictureCopier } = await import(new URL("application/picture-copy.ts", metadata).href);
-const { RUN_BUDGET_MS } = await import(new URL("application/collection.ts", metadata).href);
 const { normalizePicture } = await import(new URL("infrastructure/sharp-normalizer.ts", metadata).href);
 const { strictFetchPolicy } = await import(new URL("infrastructure/address-policy.ts", metadata).href);
 const { readProductPage } = await import(new URL("infrastructure/html-reader.ts", metadata).href);
@@ -43,10 +42,10 @@ const copier = createPictureCopier({
   pictures: { put: async () => true, discard: async () => {} },
 });
 
-async function pictureOf(imageUrl, pageUrl, started) {
+async function pictureOf(imageUrl, pageUrl) {
   normalized = null;
   let outcome = "-";
-  await copier.settleWith({ imageUrl, pageUrl, target: "check-only", deadline: started + RUN_BUDGET_MS }, async (image) => {
+  await copier.settleWith({ imageUrl, pageUrl, target: "check-only" }, async (image) => {
     outcome = image.outcome === "failed" ? image.code : image.outcome;
     return { kind: "stale" };
   });
@@ -72,7 +71,6 @@ for (const url of urls) {
   } catch {
     // Reported below as invalid_url by the page source itself.
   }
-  const started = Date.now();
   const result = await source.read(url);
   if (!result.ok) {
     console.log([`host=${host}`, `outcome=${result.code}`, `status=${statusClass(result.status)}`, "title=-", "price=-", "image=-"].join("\t"));
@@ -88,6 +86,6 @@ for (const url of urls) {
     `title=${quoted(facts.title)}`,
     `price=${price}`,
     `imageHost=${facts.imageUrl === null ? "-" : hostOf(facts.imageUrl)}`,
-    facts.title === null ? "image=-" : await pictureOf(facts.imageUrl, result.page.url, started),
+    facts.title === null ? "image=-" : await pictureOf(facts.imageUrl, result.page.url),
   ].join("\t"));
 }

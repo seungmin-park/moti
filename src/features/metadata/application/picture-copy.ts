@@ -24,7 +24,7 @@ export interface PictureStore {
   discard(objects: readonly PictureObject[]): Promise<void>;
 }
 
-export type PictureTask = { imageUrl: string | null; pageUrl: string; target: PictureObject; deadline: number };
+export type PictureTask = { imageUrl: string | null; pageUrl: string; target: PictureObject };
 export interface PictureCopier {
   // Copies the page's picture under `task.target`, hands the outcome to `settle` exactly once, then removes the
   // object the settlement left unreferenced. Never throws for image problems; rethrows only what `settle` throws,
@@ -32,26 +32,20 @@ export interface PictureCopier {
   settleWith(task: PictureTask, settle: (image: ImageCopy) => Promise<JobSettlement>): Promise<JobSettlement>;
 }
 
+// The image server's whole answer, redirects included.
 const IMAGE_FETCH_MS = 10_000;
-const MIN_IMAGE_WINDOW_MS = 5_000;
-// Left for complete() after the image fetch gives up.
-const SETTLE_RESERVE_MS = 3_000;
 
 const failed = (code: ImageErrorCode): ImageCopy => ({ outcome: "failed", code });
 
-export function createPictureCopier({ source, normalize, pictures, now = Date.now }: {
+export function createPictureCopier({ source, normalize, pictures }: {
   source: ImageSource;
   normalize: PictureNormalizer;
   pictures: PictureStore;
-  now?: () => number;
 }): PictureCopier {
   async function copy(task: PictureTask): Promise<ImageCopy> {
     if (task.imageUrl === null) return { outcome: "absent" };
-    const remaining = task.deadline - now();
-    if (remaining < MIN_IMAGE_WINDOW_MS) return failed("timeout");
     try {
-      const signal = AbortSignal.timeout(Math.min(IMAGE_FETCH_MS, remaining - SETTLE_RESERVE_MS));
-      const read = await source.read(task.imageUrl, { pageUrl: task.pageUrl, signal });
+      const read = await source.read(task.imageUrl, { pageUrl: task.pageUrl, signal: AbortSignal.timeout(IMAGE_FETCH_MS) });
       if (!read.ok) return failed(read.code);
       const format = sniffImageFormat(read.bytes);
       if (format === null) return failed("unsupported_content");
