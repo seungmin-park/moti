@@ -337,6 +337,55 @@
                               }
                             ]
                           },
+                          "priceCheck": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "checkedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                  },
+                                  "code": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "invalid_url",
+                                          "blocked_address",
+                                          "dns_failed",
+                                          "connect_failed",
+                                          "timeout",
+                                          "too_many_redirects",
+                                          "blocked_by_site",
+                                          "http_status",
+                                          "unsupported_content",
+                                          "too_large",
+                                          "decode_failed",
+                                          "no_product_data",
+                                          "no_single_price",
+                                          "other_currency",
+                                          "internal"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "checkedAt",
+                                  "code"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "picture": {
                             "anyOf": [
                               {
@@ -373,6 +422,7 @@
                           "purchase",
                           "metadata",
                           "lastSuccessfulPrice",
+                          "priceCheck",
                           "picture"
                         ],
                         "additionalProperties": false
@@ -1477,6 +1527,55 @@
                               }
                             ]
                           },
+                          "priceCheck": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "checkedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                  },
+                                  "code": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "invalid_url",
+                                          "blocked_address",
+                                          "dns_failed",
+                                          "connect_failed",
+                                          "timeout",
+                                          "too_many_redirects",
+                                          "blocked_by_site",
+                                          "http_status",
+                                          "unsupported_content",
+                                          "too_large",
+                                          "decode_failed",
+                                          "no_product_data",
+                                          "no_single_price",
+                                          "other_currency",
+                                          "internal"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "checkedAt",
+                                  "code"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "picture": {
                             "anyOf": [
                               {
@@ -1513,6 +1612,7 @@
                           "purchase",
                           "metadata",
                           "lastSuccessfulPrice",
+                          "priceCheck",
                           "picture"
                         ],
                         "additionalProperties": false
@@ -2223,6 +2323,55 @@
                             }
                           ]
                         },
+                        "priceCheck": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "checkedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                "code": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "invalid_url",
+                                        "blocked_address",
+                                        "dns_failed",
+                                        "connect_failed",
+                                        "timeout",
+                                        "too_many_redirects",
+                                        "blocked_by_site",
+                                        "http_status",
+                                        "unsupported_content",
+                                        "too_large",
+                                        "decode_failed",
+                                        "no_product_data",
+                                        "no_single_price",
+                                        "other_currency",
+                                        "internal"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "checkedAt",
+                                "code"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "picture": {
                           "anyOf": [
                             {
@@ -2259,6 +2408,7 @@
                         "purchase",
                         "metadata",
                         "lastSuccessfulPrice",
+                        "priceCheck",
                         "picture"
                       ],
                       "additionalProperties": false
@@ -2606,6 +2756,55 @@
                             }
                           ]
                         },
+                        "priceCheck": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "checkedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                "code": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "invalid_url",
+                                        "blocked_address",
+                                        "dns_failed",
+                                        "connect_failed",
+                                        "timeout",
+                                        "too_many_redirects",
+                                        "blocked_by_site",
+                                        "http_status",
+                                        "unsupported_content",
+                                        "too_large",
+                                        "decode_failed",
+                                        "no_product_data",
+                                        "no_single_price",
+                                        "other_currency",
+                                        "internal"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "checkedAt",
+                                "code"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "picture": {
                           "anyOf": [
                             {
@@ -2642,6 +2841,7 @@
                         "purchase",
                         "metadata",
                         "lastSuccessfulPrice",
+                        "priceCheck",
                         "picture"
                       ],
                       "additionalProperties": false
@@ -4379,6 +4579,55 @@
                             }
                           ]
                         },
+                        "priceCheck": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "checkedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                "code": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "invalid_url",
+                                        "blocked_address",
+                                        "dns_failed",
+                                        "connect_failed",
+                                        "timeout",
+                                        "too_many_redirects",
+                                        "blocked_by_site",
+                                        "http_status",
+                                        "unsupported_content",
+                                        "too_large",
+                                        "decode_failed",
+                                        "no_product_data",
+                                        "no_single_price",
+                                        "other_currency",
+                                        "internal"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "checkedAt",
+                                "code"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "picture": {
                           "anyOf": [
                             {
@@ -4415,6 +4664,7 @@
                         "purchase",
                         "metadata",
                         "lastSuccessfulPrice",
+                        "priceCheck",
                         "picture"
                       ],
                       "additionalProperties": false
@@ -5220,6 +5470,55 @@
                             }
                           ]
                         },
+                        "priceCheck": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "checkedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                "code": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "invalid_url",
+                                        "blocked_address",
+                                        "dns_failed",
+                                        "connect_failed",
+                                        "timeout",
+                                        "too_many_redirects",
+                                        "blocked_by_site",
+                                        "http_status",
+                                        "unsupported_content",
+                                        "too_large",
+                                        "decode_failed",
+                                        "no_product_data",
+                                        "no_single_price",
+                                        "other_currency",
+                                        "internal"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "checkedAt",
+                                "code"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "picture": {
                           "anyOf": [
                             {
@@ -5256,6 +5555,7 @@
                         "purchase",
                         "metadata",
                         "lastSuccessfulPrice",
+                        "priceCheck",
                         "picture"
                       ],
                       "additionalProperties": false
@@ -5993,6 +6293,55 @@
                               }
                             ]
                           },
+                          "priceCheck": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "checkedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                  },
+                                  "code": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "invalid_url",
+                                          "blocked_address",
+                                          "dns_failed",
+                                          "connect_failed",
+                                          "timeout",
+                                          "too_many_redirects",
+                                          "blocked_by_site",
+                                          "http_status",
+                                          "unsupported_content",
+                                          "too_large",
+                                          "decode_failed",
+                                          "no_product_data",
+                                          "no_single_price",
+                                          "other_currency",
+                                          "internal"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "checkedAt",
+                                  "code"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "picture": {
                             "anyOf": [
                               {
@@ -6029,6 +6378,7 @@
                           "purchase",
                           "metadata",
                           "lastSuccessfulPrice",
+                          "priceCheck",
                           "picture"
                         ],
                         "additionalProperties": false
@@ -7756,7 +8106,9 @@
                                 "decode_failed",
                                 "no_product_data",
                                 "attempts_exhausted",
-                                "internal"
+                                "internal",
+                                "no_single_price",
+                                "other_currency"
                               ]
                             },
                             "additionalProperties": {
@@ -9111,7 +9463,9 @@
                           "decode_failed",
                           "no_product_data",
                           "attempts_exhausted",
-                          "internal"
+                          "internal",
+                          "no_single_price",
+                          "other_currency"
                         ]
                       },
                       "additionalProperties": {

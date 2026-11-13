@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_METADATA_GENERATION, type MetadataRetryResult, type MetadataWakeResult } from "../../metadata/application/commands";
 import { MAX_REVISION, type LinkSaveResult } from "../application/commands";
-import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
+import { collectionErrorCodes, imageErrorCodes, priceCheckCodes } from "../../metadata/domain/collection-error";
 import type { Collection, Library, Picture, Product, ProductId } from "../domain/library";
 
 const timestamp = z.iso.datetime();
@@ -66,6 +66,9 @@ export const productResponseSchema = z.object({
     }).strict(),
   ]),
   lastSuccessfulPrice: moneyResponseSchema.extend({ checkedAt: timestamp }).strict().nullable(),
+  // The latest daily price check: when, and why it kept the previous price (null when it confirmed one or has not
+  // settled). Null until the first check.
+  priceCheck: z.object({ checkedAt: timestamp, code: z.enum(priceCheckCodes).nullable() }).strict().nullable(),
   picture: pictureResponseSchema.nullable(),
 }).strict();
 
@@ -195,6 +198,7 @@ export function toProductResponse(product: Product): ProductResponse {
       ? { ...product.metadata, image: { ...product.metadata.image } }
       : { ...product.metadata },
     lastSuccessfulPrice: product.lastSuccessfulPrice && { ...product.lastSuccessfulPrice },
+    priceCheck: product.priceCheck && { ...product.priceCheck },
     picture: product.picture && toPictureResponse(product.id, product.picture),
   };
 }

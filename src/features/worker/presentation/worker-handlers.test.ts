@@ -31,6 +31,30 @@ async function answerOf(response: Response) {
   return response.json();
 }
 
+describe("POST /api/scheduled-runs: 가격 확인", () => {
+  it("Given 가격을 확인하고 일부는 이전 가격을 지킨 실행 When 끝나면 Then 200과 가격 셈, 수집·가격의 이유별 셈을 계약대로 돌려준다", async () => {
+    const { handlers, run } = given();
+    const counted: ScheduledRunResult = {
+      kind: "finished",
+      stop: "deadline",
+      collections: { collected: 3, failed: 1 },
+      prices: { confirmed: 12, kept: 3 },
+      failures: { blocked_by_site: 2, no_single_price: 1, other_currency: 1 },
+    };
+    run.mockResolvedValueOnce(counted);
+
+    const response = await handlers.postScheduledRun(post());
+
+    expect(response.status).toBe(200);
+    expect(scheduledRunResponseSchema.parse(await answerOf(response))).toEqual({
+      stop: "deadline",
+      collections: { collected: 3, failed: 1 },
+      prices: { confirmed: 12, kept: 3 },
+      failures: { blocked_by_site: 2, no_single_price: 1, other_currency: 1 },
+    });
+  });
+});
+
 describe("POST /api/scheduled-runs: 작업 키", () => {
   it.each([
     ["Authorization 없음", {}],

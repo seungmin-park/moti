@@ -27,6 +27,7 @@ const queued: ProductResponse = {
   purchase: { status: "wish" },
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
+  priceCheck: null,
   picture: null,
 };
 

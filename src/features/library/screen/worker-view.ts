@@ -59,7 +59,7 @@ export function workerRunView(run: WorkerRunResponse): WorkerRunView {
     failed: run.state === "cut",
     failures: Object.entries(run.failures)
       .toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-      .map(([code, count]) => `${count}건 · ${collectionFailureReason(code as keyof typeof run.failures)}`),
+      .map(([code, count]) => `${count}건 · ${collectionFailureReason(code as Parameters<typeof collectionFailureReason>[0])}`),
   };
 }
 

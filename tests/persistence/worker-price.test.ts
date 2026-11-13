@@ -395,3 +395,26 @@ describe("가격 확인 어댑터", () => {
     expect(runs).toEqual([expect.objectContaining({ state: "done", ...counts })]);
   });
 });
+
+describe("보관함 읽기의 가격 확인", () => {
+  it("확인한 적 없는 상품은 null, 확인한 상품은 그 확인의 시각과 이전 가격을 지킨 이유(확인했으면 null)를 돌려준다", async () => {
+    const run = await start();
+    const kept = await collected("kept", undefined, 20);
+    const confirmed = await collected("confirmed", undefined, 10);
+    const never = await collected("never", null, 0);
+    const picks = new Map<string, Picked>();
+    for (let index = 0; index < 2; index += 1) {
+      const item = await pick(run);
+      picks.set(item.product, item);
+    }
+    await settle(run, picks.get(kept)!, { code: "timeout" });
+    await settle(run, picks.get(confirmed)!, { amount: 8000, currency: "KRW" });
+
+    const { products } = await library().snapshot();
+    const checkOf = (id: string) => products.find((product) => product.id === id)!.priceCheck;
+
+    expect(checkOf(kept)).toEqual({ checkedAt: (await productRow(kept)).price_checked_at!.toISOString(), code: "timeout" });
+    expect(checkOf(confirmed)).toEqual({ checkedAt: (await productRow(confirmed)).price_checked_at!.toISOString(), code: null });
+    expect(checkOf(never)).toBeNull();
+  });
+});
