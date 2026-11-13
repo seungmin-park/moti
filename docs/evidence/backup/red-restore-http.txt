@@ -1,0 +1,144 @@
+# Red: restore route (step 4). Built without src/app/api/library/restore/route.ts; persistence (145) and service (45) passed, then the HTTP phase:
+# Command: npm run build (route held out) && npm run test:database
+
+Starting the built app on 127.0.0.1:3180 against the isolated Supabase stack.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/http/library-api.test.ts (10 tests) 3543ms
+   ✓ 실제 HTTP 보관함 API (6)
+     ✓ 세션 없는 조회는 계약에 맞는 401이다 378ms
+     ✓ 허용한 Google 계정은 저장한 컬렉션과 링크를 다시 로그인한 새 세션에서도 읽는다 526ms
+     ✓ 다른 Google 계정의 세션은 403이고 쿠키와 서버 세션을 폐기해 이후 쓰기도 저장하지 않는다 359ms
+     ✓ 다른 출처의 쓰기 요청은 소유자 세션이어도 403이고 저장하지 않는다 339ms
+     ✓ 업무 규칙에 맞지 않는 링크는 필드와 함께 400이고 저장하지 않는다 344ms
+     ✓ 없는 컬렉션을 지정하면 422이고 저장하지 않는다 348ms
+   ✓ 실제 HTTP 로그인 경로 (3)
+     ✓ 같은 출처의 로그아웃은 인증 쿠키를 지운다 340ms
+   ✓ 실제 HTTP 세션 갱신 (1)
+     ✓ 접근 토큰이 만료된 세션의 조회는 Route Handler가 refresh token으로 갱신하고 새 인증 쿠키를 내려준다 357ms
+ ✓ tests/http/library-organize.test.ts (5 tests) 2124ms
+   ✓ 실제 HTTP 상품 정리 (4)
+     ✓ 소유자는 실제 요청으로 이름·메모·컬렉션을 고치고 구매·기록·되돌리기를 하며 새 세션에서도 같은 값을 읽는다 513ms
+     ✓ 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 고치면 계약에 맞는 409 revision_conflict이고 저장은 그대로다 365ms
+     ✓ 업무 규칙에 맞지 않는 구매일은 필드와 함께 400이고 저장하지 않는다 361ms
+     ✓ 다른 출처의 PATCH는 소유자 세션이어도 403이고 상품과 컬렉션을 바꾸지 않는다 360ms
+   ✓ 실제 HTTP 컬렉션 이름 바꾸기 (1)
+     ✓ 이름을 바꾸면 200이고 새 세션에서도 소속 상품과 함께 새 이름을 읽으며, 다른 컬렉션과 대소문자만 다른 이름은 409다 526ms
+ ✓ tests/http/product-pictures.test.ts (4 tests) 1708ms
+   ✓ 실제 HTTP 사진 사본 (4)
+     ✓ 보관함은 같은 출처의 사진 주소만 주고 그 주소는 서명한 비공개 사본으로 보낸다 439ms
+     ✓ 사본이 없거나 상품이 없으면 404로 답하고 사진 주소가 UUID가 아니면 400이다 366ms
+     ✓ 로그인하지 않았거나 허용하지 않은 계정에는 사진을 보내지 않는다 434ms
+     ✓ 사진을 가져오지 못한 상품은 다시 가져오기가 202이고 다시 읽어도 링크·이름·가격은 남는다 465ms
+ ✓ tests/http/metadata-collection.test.ts (4 tests) 1776ms
+   ✓ 실제 HTTP 정보 수집 (4)
+     ✓ 저장은 바로 대기 상태로 응답하고, 응답 뒤 수집이 막힌 주소를 기록해도 링크는 남는다 493ms
+     ✓ 실패한 상품을 다시 가져오면 202와 다음 세대로 응답하고 다시 수집해 같은 이유로 실패한다 577ms
+     ✓ 막 담겨 대기 중인 상품을 다시 가져오면 409이고 작업을 늘리지 않는다 347ms
+     ✓ 없는 상품, 잘못된 경로·본문과 다른 출처의 다시 가져오기는 계약대로 거절한다 358ms
+ ❯ tests/http/library-backup.test.ts (7 tests | 5 failed) 2623ms
+   ✓ 실제 HTTP 백업 내려받기 (2)
+     ✓ 소유자는 서울 시각 이름의 첨부 파일로 저장한 링크와 컬렉션을 담은 백업을 받는다 399ms
+     ✓ 세션이 없으면 첨부 파일 대신 401 JSON 오류다 339ms
+   ❯ 실제 HTTP 복원 (5)
+     × 소유자는 내려받은 파일로 바뀐 보관함을 되돌리고 같은 파일을 다시 내려받는다 401ms
+     × 4MiB를 넘는 선언한 길이은 413이고 보관함을 바꾸지 않는다 371ms
+     × 4MiB를 넘는 길이 없이 흘려보낸 본문은 413이고 보관함을 바꾸지 않는다 368ms
+     × 다른 출처·JSON이 아닌 형식·바뀐 파일·세션 없음은 거절하고 보관함을 바꾸지 않는다 374ms
+     × 복원한 뒤 응답 밖에서 파일에 없는 상품의 사진 사본을 버린다 370ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/http/library-backup.test.ts > 실제 HTTP 복원 > 소유자는 내려받은 파일로 바뀐 보관함을 되돌리고 같은 파일을 다시 내려받는다
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ tests/http/library-backup.test.ts:132:29
+    130|     const response = await restore(text);
+    131|
+    132|     expect(response.status).toBe(200);
+       |                             ^
+    133|     expect(response.headers.get("cache-control")).toContain("no-store"…
+    134|     const restored = libraryReadResponseSchema.parse(await response.js…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/http/library-backup.test.ts > 실제 HTTP 복원 > 4MiB를 넘는 선언한 길이은 413이고 보관함을 바꾸지 않는다
+ FAIL  tests/http/library-backup.test.ts > 실제 HTTP 복원 > 4MiB를 넘는 길이 없이 흘려보낸 본문은 413이고 보관함을 바꾸지 않는다
+AssertionError: expected 404 to be 413 // Object.is equality
+
+- Expected
++ Received
+
+- 413
++ 404
+
+ ❯ tests/http/library-backup.test.ts:150:29
+    148|     const response = await restore(body());
+    149|
+    150|     expect(response.status).toBe(413);
+       |                             ^
+    151|     expect(errorResponseSchema.parse(await response.json()).error).toB…
+    152|     expect(owned(await read())).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/http/library-backup.test.ts > 실제 HTTP 복원 > 다른 출처·JSON이 아닌 형식·바뀐 파일·세션 없음은 거절하고 보관함을 바꾸지 않는다
+AssertionError: expected [ 404, 404, 404, 404 ] to deeply equal [ 403, 415, 400, 401 ]
+
+- Expected
++ Received
+
+  [
+-   403,
+-   415,
+-   400,
+-   401,
++   404,
++   404,
++   404,
++   404,
+  ]
+
+ ❯ tests/http/library-backup.test.ts:169:82
+    167|     });
+    168|
+    169|     expect([crossOrigin.status, plain.status, changed.status, signedOu…
+       |                                                                                  ^
+    170|     expect(errorResponseSchema.parse(await changed.json())).toMatchObj…
+    171|     expect(owned(await read())).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/http/library-backup.test.ts > 실제 HTTP 복원 > 복원한 뒤 응답 밖에서 파일에 없는 상품의 사진 사본을 버린다
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ tests/http/library-backup.test.ts:190:29
+    188|     const response = await restore(JSON.stringify(toLibraryBackupDocum…
+    189|
+    190|     expect(response.status).toBe(200);
+       |                             ^
+    191|     expect(libraryReadResponseSchema.parse(await response.json())).toE…
+    192|     const deadline = Date.now() + 10_000;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  5 failed | 25 passed (30)
+   Start at  20:22:03
+   Duration  12.53s (tests 96%, import 3%)
+
+JSON report written to /private/var/folders/tv/r1qdgk8x6972cyp7yrxlxdb80000gn/T/moti-database-AUO4rC/http-results.json

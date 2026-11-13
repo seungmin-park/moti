@@ -39,12 +39,13 @@ export type JsonBody =
   | { ok: true; value: unknown }
   | { ok: false; reason: "unsupported_media_type" | "payload_too_large" | "invalid_json" };
 
-export async function readJsonBody(request: Request): Promise<JsonBody> {
+// Callers run the origin and session checks first, so only the signed-in owner can make a route read up to its limit.
+export async function readJsonBody(request: Request, limit = MAX_JSON_BYTES): Promise<JsonBody> {
   const type = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
   if (type !== "application/json") return { ok: false, reason: "unsupported_media_type" };
   const declared = Number(request.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > MAX_JSON_BYTES) return { ok: false, reason: "payload_too_large" };
-  const bytes = await readLimited(request, MAX_JSON_BYTES);
+  if (Number.isFinite(declared) && declared > limit) return { ok: false, reason: "payload_too_large" };
+  const bytes = await readLimited(request, limit);
   if (!bytes) return { ok: false, reason: "payload_too_large" };
   try {
     return { ok: true, value: JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) };

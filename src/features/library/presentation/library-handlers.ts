@@ -6,13 +6,21 @@ import { seoulToday } from "../../wishlist/product-fields";
 import {
   toCollectionCreateCommand,
   toCollectionRenameCommand,
+  toLibraryRestoreCommand,
   toLinkSaveCommand,
   toPictureViewCommand,
   toProductChangeCommand,
+  type LibraryRestoreResult,
 } from "../application/commands";
 import type { LibraryService } from "../application/library-service";
 import { LibraryError, type LibraryErrorCode } from "../domain/library";
-import { backupFileName, toLibraryBackupDocument } from "./library-backup";
+import {
+  MAX_BACKUP_BYTES,
+  backupFileName,
+  readLibraryBackup,
+  toLibraryBackupDocument,
+  type BackupProblem,
+} from "./library-backup";
 import {
   collectionCreateRequestSchema,
   collectionRenameRequestSchema,
@@ -35,6 +43,8 @@ export type LibraryRequestContext = {
   // Schedules collection to run after the response is sent; it never delays or fails the request.
   collect(request: CollectionRequest): void;
   retry(command: MetadataRetryCommand): Promise<MetadataRetryResult>;
+  // After the response: discards the copies of deleted products and collects the restored ones. Never fails the request.
+  settleRestore(result: LibraryRestoreResult): void;
 };
 export type ProductRoute = { params: Promise<{ productId: string }> };
 export type CollectionRoute = { params: Promise<{ collectionId: string }> };
@@ -87,6 +97,12 @@ const fromLibraryError: Record<LibraryErrorCode, ErrorCode> = {
   storage_unavailable: "storage_unavailable",
 };
 
+const backupProblems: Record<BackupProblem, string> = {
+  not_backup: "moti 백업 파일이 아니에요.",
+  newer_version: "더 새로운 moti에서 만든 백업이에요. 화면을 새로고침한 뒤 다시 시도해 주세요.",
+  invalid: "백업 파일이 손상되었거나 바뀌었어요.",
+};
+
 function json(status: number, body: unknown): Response {
   return Response.json(body, { status, headers: { "cache-control": "no-store" } });
 }
@@ -96,7 +112,7 @@ function failure(code: ErrorCode, message = errorMessages[code], field?: string)
   return json(errorStatus[code], body);
 }
 
-type Allowed = Pick<LibraryRequestContext, "service" | "collect" | "retry">;
+type Allowed = Pick<LibraryRequestContext, "service" | "collect" | "retry" | "settleRestore">;
 type Action<Route> = (allowed: Allowed, request: Request, route: Route) => Promise<Response>;
 
 export function createLibraryHandlers(context: (request: Request) => Promise<LibraryRequestContext>) {
@@ -155,6 +171,17 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
         },
       });
     }, { write: false }),
+    // The body is the backup file's text as the owner chose it, checked by the same reader the screen used. Only the
+    // signed-in owner gets this far, so only the owner can make the route read up to 4 MiB.
+    postRestore: handle(async ({ service, settleRestore }, request) => {
+      const body = await readJsonBody(request, MAX_BACKUP_BYTES);
+      if (!body.ok) return failure(body.reason === "invalid_json" ? "invalid_input" : body.reason);
+      const reading = readLibraryBackup(body.value);
+      if (!reading.ok) return failure("invalid_input", backupProblems[reading.problem], reading.path ?? undefined);
+      const result = await service.restoreLibrary(toLibraryRestoreCommand(reading.document, seoulToday(new Date())));
+      settleRestore(result);
+      return json(200, toLibraryReadResponse(result.library));
+    }, { write: true }),
     postLink: handle(async ({ service, collect }, request) => {
       const linkSaveRequest = await readRequest(request, (value) => linkSaveRequestSchema.parse(value));
       if (linkSaveRequest instanceof Response) return linkSaveRequest;

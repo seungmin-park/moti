@@ -58,4 +58,15 @@ describe("API 문서", () => {
       .toEqual(["format", "version", "exportedAt", "collections", "products"]);
     expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "401", "403", "503"]));
   });
+
+  it("복원은 백업 파일을 본문으로 받는 POST로 200·400·413·415 응답과 4MiB 한도를 문서에 남긴다", () => {
+    const operation = buildApiDocument().paths["/api/library/restore"]?.post as {
+      requestBody: { content: Record<string, { schema: { properties?: Record<string, unknown> } }> };
+      responses: Record<string, { description: string }>;
+    };
+    expect(Object.keys(operation.requestBody.content["application/json"].schema.properties ?? {}))
+      .toEqual(["format", "version", "exportedAt", "collections", "products"]);
+    expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "413", "415", "503"]));
+    expect(operation.responses["413"].description).toContain("4194304");
+  });
 });

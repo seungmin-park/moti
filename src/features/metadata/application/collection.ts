@@ -105,3 +105,19 @@ export function createCollectionRunner({ store, source, read, copier }: {
   };
 }
 export type CollectionRunner = ReturnType<typeof createCollectionRunner>;
+
+export type RunWindow = { concurrency: number; deadline: number; now: () => number };
+
+// Starts items in order, at most `concurrency` at a time, and none once `now()` reaches `deadline`; runs already
+// started finish. It never throws, so it can run after a response. Returns how many it started.
+export async function runWithin<T>(items: readonly T[], run: (item: T) => Promise<unknown>, window: RunWindow): Promise<number> {
+  let next = 0;
+  async function worker() {
+    while (next < items.length && window.now() < window.deadline) {
+      const item = items[next++];
+      await run(item).catch(() => undefined);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(window.concurrency, items.length) }, worker));
+  return next;
+}

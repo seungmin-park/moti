@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MAX_JSON_BYTES } from "../../shared/presentation/http";
-import { libraryBackupSchema } from "./library-backup";
+import { MAX_BACKUP_BYTES, libraryBackupSchema } from "./library-backup";
 import {
   collectionCreateRequestSchema,
   collectionCreateResponseSchema,
@@ -53,6 +53,19 @@ export const libraryRoutes: Route[] = [
         schema: libraryBackupSchema,
         headers: { "Content-Disposition": 'attachment; filename="moti-backup-YYYYMMDD-HHmm.json" (서울 시각)' },
       },
+      ...denied,
+    },
+  },
+  {
+    method: "post",
+    path: "/api/library/restore",
+    summary: "백업 파일로 보관함 전체를 바꾼다. 파일 전체를 먼저 검사하고 한 트랜잭션에서 바꾸므로 실패하면 아무것도 바뀌지 않는다. 링크가 같은 상품은 id·사진·수집한 이름·마지막 확인 가격을 지키고 소유자 값(이름·메모·소속·구매·담은 시각)을 파일로 바꾸며 revision이 오른다. 이름이 같은(대소문자 무시) 컬렉션은 id를 지킨다. 파일에 없는 상품·컬렉션은 지우고, 새 상품은 수집을 기다린다. 응답 뒤 지운 상품의 사진 사본을 버리고 새 상품을 수집한다.",
+    request: libraryBackupSchema,
+    responses: {
+      200: { description: "LibraryReadResponse. 바꾼 보관함", schema: libraryReadResponseSchema },
+      400: { description: "백업 파일이 아니거나(not_backup), 더 새로운 버전이거나, 앱이 저장하지 않는 값·겹치는 링크·이름·없는 소속이 있거나, 구매일이 서버의 서울 날짜 뒤다. field는 첫 문제의 위치(products.3.sourceUrl)다.", schema: errorResponseSchema },
+      413: { description: `본문이 ${MAX_BACKUP_BYTES}바이트를 넘는다.`, schema: errorResponseSchema },
+      415: writeFailures[415],
       ...denied,
     },
   },
