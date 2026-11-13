@@ -1,6 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLibraryService } from "../../src/features/library/application/library-service";
+import { createPictureStore } from "../../src/features/library/infrastructure/product-pictures";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
+import { createCollectionRunner, type PageSource } from "../../src/features/metadata/application/collection";
+import { WAKE_LIMIT } from "../../src/features/metadata/application/commands";
+import { createPictureCopier, type ImageSource } from "../../src/features/metadata/application/picture-copy";
+import { readProductPage } from "../../src/features/metadata/infrastructure/html-reader";
+import { normalizePicture } from "../../src/features/metadata/infrastructure/sharp-normalizer";
+import { createSupabaseCollectionStore } from "../../src/features/metadata/infrastructure/supabase-collection-store";
 import { toShareLinkAddCommand } from "../../src/features/share/application/commands";
 import { createShareKeyService, createShareLinkService } from "../../src/features/share/application/share-service";
 import { createSupabaseShareKeyStore, createSupabaseShareLinkStore } from "../../src/features/share/infrastructure/supabase-share-store";
@@ -59,5 +68,33 @@ describe("실제 저장소를 쓰는 공유 담기 서비스", () => {
     expect(await keys().read()).toMatchObject({ id: second.key.id, lastUsedAt: expect.any(String), revokedAt: null });
     expect((await owner().snapshot()).products.map((product) => product.sourceUrl).toSorted())
       .toEqual(["https://shop.example/desk", "https://shop.example/lamp"]);
+  });
+
+  it("소유자가 깨우면 키로 담은 상품을 실제 수집 실행기가 맡아 이름과 가격을 남긴다", async () => {
+    const offerPage = readFileSync(resolve(import.meta.dirname, "../fixtures/pages/offer.html"), "utf8");
+    // Only the shop is replaced; the store, reader, database and picture store are the real ones.
+    const shop: PageSource = { read: vi.fn(async () => ({ ok: true as const, page: { html: offerPage, url: "https://shop.example/headphones", status: 200 } })) };
+    const noImages: ImageSource = { read: async () => ({ ok: false, code: "blocked_by_site" }) };
+    const jobs = createSupabaseCollectionStore(fixture.owner.client);
+    const runner = createCollectionRunner({
+      store: jobs,
+      source: shop,
+      read: readProductPage,
+      copier: createPictureCopier({ source: noImages, normalize: normalizePicture, pictures: createPictureStore(fixture.owner.client) }),
+    });
+    const { secret } = await keys().issue({ replaces: null });
+    await links().add(toShareLinkAddCommand(secret, "https://shop.example/headphones?utm_source=share"));
+
+    const { products } = await jobs.wake({ limit: WAKE_LIMIT });
+    const runs = await Promise.all(products.map(({ id, metadata }) => runner.run({ productId: id, generation: metadata.generation })));
+
+    expect(runs.map((run) => run.kind)).toEqual(["collected"]);
+    expect(shop.read).toHaveBeenCalledExactlyOnceWith("https://shop.example/headphones?utm_source=share");
+    expect((await owner().snapshot()).products).toEqual([expect.objectContaining({
+      title: "무선 헤드폰 블랙",
+      metadata: expect.objectContaining({ phase: "ready", attempts: 1 }),
+      lastSuccessfulPrice: expect.objectContaining({ amountMinor: 289000, currency: "KRW" }),
+    })]);
+    expect((await jobs.wake({ limit: WAKE_LIMIT })).products).toEqual([]);
   });
 });

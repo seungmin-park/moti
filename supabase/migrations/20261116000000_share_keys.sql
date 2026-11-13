@@ -294,3 +294,53 @@ revoke usage, create on schema public from moti_share;
 
 revoke all on function public.moti_share_add(text, text, text, text, text) from public, anon, authenticated, service_role;
 grant execute on function public.moti_share_add(text, text, text, text, text) to anon;
+
+-- A key's add cannot collect: claiming a job and storing its picture need the owner's session, and lending either to
+-- the key would widen it. The owner's screen wakes such products when it loads: current-generation jobs still waiting
+-- for their first attempt, newest product first, up to the limit; a job another request holds is left to it. Waking
+-- puts the job back at the front of the queue, so the product reads as waiting rather than stalled, and the caller
+-- collects it after its response. Restored products and web saves whose collection never started wake the same way.
+create function moti.metadata_wake(p_owner uuid, p_limit integer) returns jsonb
+language plpgsql set search_path = '' as $$
+declare
+  v_products uuid[];
+begin
+  if p_limit is null or p_limit not between 1 and 8 then
+    raise exception using errcode = 'M0002', message = 'invalid wake limit';
+  end if;
+
+  with picked as (
+    select j.id from moti.metadata_jobs j
+    join moti.products p on p.id = j.product_id and p.metadata_generation = j.generation
+    where j.owner_id = p_owner and j.status = 'queued' and j.attempts = 0
+    order by p.created_at desc, p.id
+    limit p_limit
+    for update of j skip locked
+  ), woken as (
+    update moti.metadata_jobs j set updated_at = now()
+    from picked where j.id = picked.id
+    returning j.product_id
+  )
+  select coalesce(array_agg(product_id), '{}') into v_products from woken;
+
+  return coalesce((
+    select jsonb_agg(moti.product_json(p) order by p.created_at desc, p.id)
+    from moti.products p where p.owner_id = p_owner and p.id = any(v_products)
+  ), '[]'::jsonb);
+end
+$$;
+
+revoke all on function moti.metadata_wake(uuid, integer) from public;
+grant execute on function moti.metadata_wake(uuid, integer) to moti_rpc;
+
+create function public.moti_metadata_wake(p_limit integer) returns jsonb
+language sql security definer set search_path = '' as $$
+  select moti.metadata_wake(moti.require_owner(), p_limit)
+$$;
+
+grant usage, create on schema public to moti_rpc;
+alter function public.moti_metadata_wake(integer) owner to moti_rpc;
+revoke create on schema public from moti_rpc;
+
+revoke all on function public.moti_metadata_wake(integer) from public, anon, authenticated, service_role;
+grant execute on function public.moti_metadata_wake(integer) to authenticated;

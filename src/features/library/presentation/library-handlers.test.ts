@@ -11,7 +11,7 @@ import {
   type ProductId,
 } from "../domain/library";
 import type { CollectionRequest } from "../../metadata/application/collection";
-import type { MetadataRetryCommand, MetadataRetryResult } from "../../metadata/application/commands";
+import type { MetadataRetryCommand, MetadataRetryResult, MetadataWakeCommand, MetadataWakeResult } from "../../metadata/application/commands";
 import type { ShareKeyIssueCommand, ShareKeyIssueResult, ShareKeyRevokeCommand } from "../../share/application/commands";
 import type { ShareKey, ShareKeyId, ShareSecret } from "../../share/domain/share-key";
 import {
@@ -28,6 +28,7 @@ import {
   collectionRenameResponseSchema,
   linkSaveResponseSchema,
   metadataRetryResponseSchema,
+  metadataWakeResponseSchema,
   productChangeResponseSchema,
 } from "./library-dto";
 
@@ -114,8 +115,14 @@ function given(access: Access) {
       ...shareKey, id: command.keyId, revokedAt: "2026-11-13T06:00:00.000Z",
     })),
   };
-  const handlers = createLibraryHandlers(async () => ({ access, service, signOut, collect, retry, settleRestore, shareKeys }));
-  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys };
+  const wake = vi.fn(async (command: MetadataWakeCommand): Promise<MetadataWakeResult> => {
+    void command;
+    return { products: [product] };
+  });
+  // collectAll is a mock: handing the woken products to collection after the response is the requirement.
+  const collectAll = vi.fn<(requests: CollectionRequest[]) => void>();
+  const handlers = createLibraryHandlers(async () => ({ access, service, signOut, collect, retry, settleRestore, shareKeys, wake, collectAll }));
+  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys, wake, collectAll };
 }
 
 const get = () => new Request(`${origin}/api/library`);
@@ -1060,5 +1067,51 @@ describe("DELETE /api/share-keys/{keyId}", () => {
     const response = await handlers.deleteShareKey(revoke(shareKey.id), route(shareKey.id));
     expect(response.status).toBe(404);
     expect(await errorOf(response)).toEqual({ error: "share_key_missing", message: "missing" });
+  });
+});
+
+describe("POST /api/library/metadata", () => {
+  it("Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집을 맡긴다", async () => {
+    const { handlers, wake, collectAll } = given(allowed);
+    const response = await handlers.postMetadataWake(post("/api/library/metadata", {}));
+    expect(response.status).toBe(202);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(metadataWakeResponseSchema.parse(await response.json())).toEqual({ products: [product] });
+    expect(wake).toHaveBeenCalledWith({ limit: 8 });
+    expect(collectAll).toHaveBeenCalledExactlyOnceWith([{ productId: product.id, generation: 1 }]);
+  });
+
+  it("Given 깨울 상품 없음 When 깨우면 Then 빈 목록이고 수집을 맡기지 않는다", async () => {
+    const { handlers, wake, collectAll } = given(allowed);
+    wake.mockResolvedValueOnce({ products: [] });
+    const response = await handlers.postMetadataWake(post("/api/library/metadata", {}));
+    expect(metadataWakeResponseSchema.parse(await response.json())).toEqual({ products: [] });
+    expect(collectAll).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["다른 출처", () => post("/api/library/metadata", {}, { origin: "https://evil.example" }), 403, "cross_origin"],
+    ["다른 필드", () => post("/api/library/metadata", { limit: 100 }), 400, "invalid_input"],
+    ["JSON이 아닌 형식", () => post("/api/library/metadata", "{}", { "content-type": "text/plain" }), 415, "unsupported_media_type"],
+  ] as const)("Given %s When 깨우면 Then 거절하고 깨우지 않는다", async (_name, request, status, code) => {
+    const { handlers, wake, collectAll } = given(allowed);
+    const response = await handlers.postMetadataWake(request());
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(wake).not.toHaveBeenCalled();
+    expect(collectAll).not.toHaveBeenCalled();
+  });
+
+  it("Given 세션 없음 When 깨우면 Then 401이고 깨우지 않는다", async () => {
+    const { handlers, wake } = given({ kind: "signed_out" });
+    expect((await handlers.postMetadataWake(post("/api/library/metadata", {}))).status).toBe(401);
+    expect(wake).not.toHaveBeenCalled();
+  });
+
+  it("Given 저장소 오류 When 깨우면 Then 503이고 수집을 맡기지 않는다", async () => {
+    const { handlers, wake, collectAll } = given(allowed);
+    wake.mockRejectedValueOnce(new LibraryError("storage_unavailable", "down"));
+    expect((await handlers.postMetadataWake(post("/api/library/metadata", {}))).status).toBe(503);
+    expect(collectAll).not.toHaveBeenCalled();
   });
 });

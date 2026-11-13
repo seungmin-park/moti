@@ -90,6 +90,13 @@ describe("보관함 불러오기", () => {
   it("Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다", () => {
     const { state, call } = transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: library } });
     expect(state).toEqual(ready());
+    expect(call).toEqual({ type: "metadata.wake" });
+  });
+
+  it("Given 아직 수집을 시작하지 않은 상품이 없음 When 보관함을 받으면 Then 깨우지 않는다", () => {
+    const started = { ...library, products: [{ ...lamp, metadata: { phase: "running" as const, generation: 1, attempts: 1, stalled: false } }] };
+    const { state, call } = transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: started } });
+    expect(state).toEqual(ready({ library: started }));
     expect(call).toBeNull();
   });
 
@@ -484,6 +491,7 @@ describe("요청 실행", () => {
       renameCollection: vi.fn(async () => ({ ok: true as const, value: { ...desk, name: "작업 공간", revision: 2 } })),
       exportBackup: vi.fn(async () => ({ ok: false as const, failure: unavailable })),
       restore: vi.fn(async () => ({ ok: true as const, value: library })),
+      wake: vi.fn(async () => ({ ok: true as const, value: { products: [lamp] } })),
     };
     await expect(perform(api, { type: "library.read" })).resolves.toEqual({ type: "library.settled", outcome: { ok: true, value: library } });
     const body = { url: "https://a.example", option: "", collectionIds: [] };
@@ -505,6 +513,8 @@ describe("요청 실행", () => {
     expect(api.renameCollection).toHaveBeenCalledWith(desk.id, { revision: 1, name: "작업 공간" });
     await expect(perform(api, { type: "library.poll" })).resolves.toEqual({ type: "poll.settled", outcome: { ok: true, value: library } });
     expect(api.read).toHaveBeenCalledTimes(2);
+    await expect(perform(api, { type: "metadata.wake" })).resolves.toEqual({ type: "wake.settled", outcome: { ok: true, value: { products: [lamp] } } });
+    expect(api.wake).toHaveBeenCalledOnce();
   });
 });
 
@@ -1029,5 +1039,33 @@ describe("컬렉션 이름 바꾸기", () => {
     expect(call).toEqual({ type: "library.read" });
     expect(state).toMatchObject({ refreshing: true });
     expect(dialogOf(state)).toEqual(renaming("작업 공간", { error: { field: "collection", message: failure.message } }));
+  });
+});
+
+describe("기다리는 수집 깨우기", () => {
+  const stalledLamp: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 1, attempts: 0, stalled: true } };
+  const woken: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false } };
+
+  it("Given 멈춘 것으로 보이던 상품 When 깨운 결과가 오면 Then 그 상품만 대기로 바꾸고 나머지는 그대로다", () => {
+    const { state, call } = transition(withProducts([stalledLamp, chair]), { type: "wake.settled", outcome: { ok: true, value: { products: [woken] } } });
+    expect(productsOf(state)).toEqual([woken, chair]);
+    expect(call).toBeNull();
+    expect(pollDelay(state, 0)).not.toBeNull();
+  });
+
+  it("Given 깨우는 사이 소유자가 고친 상품 When 오래된 깨우기 결과가 오면 Then 고친 값을 지킨다", () => {
+    const edited = { ...stalledLamp, title: "책상 조명", revision: 2 };
+    const { state } = transition(withProducts([edited, chair]), { type: "wake.settled", outcome: { ok: true, value: { products: [woken] } } });
+    expect(productsOf(state)[0]).toMatchObject({ title: "책상 조명", revision: 2 });
+  });
+
+  it("Given 깨우기 실패 When 결과가 오면 Then 알리지 않고 화면을 그대로 둔다", () => {
+    const before = withProducts([stalledLamp, chair]);
+    expect(transition(before, { type: "wake.settled", outcome: { ok: false, failure: unavailable } })).toEqual({ state: before, call: null });
+  });
+
+  it("Given 로그인이 끝난 세션 When 깨우기 결과가 오면 Then 로그인으로 떠난다", () => {
+    const { state } = transition(ready(), { type: "wake.settled", outcome: { ok: false, failure: { kind: "redirect", to: "/login" } } });
+    expect(state).toEqual({ phase: "leaving", to: "/login" });
   });
 });

@@ -1,0 +1,106 @@
+# Red: wake waiting collections (step 6), real HTTP. Built without src/app/api/library/metadata/route.ts (route held out); persistence (185) and service (49) passed, then the HTTP phase:
+# Command: npm run build (route held out) && npm run test:database
+Starting the built app on 127.0.0.1:3180 against the isolated Supabase stack.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/http/library-api.test.ts (10 tests) 3276ms
+   ✓ 실제 HTTP 보관함 API (6)
+     ✓ 허용한 Google 계정은 저장한 컬렉션과 링크를 다시 로그인한 새 세션에서도 읽는다 460ms
+     ✓ 다른 Google 계정의 세션은 403이고 쿠키와 서버 세션을 폐기해 이후 쓰기도 저장하지 않는다 336ms
+     ✓ 다른 출처의 쓰기 요청은 소유자 세션이어도 403이고 저장하지 않는다 327ms
+     ✓ 업무 규칙에 맞지 않는 링크는 필드와 함께 400이고 저장하지 않는다 329ms
+     ✓ 없는 컬렉션을 지정하면 422이고 저장하지 않는다 331ms
+   ✓ 실제 HTTP 로그인 경로 (3)
+     ✓ 같은 출처의 로그아웃은 인증 쿠키를 지운다 328ms
+   ✓ 실제 HTTP 세션 갱신 (1)
+     ✓ 접근 토큰이 만료된 세션의 조회는 Route Handler가 refresh token으로 갱신하고 새 인증 쿠키를 내려준다 341ms
+ ✓ tests/http/library-backup.test.ts (7 tests) 2794ms
+   ✓ 실제 HTTP 백업 내려받기 (2)
+     ✓ 소유자는 서울 시각 이름의 첨부 파일로 저장한 링크와 컬렉션을 담은 백업을 받는다 386ms
+     ✓ 세션이 없으면 첨부 파일 대신 401 JSON 오류다 328ms
+   ✓ 실제 HTTP 복원 (5)
+     ✓ 소유자는 내려받은 파일로 바뀐 보관함을 되돌리고 같은 파일을 다시 내려받는다 393ms
+     ✓ 4MiB를 넘는 선언한 길이은 413이고 보관함을 바꾸지 않는다 372ms
+     ✓ 4MiB를 넘는 길이 없이 흘려보낸 본문은 413이고 보관함을 바꾸지 않는다 371ms
+     ✓ 다른 출처·JSON이 아닌 형식·바뀐 파일·세션 없음은 거절하고 보관함을 바꾸지 않는다 368ms
+     ✓ 복원한 뒤 응답 밖에서 파일에 없는 상품의 사진 사본을 버린다 576ms
+ ✓ tests/http/library-organize.test.ts (5 tests) 1949ms
+   ✓ 실제 HTTP 상품 정리 (4)
+     ✓ 소유자는 실제 요청으로 이름·메모·컬렉션을 고치고 구매·기록·되돌리기를 하며 새 세션에서도 같은 값을 읽는다 480ms
+     ✓ 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 고치면 계약에 맞는 409 revision_conflict이고 저장은 그대로다 353ms
+     ✓ 업무 규칙에 맞지 않는 구매일은 필드와 함께 400이고 저장하지 않는다 350ms
+     ✓ 다른 출처의 PATCH는 소유자 세션이어도 403이고 상품과 컬렉션을 바꾸지 않는다 345ms
+   ✓ 실제 HTTP 컬렉션 이름 바꾸기 (1)
+     ✓ 이름을 바꾸면 200이고 새 세션에서도 소속 상품과 함께 새 이름을 읽으며, 다른 컬렉션과 대소문자만 다른 이름은 409다 421ms
+ ❯ tests/http/share-links.test.ts (6 tests | 2 failed) 2167ms
+   ❯ 실제 HTTP 단축어 경로 (6)
+     ✓ 소유자가 만든 키로 단축어처럼 담으면 201이고 보관함에는 수집을 기다리는 상품으로 보이며, 다시 담으면 200이다 391ms
+     ✓ 폐기한 키, 모르는 키와 형식이 틀린 키는 바이트까지 같은 401이고 아무것도 담지 않는다 338ms
+     × 키는 세션이 아니다: 같은 출처 Origin과 키만으로 소유자 경로를 부르면 모두 401 signed_out이고 DB는 그대로다 369ms
+     ✓ 쿠키는 이 경로의 인증이 아니다: 소유자 쿠키만으로는 401이고, 만료된 세션 쿠키와 키를 함께 보내면 키로 담고 쿠키를 건드리지 않는다 398ms
+     ✓ 다른 사이트의 사전 요청과 요청에는 CORS 허용 헤더를 주지 않는다 330ms
+     × 소유자 화면이 깨우면 키로 담은 상품의 수집이 응답 뒤에 시작되고, 다시 깨우면 깨울 것이 없다 341ms
+ ✓ tests/http/product-pictures.test.ts (4 tests) 1633ms
+   ✓ 실제 HTTP 사진 사본 (4)
+     ✓ 보관함은 같은 출처의 사진 주소만 주고 그 주소는 서명한 비공개 사본으로 보낸다 416ms
+     ✓ 사본이 없거나 상품이 없으면 404로 답하고 사진 주소가 UUID가 아니면 400이다 348ms
+     ✓ 로그인하지 않았거나 허용하지 않은 계정에는 사진을 보내지 않는다 417ms
+     ✓ 사진을 가져오지 못한 상품은 다시 가져오기가 202이고 다시 읽어도 링크·이름·가격은 남는다 447ms
+ ✓ tests/http/metadata-collection.test.ts (4 tests) 1627ms
+   ✓ 실제 HTTP 정보 수집 (4)
+     ✓ 저장은 바로 대기 상태로 응답하고, 응답 뒤 수집이 막힌 주소를 기록해도 링크는 남는다 369ms
+     ✓ 실패한 상품을 다시 가져오면 202와 다음 세대로 응답하고 다시 수집해 같은 이유로 실패한다 573ms
+     ✓ 막 담겨 대기 중인 상품을 다시 가져오면 409이고 작업을 늘리지 않는다 345ms
+     ✓ 없는 상품, 잘못된 경로·본문과 다른 출처의 다시 가져오기는 계약대로 거절한다 339ms
+ ✓ tests/http/share-keys.test.ts (2 tests) 772ms
+   ✓ 실제 HTTP 저장 키 관리 (2)
+     ✓ 소유자는 키를 만들고, 단축어가 담으면 마지막으로 담은 시각을 보고, 새 키로 바꾸고 폐기한다 422ms
+     ✓ 다른 출처의 만들기·폐기는 403이고, 없는 키는 404, UUID가 아닌 키는 400이며 키는 그대로다 349ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/http/share-links.test.ts > 실제 HTTP 단축어 경로 > 키는 세션이 아니다: 같은 출처 Origin과 키만으로 소유자 경로를 부르면 모두 401 signed_out이고 DB는 그대로다
+AssertionError: POST /api/library/metadata: expected 404 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 404
+
+ ❯ tests/http/share-links.test.ts:143:52
+    141|         body: body === undefined ? undefined : JSON.stringify(body),
+    142|       });
+    143|       expect(response.status, `${method} ${path}`).toBe(401);
+       |                                                    ^
+    144|       expect(errorResponseSchema.parse(await response.json()).error, `…
+    145|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/http/share-links.test.ts > 실제 HTTP 단축어 경로 > 소유자 화면이 깨우면 키로 담은 상품의 수집이 응답 뒤에 시작되고, 다시 깨우면 깨울 것이 없다
+AssertionError: expected 404 to be 202 // Object.is equality
+
+- Expected
++ Received
+
+- 202
++ 404
+
+ ❯ tests/http/share-links.test.ts:202:29
+    200|     const response = await wake();
+    201|
+    202|     expect(response.status).toBe(202);
+       |                             ^
+    203|     expect(response.headers.get("cache-control")).toBe("no-store");
+    204|     expect(metadataWakeResponseSchema.parse(await response.json()).pro…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 6 passed (7)
+      Tests  2 failed | 36 passed (38)
+   Start at  22:10:16
+   Duration  15.21s (tests 96%, import 3%)
+

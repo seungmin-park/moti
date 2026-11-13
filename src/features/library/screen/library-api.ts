@@ -8,6 +8,7 @@ import {
   libraryReadResponseSchema,
   linkSaveResponseSchema,
   metadataRetryResponseSchema,
+  metadataWakeResponseSchema,
   productChangeResponseSchema,
   type CollectionCreateRequest,
   type CollectionCreateResponse,
@@ -20,6 +21,7 @@ import {
   type LinkSaveResponse,
   type MetadataRetryRequest,
   type MetadataRetryResponse,
+  type MetadataWakeResponse,
   type ProductChangeRequest,
   type ProductChangeResponse,
 } from "../presentation/library-dto";
@@ -37,6 +39,7 @@ export type Endpoint =
   | "collection.create"
   | "collection.rename"
   | "metadata.retry"
+  | "metadata.wake"
   | "product.change"
   | "library.backup"
   | "library.restore";
@@ -52,6 +55,7 @@ export type LibraryApi = {
   exportBackup(): Promise<ApiOutcome<BackupFile>>;
   // Sends the chosen file's text unchanged, so the server checks exactly what the screen checked.
   restore(text: string): Promise<ApiOutcome<LibraryReadResponse>>;
+  wake(): Promise<ApiOutcome<MetadataWakeResponse>>;
 };
 
 const connection: ApiFailure = { kind: "unavailable", message: "연결을 확인하고 다시 시도해 주세요." };
@@ -81,23 +85,27 @@ const unchanged = (message: string) => (): ApiFailure => ({ kind: "invalid", fie
 // A commit can precede a lost answer, so the screen re-reads instead of saying nothing changed.
 const restoreUnknown = unavailable("복원을 마쳤는지 확인하지 못했어요.");
 
+const readFailures: Mapping = {
+  ...session,
+  storage_unavailable: readFailed,
+  cross_origin: readFailed,
+  unsupported_media_type: readFailed,
+  payload_too_large: readFailed,
+  invalid_input: readFailed,
+  collection_missing: readFailed,
+  collection_duplicate: readFailed,
+  identity_conflict: readFailed,
+  product_missing: readFailed,
+  metadata_not_retryable: readFailed,
+  revision_conflict: readFailed,
+  picture_missing: readFailed,
+  share_key_missing: readFailed,
+};
+
 const failures: Record<Endpoint, Mapping> = {
-  "library.read": {
-    ...session,
-    storage_unavailable: readFailed,
-    cross_origin: readFailed,
-    unsupported_media_type: readFailed,
-    payload_too_large: readFailed,
-    invalid_input: readFailed,
-    collection_missing: readFailed,
-    collection_duplicate: readFailed,
-    identity_conflict: readFailed,
-    product_missing: readFailed,
-    metadata_not_retryable: readFailed,
-    revision_conflict: readFailed,
-    picture_missing: readFailed,
-    share_key_missing: readFailed,
-  },
+  // The screen shows nothing when a wake fails: the library it read is still right, and the retry button remains.
+  "metadata.wake": readFailures,
+  "library.read": readFailures,
   "link.save": {
     ...session,
     storage_unavailable: retryLater,
@@ -314,5 +322,8 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
       headers: { "content-type": "application/json", accept: "application/json" },
       body: text,
     }, [{ status: 200, parse: parsed(libraryReadResponseSchema) }], RESTORE_TIMEOUT_MS),
+    wake: () => request("metadata.wake", "/api/library/metadata", write("POST", {}), [
+      { status: 202, parse: parsed(metadataWakeResponseSchema) },
+    ]),
   };
 }

@@ -23,6 +23,8 @@ import {
   linkSaveResponseSchema,
   metadataRetryRequestSchema,
   metadataRetryResponseSchema,
+  metadataWakeRequestSchema,
+  metadataWakeResponseSchema,
   productChangeRequestSchema,
   productChangeResponseSchema,
 } from "./library-dto";
@@ -149,6 +151,17 @@ export const libraryRoutes: Route[] = [
       ...denied,
       404: { description: "상품이 없다.", schema: errorResponseSchema },
       409: { description: "화면의 세대가 다르거나 이미 수집 중·대기 중·완료 상태다.", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "post",
+    path: "/api/library/metadata",
+    summary: "아직 한 번도 시작하지 않은 수집(저장 키로 담은 상품, 복원 뒤 시간 안에 못 끝낸 상품 등)을 깨운다. 지금 세대에서 대기 중이고 시도가 0인 작업을 최신 상품부터 8개까지 다시 대기열 앞에 두고 응답 뒤에 수집한다. 다른 요청이 잡고 있는 작업은 건너뛴다.",
+    request: metadataWakeRequestSchema,
+    responses: {
+      202: { description: "MetadataWakeResponse. 깨운 상품. 없으면 빈 목록이다.", schema: metadataWakeResponseSchema },
+      ...writeFailures,
+      ...denied,
     },
   },
   {

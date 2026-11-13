@@ -100,4 +100,13 @@ describe("API 문서", () => {
     expect(Object.keys(revoke.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "404", "503"]));
     for (const operation of [keys.get, keys.post, revoke]) expect(operation).not.toHaveProperty("security");
   });
+
+  it("깨우기 경로는 빈 본문의 POST로 202·400·401·403·413·415·503을 문서에 남긴다", () => {
+    const operation = buildApiDocument().paths["/api/library/metadata"]?.post as {
+      requestBody: { content: Record<string, { schema: { properties?: Record<string, unknown> } }> };
+      responses: Record<string, unknown>;
+    };
+    expect(Object.keys(operation.requestBody.content["application/json"].schema.properties ?? {})).toEqual([]);
+    expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["202", "400", "401", "403", "413", "415", "503"]));
+  });
 });

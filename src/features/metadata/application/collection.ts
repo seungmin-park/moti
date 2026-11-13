@@ -2,7 +2,7 @@ import type { Product, ProductId } from "../../library/domain/library";
 import type { CollectionErrorCode } from "../domain/collection-error";
 import type { PageFacts } from "../domain/page-facts";
 import { pickSinglePrice, type Price } from "../domain/price";
-import type { MetadataRetryCommand, MetadataRetryResult } from "./commands";
+import type { MetadataRetryCommand, MetadataRetryResult, MetadataWakeCommand, MetadataWakeResult } from "./commands";
 import type { ImageCopy, PictureCopier, PictureObject } from "./picture-copy";
 
 export type CollectionRequest = { productId: ProductId; generation: number };
@@ -26,6 +26,8 @@ export interface CollectionJobStore {
   complete(job: CollectionJob, page: CollectedPage, image: ImageCopy): Promise<JobSettlement>;
   fail(job: CollectionJob, code: CollectionErrorCode): Promise<JobSettlement>;
   retry(command: MetadataRetryCommand): Promise<MetadataRetryResult>;
+  // Current-generation jobs that never started, newest product first. Jobs another request holds are skipped.
+  wake(command: MetadataWakeCommand): Promise<MetadataWakeResult>;
 }
 
 export type FetchedPage = { html: string; url: string; status: number };

@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
-import { errorResponseSchema, libraryReadResponseSchema } from "../../src/features/library/presentation/library-dto";
+import { errorResponseSchema, libraryReadResponseSchema, metadataWakeResponseSchema } from "../../src/features/library/presentation/library-dto";
 import {
   shareLinkAddResponseSchema,
   shareLinkErrorResponseSchema,
@@ -131,6 +131,7 @@ describe("실제 HTTP 단축어 경로", () => {
       ["GET", "/api/share-keys", undefined],
       ["POST", "/api/share-keys", { replaces: null }],
       ["DELETE", `/api/share-keys/${key.id}`, undefined],
+      ["POST", "/api/library/metadata", {}],
     ];
 
     for (const [method, path, body] of routes) {
@@ -181,5 +182,29 @@ describe("실제 HTTP 단축어 경로", () => {
     const crossSite = await shortcut(secret, { url: "https://shop.example/lamp" }, { origin: "https://evil.example" });
     expect(crossSite.status).toBe(201);
     expect(crossSite.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("소유자 화면이 깨우면 키로 담은 상품의 수집이 응답 뒤에 시작되고, 다시 깨우면 깨울 것이 없다", async () => {
+    const { secret } = await issue();
+    // A loopback address the production fetch policy refuses: the run settles as failed without leaving this machine.
+    const blockedLink = "http://127.0.0.1:9/p";
+    expect((await shortcut(secret, { url: blockedLink })).status).toBe(201);
+    const [product] = (await library()).products;
+    expect(product.metadata).toEqual({ phase: "queued", generation: 1, attempts: 0, stalled: false });
+
+    const wake = () => fetch(new URL("/api/library/metadata", appUrl), {
+      method: "POST",
+      headers: { cookie, origin, "content-type": "application/json" },
+      body: "{}",
+    });
+    const response = await wake();
+
+    expect(response.status).toBe(202);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(metadataWakeResponseSchema.parse(await response.json()).products.map(({ id }) => id)).toEqual([product.id]);
+    await expect.poll(async () => (await fixture.admin.query<{ phase: string; code: string | null }>(
+      "select metadata_phase as phase, metadata_error_code as code from moti.products where id = $1", [product.id],
+    )).rows[0], { timeout: 10_000 }).toEqual({ phase: "failed", code: "blocked_address" });
+    expect(metadataWakeResponseSchema.parse(await (await wake()).json())).toEqual({ products: [] });
   });
 });

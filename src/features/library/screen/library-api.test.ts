@@ -97,6 +97,22 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     picture_missing: restoreUnknown,
     share_key_missing: restoreUnknown,
   },
+  "metadata.wake": {
+    ...signedIn,
+    storage_unavailable: { kind: "unavailable", message: readFailed },
+    cross_origin: { kind: "unavailable", message: readFailed },
+    unsupported_media_type: { kind: "unavailable", message: readFailed },
+    payload_too_large: { kind: "unavailable", message: readFailed },
+    invalid_input: { kind: "unavailable", message: readFailed },
+    collection_missing: { kind: "unavailable", message: readFailed },
+    collection_duplicate: { kind: "unavailable", message: readFailed },
+    identity_conflict: { kind: "unavailable", message: readFailed },
+    product_missing: { kind: "unavailable", message: readFailed },
+    metadata_not_retryable: { kind: "unavailable", message: readFailed },
+    revision_conflict: { kind: "unavailable", message: readFailed },
+    picture_missing: { kind: "unavailable", message: readFailed },
+    share_key_missing: { kind: "unavailable", message: readFailed },
+  },
   "library.read": {
     ...signedIn,
     storage_unavailable: { kind: "unavailable", message: readFailed },
@@ -305,6 +321,16 @@ describe("보관함 API 클라이언트", () => {
     expect(init?.method).toBe("POST");
     expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
     expect(JSON.parse(String(init?.body))).toEqual({ generation: 1 });
+  });
+
+  it("Given 화면을 연 뒤 깨우기 When 요청하면 Then 빈 JSON을 POST로 보내고 202 상품 목록을 돌려준다", async () => {
+    const { fetcher, api } = respond({ products: [product] }, { status: 202 });
+    await expect(api.wake()).resolves.toEqual({ ok: true, value: { products: [product] } });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe("/api/library/metadata");
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({});
   });
 
   it("Given 다시 가져오기에 202가 아닌 성공 코드 When 요청하면 Then 연결 안내로 실패한다", async () => {

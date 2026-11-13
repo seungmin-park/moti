@@ -2,6 +2,15 @@ import { LibraryError, type Product, type ProductId } from "../../library/domain
 
 export type MetadataRetryCommand = { productId: ProductId; expectedGeneration: number };
 export type MetadataRetryResult = { kind: "requeued" | "resumed"; product: Product };
+export type MetadataWakeCommand = { limit: number };
+// The products whose collection was woken, now waiting at the front of the queue.
+export type MetadataWakeResult = { products: Product[] };
+
+// The owner's screen wakes collections nobody started (a share key's adds, restores past their window). They run after
+// that response within the route's 60 s: two at a time, none started after 40 s; the rest wake on the next open.
+export const WAKE_LIMIT = 8;
+export const WAKE_CONCURRENCY = 2;
+export const WAKE_WINDOW_MS = 40_000;
 
 // The generation column is a PostgreSQL integer; a larger value would reach the database and fail as an outage.
 export const MAX_METADATA_GENERATION = 2147483647;

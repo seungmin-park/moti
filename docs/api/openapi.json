@@ -5590,6 +5590,679 @@
         }
       }
     },
+    "/api/library/metadata": {
+      "post": {
+        "summary": "아직 한 번도 시작하지 않은 수집(저장 키로 담은 상품, 복원 뒤 시간 안에 못 끝낸 상품 등)을 깨운다. 지금 세대에서 대기 중이고 시도가 0인 작업을 최신 상품부터 8개까지 다시 대기열 앞에 두고 응답 뒤에 수집한다. 다른 요청이 잡고 있는 작업은 건너뛴다.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "MetadataWakeResponse. 깨운 상품. 없으면 빈 목록이다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "sourceUrl": {
+                            "type": "string"
+                          },
+                          "identityUrl": {
+                            "type": "string"
+                          },
+                          "option": {
+                            "type": "string"
+                          },
+                          "shop": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "collectionIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "addedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "purchase": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "wish"
+                                  }
+                                },
+                                "required": [
+                                  "status"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "purchased"
+                                  },
+                                  "date": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "date",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "price": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "amountMinor": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          "currency": {
+                                            "type": "string",
+                                            "pattern": "^[A-Z]{3}$"
+                                          }
+                                        },
+                                        "required": [
+                                          "amountMinor",
+                                          "currency"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "date",
+                                  "price"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "metadata": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "phase": {
+                                    "type": "string",
+                                    "enum": [
+                                      "queued",
+                                      "running"
+                                    ]
+                                  },
+                                  "generation": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "attempts": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "stalled": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "phase",
+                                  "generation",
+                                  "attempts",
+                                  "stalled"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "phase": {
+                                    "type": "string",
+                                    "const": "ready"
+                                  },
+                                  "generation": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "attempts": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "completedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                  },
+                                  "image": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "outcome": {
+                                            "type": "string",
+                                            "enum": [
+                                              "copied",
+                                              "absent"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "outcome"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "outcome": {
+                                            "type": "string",
+                                            "const": "failed"
+                                          },
+                                          "errorCode": {
+                                            "type": "string",
+                                            "enum": [
+                                              "invalid_url",
+                                              "blocked_address",
+                                              "dns_failed",
+                                              "connect_failed",
+                                              "timeout",
+                                              "too_many_redirects",
+                                              "blocked_by_site",
+                                              "http_status",
+                                              "unsupported_content",
+                                              "too_large",
+                                              "decode_failed",
+                                              "unreadable_image",
+                                              "upload_failed",
+                                              "internal"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "outcome",
+                                          "errorCode"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "phase",
+                                  "generation",
+                                  "attempts",
+                                  "completedAt",
+                                  "image"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "phase": {
+                                    "type": "string",
+                                    "const": "failed"
+                                  },
+                                  "generation": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "attempts": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "errorCode": {
+                                    "type": "string",
+                                    "enum": [
+                                      "invalid_url",
+                                      "blocked_address",
+                                      "dns_failed",
+                                      "connect_failed",
+                                      "timeout",
+                                      "too_many_redirects",
+                                      "blocked_by_site",
+                                      "http_status",
+                                      "unsupported_content",
+                                      "too_large",
+                                      "decode_failed",
+                                      "no_product_data",
+                                      "attempts_exhausted",
+                                      "internal"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "phase",
+                                  "generation",
+                                  "attempts",
+                                  "errorCode"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "lastSuccessfulPrice": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "amountMinor": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$"
+                                  },
+                                  "checkedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                  }
+                                },
+                                "required": [
+                                  "amountMinor",
+                                  "currency",
+                                  "checkedAt"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "picture": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "src": {
+                                    "type": "string",
+                                    "pattern": "^\\/api\\/products\\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\/picture\\?v=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                                  }
+                                },
+                                "required": [
+                                  "src"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "sourceUrl",
+                          "identityUrl",
+                          "option",
+                          "shop",
+                          "title",
+                          "note",
+                          "revision",
+                          "collectionIds",
+                          "addedAt",
+                          "updatedAt",
+                          "purchase",
+                          "metadata",
+                          "lastSuccessfulPrice",
+                          "picture"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "products"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력이 유효하지 않다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "share_key_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인 세션이 없다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "share_key_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "허용한 Google 계정이 아니면 세션을 종료한다. 다른 출처의 쓰기 요청도 거절한다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "share_key_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "본문이 16384바이트를 넘는다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "share_key_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "본문이 application/json이 아니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "share_key_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "소유자 설정이 없거나 저장소·인증 서버를 사용할 수 없다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "share_key_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/products/{productId}/picture": {
       "get": {
         "summary": "상품의 현재 사진 사본으로 보낸다. 화면의 이미지 주소이며 요청마다 비공개 사본의 1시간짜리 서명 주소를 새로 만든다.",

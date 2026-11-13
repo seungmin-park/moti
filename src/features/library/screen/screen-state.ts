@@ -13,6 +13,7 @@ import type {
   LinkSaveResponse,
   MetadataRetryRequest,
   MetadataRetryResponse,
+  MetadataWakeResponse,
   ProductChangeRequest,
   ProductChangeResponse,
   ProductResponse,
@@ -71,7 +72,8 @@ export type ApiCall =
   | { type: "library.poll" }
   | { type: "backup.export" }
   | { type: "backup.file"; file: File }
-  | { type: "library.restore"; text: string };
+  | { type: "library.restore"; text: string }
+  | { type: "metadata.wake" };
 export type ScreenEvent =
   | { type: "retry" }
   | { type: "resume" }
@@ -112,7 +114,8 @@ export type ScreenEvent =
   | { type: "backup.unreadable" }
   | { type: "backup.back" }
   | { type: "backup.restore" }
-  | { type: "restore.settled"; outcome: ApiOutcome<LibraryReadResponse> };
+  | { type: "restore.settled"; outcome: ApiOutcome<LibraryReadResponse> }
+  | { type: "wake.settled"; outcome: ApiOutcome<MetadataWakeResponse> };
 export type Transition = { state: LibraryScreenState; call: ApiCall | null };
 
 export const initialScreen: Transition = { state: { phase: "loading" }, call: { type: "library.read" } };
@@ -186,6 +189,16 @@ function withPolled(products: ProductResponse[], polled: ProductResponse[]): Pro
 
 function withResponse(products: ProductResponse[], product: ProductResponse): ProductResponse[] {
   return products.map((item) => (item.id === product.id ? mergeProduct(item, product) : item));
+}
+
+function withResponses(products: ProductResponse[], incoming: ProductResponse[]): ProductResponse[] {
+  return incoming.reduce(withResponse, products);
+}
+
+// Products whose collection never started: a share key's adds, or a restore or save whose run never began. Only the
+// owner's session can collect them, so the screen asks for them once it has the library.
+function hasUnstarted(library: LibraryReadResponse): boolean {
+  return library.products.some(({ metadata }) => metadata.phase === "queued" && metadata.attempts === 0);
 }
 
 // A retry deliberately resets collection (a resumed job goes back to queued), so its answer replaces the product.
@@ -617,6 +630,11 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       return stay({ ...state, toast: null, dialog: { kind: "backup", step: { name: "menu" }, notice: null } });
     case "restore.settled":
       return dialog?.kind === "backup" && dialog.step.name === "restoring" ? onRestored(state, event.outcome) : stay(state);
+    case "wake.settled":
+      if (event.outcome.ok) {
+        return stay({ ...state, library: { ...state.library, products: withResponses(state.library.products, event.outcome.value.products) } });
+      }
+      return leaveOrStay(state, event.outcome.failure);
     case "dialog.close":
       return busy(state) ? stay(state) : stay({ ...state, dialog: null });
     case "library.settled":
@@ -710,10 +728,13 @@ export function transition(state: LibraryScreenState, event: ScreenEvent): Trans
     case "loading": {
       if (event.type !== "library.settled") return stay(state);
       if (event.outcome.ok) {
-        return stay({
-          phase: "ready", library: event.outcome.value, view: "wish", collectionId: null,
-          dialog: null, refreshing: false, writing: null, toast: null,
-        });
+        return {
+          state: {
+            phase: "ready", library: event.outcome.value, view: "wish", collectionId: null,
+            dialog: null, refreshing: false, writing: null, toast: null,
+          },
+          call: hasUnstarted(event.outcome.value) ? { type: "metadata.wake" } : null,
+        };
       }
       const { failure } = event.outcome;
       return failure.kind === "redirect" ? leave(failure.to) : stay({ phase: "failed", message: failure.message });
@@ -756,6 +777,8 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       }
     case "library.restore":
       return { type: "restore.settled", outcome: await api.restore(call.text) };
+    case "metadata.wake":
+      return { type: "wake.settled", outcome: await api.wake() };
   }
 }
 

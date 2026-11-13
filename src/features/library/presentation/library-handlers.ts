@@ -1,6 +1,13 @@
 import type { Access } from "../../auth/domain/access";
 import type { CollectionRequest } from "../../metadata/application/collection";
-import { toMetadataRetryCommand, type MetadataRetryCommand, type MetadataRetryResult } from "../../metadata/application/commands";
+import {
+  WAKE_LIMIT,
+  toMetadataRetryCommand,
+  type MetadataRetryCommand,
+  type MetadataRetryResult,
+  type MetadataWakeCommand,
+  type MetadataWakeResult,
+} from "../../metadata/application/commands";
 import { isSameOrigin, readJsonBody } from "../../shared/presentation/http";
 import { toShareKeyIssueCommand, toShareKeyRevokeCommand } from "../../share/application/commands";
 import type { ShareKeyService } from "../../share/application/share-service";
@@ -34,11 +41,13 @@ import {
   collectionRenameRequestSchema,
   linkSaveRequestSchema,
   metadataRetryRequestSchema,
+  metadataWakeRequestSchema,
   productChangeRequestSchema,
   toCollectionResponse,
   toLibraryReadResponse,
   toLinkSaveResponse,
   toMetadataRetryResponse,
+  toMetadataWakeResponse,
   toProductChangeResponse,
   type ErrorCode,
   type ErrorResponse,
@@ -55,6 +64,9 @@ export type LibraryRequestContext = {
   settleRestore(result: LibraryRestoreResult): void;
   // The owner's share key, managed only with the owner's session.
   shareKeys: ShareKeyService;
+  wake(command: MetadataWakeCommand): Promise<MetadataWakeResult>;
+  // Schedules collection of several products after the response, within a window; never delays or fails the request.
+  collectAll(requests: CollectionRequest[]): void;
 };
 export type ProductRoute = { params: Promise<{ productId: string }> };
 export type CollectionRoute = { params: Promise<{ collectionId: string }> };
@@ -126,7 +138,7 @@ function failure(code: ErrorCode, message = errorMessages[code], field?: string)
   return json(errorStatus[code], body);
 }
 
-type Allowed = Pick<LibraryRequestContext, "service" | "collect" | "retry" | "settleRestore" | "shareKeys">;
+type Allowed = Pick<LibraryRequestContext, "service" | "collect" | "retry" | "settleRestore" | "shareKeys" | "wake" | "collectAll">;
 type Action<Route> = (allowed: Allowed, request: Request, route: Route) => Promise<Response>;
 
 export function createLibraryHandlers(context: (request: Request) => Promise<LibraryRequestContext>) {
@@ -244,6 +256,16 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
     deleteShareKey: handle<ShareKeyRoute>(async ({ shareKeys }, _request, route) => {
       const { keyId } = await route.params;
       return json(200, toShareKeyRevokeResponse(await shareKeys.revoke(toShareKeyRevokeCommand(keyId))));
+    }, { write: true }),
+    // The screen calls this once it has the library: products nobody started collecting (a share key's adds) start now.
+    postMetadataWake: handle(async ({ wake, collectAll }, request) => {
+      const metadataWakeRequest = await readRequest(request, (value) => metadataWakeRequestSchema.parse(value));
+      if (metadataWakeRequest instanceof Response) return metadataWakeRequest;
+      const result = await wake({ limit: WAKE_LIMIT });
+      if (result.products.length > 0) {
+        collectAll(result.products.map(({ id, metadata }) => ({ productId: id, generation: metadata.generation })));
+      }
+      return json(202, toMetadataWakeResponse(result));
     }, { write: true }),
     // The src of an <img>: same-origin and stable for one copy. Each request signs a fresh short-lived link, and the
     // browser keeps the redirect privately for less than that link lives.
