@@ -79,11 +79,13 @@ describe("실제 DB 소유자 경계", () => {
     expect(functions.rows.map((row) => row.proname).toSorted()).toEqual([
       "moti_backup", "moti_create_collection", "moti_edit_product", "moti_metadata_claim", "moti_metadata_complete", "moti_metadata_fail",
       "moti_metadata_retry", "moti_picture_locate", "moti_purchase_product", "moti_record_purchase",
-      "moti_rename_collection", "moti_restore_library", "moti_return_to_wish", "moti_save_link",
+      "moti_rename_collection", "moti_restore_library", "moti_return_to_wish", "moti_save_link", "moti_share_add",
       "moti_share_key_issue", "moti_share_key_read", "moti_share_key_revoke", "moti_snapshot",
     ]);
     for (const row of functions.rows) {
-      expect(row).toMatchObject({ rolbypassrls: false, rolsuper: false, prosecdef: true, anon_execute: false, authenticated_execute: true });
+      // The share key's add is the one function a request without a session runs; share-add.test.ts pins its role.
+      const keyOnly = row.proname === "moti_share_add";
+      expect(row).toMatchObject({ rolbypassrls: false, rolsuper: false, prosecdef: true, anon_execute: keyOnly, authenticated_execute: !keyOnly });
       expect(tables.rows.every((table) => table.owner !== row.owner)).toBe(true);
     }
   });

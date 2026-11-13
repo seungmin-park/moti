@@ -209,3 +209,88 @@ revoke all on function public.moti_share_key_revoke(uuid) from public, anon, aut
 grant execute on function public.moti_share_key_read() to authenticated;
 grant execute on function public.moti_share_key_issue(uuid) to authenticated;
 grant execute on function public.moti_share_key_revoke(uuid) to authenticated;
+
+-- The key's role. It owns the one function anon may run, and its grants are all it can do: read the configured owner,
+-- find and count its own active key, read the columns a duplicate check needs, and add a product with its first job.
+-- No update or delete on library rows, nothing on collections, memberships or storage, no other function.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'moti_share') then
+    create role moti_share nologin noinherit nosuperuser nobypassrls;
+  end if;
+end
+$$;
+
+grant moti_share to postgres;
+grant usage on schema moti, extensions to moti_share;
+grant select (owner_id, google_subject) on moti.owner_config to moti_share;
+grant select (id, owner_id, token_hash, revoked_at, window_started_at, window_uses),
+  update (last_used_at, window_started_at, window_uses) on moti.share_keys to moti_share;
+grant select (id, owner_id, identity_url, option, identity_hash, metadata_generation),
+  insert (owner_id, source_url, identity_url, option, shop) on moti.products to moti_share;
+grant insert (owner_id, product_id, generation) on moti.metadata_jobs to moti_share;
+-- add_link and its link check, the owner check, and the predicates the products and jobs check constraints call (a
+-- constraint runs its functions with the inserting role's privileges).
+grant execute on function moti.add_link(uuid, text, text, text, text), moti.is_link_input(text, text, text, text),
+  moti.is_web_url(text, integer), moti.has_google_identity(uuid, text), moti.is_collection_error(text),
+  moti.is_image_error(text), moti.is_clean_title(text) to moti_share;
+
+create policy key_reads_owner on moti.owner_config for select to moti_share using (true);
+create policy key_finds_active_key on moti.share_keys for select to moti_share using (revoked_at is null);
+create policy key_marks_use on moti.share_keys for update to moti_share
+  using (revoked_at is null) with check (revoked_at is null);
+create policy key_reads_dedupe on moti.products for select to moti_share
+  using (owner_id = (select c.owner_id from moti.owner_config c));
+create policy key_adds_product on moti.products for insert to moti_share
+  with check (owner_id = (select c.owner_id from moti.owner_config c));
+create policy key_adds_job on moti.metadata_jobs for insert to moti_share
+  with check (owner_id = (select c.owner_id from moti.owner_config c));
+
+-- The only function anon may run. It never sets request.jwt.claims, so every owner check stays closed inside it.
+-- Unknown, malformed and revoked keys take the same path to the same error. A key accepts 30 adds in the hour from its
+-- window's first use, duplicates included; guessing is out of reach (256 bits), so the window bounds a leaked key.
+-- A refused add rolls back with the call, so it neither counts nor moves last_used_at.
+create function public.moti_share_add(p_key text, p_source_url text, p_identity_url text, p_option text, p_shop text)
+returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_owner uuid;
+  v_uses integer;
+  v_kind text;
+begin
+  if p_key is null or char_length(p_key) <> 51 or p_key !~ '^moti_sk_[A-Za-z0-9_-]{43}$' then
+    raise exception using errcode = 'M0009', message = 'share key rejected';
+  end if;
+
+  update moti.share_keys k
+  set last_used_at = now(),
+      window_started_at = case when k.window_started_at > now() - interval '1 hour' then k.window_started_at else now() end,
+      window_uses = case when k.window_started_at > now() - interval '1 hour' then k.window_uses + 1 else 1 end
+  where k.token_hash = extensions.digest(p_key, 'sha256') and k.revoked_at is null
+    and exists (
+      select 1 from moti.owner_config c
+      where c.owner_id = k.owner_id and moti.has_google_identity(c.owner_id, c.google_subject)
+    )
+  returning k.owner_id, k.window_uses into v_owner, v_uses;
+  if v_owner is null then
+    raise exception using errcode = 'M0009', message = 'share key rejected';
+  end if;
+  if v_uses > 30 then
+    raise exception using errcode = 'M0010', message = 'share key busy';
+  end if;
+
+  select a.kind into v_kind from moti.add_link(v_owner, p_source_url, p_identity_url, p_option, p_shop) a;
+  return jsonb_build_object('kind', v_kind);
+exception
+  -- A value the checks let through but a column refuses: the error's detail would show the row, owner included.
+  when data_exception or integrity_constraint_violation then
+    raise exception using errcode = 'M0002', message = 'invalid link input';
+end
+$$;
+
+grant usage, create on schema public to moti_share;
+alter function public.moti_share_add(text, text, text, text, text) owner to moti_share;
+revoke usage, create on schema public from moti_share;
+
+revoke all on function public.moti_share_add(text, text, text, text, text) from public, anon, authenticated, service_role;
+grant execute on function public.moti_share_add(text, text, text, text, text) to anon;
