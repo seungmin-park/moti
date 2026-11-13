@@ -1,4 +1,4 @@
-import type { Collection, Library, Product } from "../domain/library";
+import type { Collection, Library, LibraryBackup, Product } from "../domain/library";
 import type {
   CollectionCreateCommand,
   CollectionRenameCommand,
@@ -16,4 +16,5 @@ export interface LibraryStore {
   openPicture(command: PictureViewCommand): Promise<PictureViewResult>;
   changeProduct(command: ProductChangeCommand): Promise<Product>;
   renameCollection(command: CollectionRenameCommand): Promise<Collection>;
+  exportLibrary(): Promise<LibraryBackup>;
 }

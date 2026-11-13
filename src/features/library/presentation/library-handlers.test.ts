@@ -1,9 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Access } from "../../auth/domain/access";
 import { toLinkSaveCommand, type PictureViewResult } from "../application/commands";
-import { LibraryError, type Collection, type CollectionId, type Library, type Product, type ProductId } from "../domain/library";
+import {
+  LibraryError,
+  type Collection,
+  type CollectionId,
+  type Library,
+  type LibraryBackup,
+  type Product,
+  type ProductId,
+} from "../domain/library";
 import type { CollectionRequest } from "../../metadata/application/collection";
 import type { MetadataRetryCommand, MetadataRetryResult } from "../../metadata/application/commands";
+import { readLibraryBackup } from "./library-backup";
 import { createLibraryHandlers } from "./library-handlers";
 import {
   collectionCreateResponseSchema,
@@ -42,6 +51,22 @@ const product = {
   lastSuccessfulPrice: null,
   picture: null,
 } satisfies Product;
+const backup = {
+  collections: [{ name: "책상", createdAt: "2026-11-11T00:00:00.000Z" }],
+  products: [{
+    sourceUrl: "https://example.com/item?utm_source=x",
+    identityUrl: "https://example.com/item",
+    option: "",
+    shop: "example.com",
+    collectedTitle: "무선 헤드폰",
+    ownerTitle: "내 헤드폰",
+    note: "선물용",
+    collectionNames: ["책상"],
+    addedAt: "2026-11-11T00:00:00.000Z",
+    purchase: { status: "purchased", date: null, price: { amountMinor: 0, currency: "KRW" } },
+    lastSuccessfulPrice: null,
+  }],
+} satisfies LibraryBackup;
 
 function given(access: Access) {
   const service = {
@@ -51,6 +76,7 @@ function given(access: Access) {
     openPicture: vi.fn(async (): Promise<PictureViewResult> => ({ kind: "found", url: signedUrl })),
     changeProduct: vi.fn(async (): Promise<Product> => product),
     renameCollection: vi.fn(async (): Promise<Collection> => collection),
+    exportLibrary: vi.fn(async (): Promise<LibraryBackup> => backup),
   };
   const signOut = vi.fn(async () => {});
   // collect is a mock: scheduling the collection is itself the requirement, its work happens after the response.
@@ -713,5 +739,62 @@ describe("GET /api/products/{productId}/picture", () => {
     expect(response.status).toBe(403);
     expect(signOut).toHaveBeenCalledOnce();
     expect(service.openPicture).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/library/backup", () => {
+  const download = () => new Request(`${origin}/api/library/backup`);
+
+  it("Given 허용한 Google 계정 When 백업을 받으면 Then 서울 시각 이름의 첨부 파일로 읽기 함수가 받는 백업을 돌려준다", async () => {
+    vi.useFakeTimers({ now: new Date("2026-11-13T05:12:30.000Z"), toFake: ["Date"] });
+    try {
+      const { handlers, service } = given(allowed);
+
+      const response = await handlers.getBackup(download());
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
+      expect(response.headers.get("content-disposition")).toBe('attachment; filename="moti-backup-20261113-1412.json"');
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      const reading = readLibraryBackup(JSON.parse(await response.text()));
+      expect(reading).toMatchObject({ ok: true, counts: { products: 1, collections: 1 } });
+      expect(reading.ok && reading.document).toMatchObject({
+        exportedAt: "2026-11-13T05:12:30.000Z",
+        products: [{ sourceUrl: "https://example.com/item?utm_source=x", collectedTitle: "무선 헤드폰", ownerTitle: "내 헤드폰", collections: ["책상"] }],
+      });
+      expect(service.exportLibrary).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Given 다른 출처의 페이지 When 백업을 받으면 Then 읽기라 출처를 묻지 않고 세션으로 판단한다", async () => {
+    const { handlers } = given(allowed);
+    const response = await handlers.getBackup(new Request(`${origin}/api/library/backup`, { headers: { origin: "https://evil.test" } }));
+    expect(response.status).toBe(200);
+  });
+
+  it.each([
+    { access: { kind: "signed_out" } as Access, status: 401, error: "signed_out", signedOut: false },
+    { access: { kind: "forbidden" } as Access, status: 403, error: "forbidden", signedOut: true },
+    { access: { kind: "unconfigured" } as Access, status: 503, error: "unconfigured", signedOut: false },
+  ])("Given $error When 백업을 받으면 Then $status JSON 오류이고 보관함을 읽지 않는다", async ({ access, status, error, signedOut }) => {
+    const { handlers, service, signOut } = given(access);
+    const response = await handlers.getBackup(download());
+    expect(response.status).toBe(status);
+    expect(response.headers.get("content-disposition")).toBeNull();
+    expect((await errorOf(response)).error).toBe(error);
+    expect(service.exportLibrary).not.toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalledTimes(signedOut ? 1 : 0);
+  });
+
+  it("Given 저장소 오류 When 백업을 받으면 Then 503 JSON 오류이고 첨부 파일이 아니다", async () => {
+    const { handlers, service } = given(allowed);
+    service.exportLibrary.mockRejectedValueOnce(new LibraryError("storage_unavailable", "저장소를 사용할 수 없어요."));
+    const response = await handlers.getBackup(download());
+    expect(response.status).toBe(503);
+    expect(response.headers.get("content-disposition")).toBeNull();
+    expect((await errorOf(response)).error).toBe("storage_unavailable");
   });
 });

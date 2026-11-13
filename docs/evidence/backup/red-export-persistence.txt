@@ -1,0 +1,121 @@
+# Red: export SQL (step 2). The adapter calls moti_backup, which no migration defines yet.
+# Command: npm run test:database -- -t "백업 내보내기|비우회 역할" (other persistence/service tests filtered out, so the runner reports skips after the slice).
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ❯ tests/persistence/library-security.test.ts (19 tests | 1 failed | 18 skipped) 319ms
+   ❯ 실제 DB 소유자 경계 (19)
+     ↓ anonymous 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ stranger 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ missing_config 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ missing_google 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ wrong_subject 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ 공개 REST에서 테이블을 노출하지 않는다
+     × 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다 318ms
+     ↓ RPC 역할로 직접 읽거나 써도 다른 소유자의 행에는 RLS가 적용된다
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":""}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"javascript:alert(1)"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"https://name:secret@example.com/item"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"https://example.com/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_identity_url":""}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_option":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_collection_ids":null}
+     ↓ failed 수집 상태는 오류 코드가 없으면 DB가 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름  를 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름 가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가를 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름 null를 거절한다
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ❯ tests/persistence/library-backup.test.ts (3 tests | 3 failed) 931ms
+   ❯ 백업 내보내기 (3)
+     × 보이는 값과 소유자가 정한 값을 수집한 이름·소유자 이름을 나눠, 소속은 컬렉션 이름으로 돌려준다 371ms
+     × 빈 보관함은 빈 목록이다 279ms
+     × 다른 계정과 익명은 내보낼 수 없다 280ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/library-backup.test.ts > 백업 내보내기 > 보이는 값과 소유자가 정한 값을 수집한 이름·소유자 이름을 나눠, 소속은 컬렉션 이름으로 돌려준다
+LibraryError: 보관함 요청을 처리하지 못했어요.
+ ❯ callRpc src/features/library/infrastructure/supabase-library-store.ts:240:11
+    238|   const { data, error } = await client.rpc(name, parameters);
+    239|   if (error) {
+    240|     throw new LibraryError(
+       |           ^
+    241|       databaseErrors[error.code] ?? "storage_unavailable",
+    242|       "보관함 요청을 처리하지 못했어요.",
+ ❯ Object.exportLibrary src/features/library/infrastructure/supabase-library-store.ts:306:54
+ ❯ tests/persistence/library-backup.test.ts:51:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/persistence/library-backup.test.ts > 백업 내보내기 > 빈 보관함은 빈 목록이다
+LibraryError: 보관함 요청을 처리하지 못했어요.
+ ❯ callRpc src/features/library/infrastructure/supabase-library-store.ts:240:11
+    238|   const { data, error } = await client.rpc(name, parameters);
+    239|   if (error) {
+    240|     throw new LibraryError(
+       |           ^
+    241|       databaseErrors[error.code] ?? "storage_unavailable",
+    242|       "보관함 요청을 처리하지 못했어요.",
+ ❯ Object.exportLibrary src/features/library/infrastructure/supabase-library-store.ts:306:54
+ ❯ tests/persistence/library-backup.test.ts:91:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/persistence/library-backup.test.ts > 백업 내보내기 > 다른 계정과 익명은 내보낼 수 없다
+AssertionError: expected 'PGRST202' to be 'M0001' // Object.is equality
+
+Expected: "M0001"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-backup.test.ts:97:76
+     95|     await saved("https://shop.example/private", "");
+     96|
+     97|     expect((await fixture.stranger.client.rpc("moti_backup")).error?.c…
+       |                                                                            ^
+     98|     expect((await fixture.anonymous.rpc("moti_backup")).error?.code).t…
+     99|     await expect(createSupabaseLibraryStore(fixture.stranger.client).e…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/persistence/library-security.test.ts > 실제 DB 소유자 경계 > 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다
+AssertionError: expected [ 'moti_create_collection', …(12) ] to deeply equal [ 'moti_backup', …(13) ]
+
+- Expected
++ Received
+
+@@ -1,7 +1,6 @@
+  [
+-   "moti_backup",
+    "moti_create_collection",
+    "moti_edit_product",
+    "moti_metadata_claim",
+    "moti_metadata_complete",
+    "moti_metadata_fail",
+
+ ❯ tests/persistence/library-security.test.ts:79:65
+     77|        where n.nspname = 'public' and p.proname like 'moti_%'`,
+     78|     );
+     79|     expect(functions.rows.map((row) => row.proname).toSorted()).toEqua…
+       |                                                                 ^
+     80|       "moti_backup", "moti_create_collection", "moti_edit_product", "m…
+     81|       "moti_metadata_retry", "moti_picture_locate", "moti_purchase_pro…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  2 failed | 8 skipped (10)
+      Tests  4 failed | 167 skipped (171)
+   Start at  19:54:29
+   Duration  2.71s (tests 60%, import 36%, transform 3%, worker 1%)
+
+    Isolate  10 workers spawned · ~58ms startup each (spawn + environment, per file)
+             at least ~526ms faster with isolate: false — reuses workers across files instead of one per file
+
+JSON report written to /private/var/folders/tv/r1qdgk8x6972cyp7yrxlxdb80000gn/T/moti-database-eMD8Nt/database-results.json

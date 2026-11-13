@@ -566,6 +566,364 @@
         }
       }
     },
+    "/api/library/backup": {
+      "get": {
+        "summary": "보관함을 백업 파일(moti.library-backup v1)로 내려받는다. 링크·옵션, 수집한 이름과 소유자 이름, 메모, 컬렉션 이름과 소속(이름), 담은 시각, 구매 상태·구매일·실구매가, 마지막 확인 가격을 담는다. id·revision·수집 상태·사진은 담지 않는다.",
+        "responses": {
+          "200": {
+            "description": "LibraryBackupResponse. 앱이 저장하는 값만 담는다(정리된 링크·이름·메모, 대소문자를 무시하고 겹치지 않는 컬렉션 이름, 파일 안의 이름으로만 이루어진 소속, 겹치지 않는 링크). 이 규칙은 스키마 밖의 검사라 문서에 나타나지 않는다.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=\"moti-backup-YYYYMMDD-HHmm.json\" (서울 시각)",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "format": {
+                      "type": "string",
+                      "const": "moti.library-backup"
+                    },
+                    "version": {
+                      "type": "number",
+                      "const": 1
+                    },
+                    "exportedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}(?:Z))$"
+                    },
+                    "collections": {
+                      "maxItems": 500,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "products": {
+                      "maxItems": 5000,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sourceUrl": {
+                            "type": "string"
+                          },
+                          "option": {
+                            "type": "string"
+                          },
+                          "collectedTitle": {
+                            "type": "string"
+                          },
+                          "ownerTitle": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "collections": {
+                            "maxItems": 100,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "addedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}(?:Z))$"
+                          },
+                          "purchase": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "wish"
+                                  }
+                                },
+                                "required": [
+                                  "status"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "type": "string",
+                                    "const": "purchased"
+                                  },
+                                  "date": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "date",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "price": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "amountMinor": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 9007199254740991
+                                          },
+                                          "currency": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "amountMinor",
+                                          "currency"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "status",
+                                  "date",
+                                  "price"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "lastSuccessfulPrice": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "amountMinor": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$"
+                                  },
+                                  "checkedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d\\.\\d{3}(?:Z))$"
+                                  }
+                                },
+                                "required": [
+                                  "amountMinor",
+                                  "currency",
+                                  "checkedAt"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sourceUrl",
+                          "option",
+                          "collectedTitle",
+                          "ownerTitle",
+                          "note",
+                          "collections",
+                          "addedAt",
+                          "purchase",
+                          "lastSuccessfulPrice"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "format",
+                    "version",
+                    "exportedAt",
+                    "collections",
+                    "products"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인 세션이 없다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "허용한 Google 계정이 아니면 세션을 종료한다. 다른 출처의 쓰기 요청도 거절한다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "소유자 설정이 없거나 저장소·인증 서버를 사용할 수 없다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "signed_out",
+                        "forbidden",
+                        "unconfigured",
+                        "cross_origin",
+                        "unsupported_media_type",
+                        "payload_too_large",
+                        "invalid_input",
+                        "collection_missing",
+                        "collection_duplicate",
+                        "identity_conflict",
+                        "product_missing",
+                        "metadata_not_retryable",
+                        "revision_conflict",
+                        "picture_missing",
+                        "storage_unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/links": {
       "post": {
         "summary": "링크를 저장한다. 같은 링크·옵션이면 기존 상품을 바꾸지 않고 돌려준다.",

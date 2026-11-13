@@ -1,0 +1,85 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/presentation/api-document.test.ts (5 tests | 1 failed) 23ms
+   ❯ API 문서 (5)
+     × 백업 내려받기는 GET 200에 백업 파일 스키마와 첨부 이름 헤더를 문서에 남긴다 3ms
+ ❯ src/features/library/presentation/library-handlers.test.ts (120 tests | 6 failed) 71ms
+   ❯ GET /api/library/backup (6)
+     × Given 허용한 Google 계정 When 백업을 받으면 Then 서울 시각 이름의 첨부 파일로 읽기 함수가 받는 백업을 돌려준다 4ms
+     × Given 다른 출처의 페이지 When 백업을 받으면 Then 읽기라 출처를 묻지 않고 세션으로 판단한다 1ms
+     × Given signed_out When 백업을 받으면 Then 401 JSON 오류이고 보관함을 읽지 않는다 1ms
+     × Given forbidden When 백업을 받으면 Then 403 JSON 오류이고 보관함을 읽지 않는다 0ms
+     × Given unconfigured When 백업을 받으면 Then 503 JSON 오류이고 보관함을 읽지 않는다 0ms
+     × Given 저장소 오류 When 백업을 받으면 Then 503 JSON 오류이고 첨부 파일이 아니다 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 백업 내려받기는 GET 200에 백업 파일 스키마와 첨부 이름 헤더를 문서에 남긴다
+TypeError: Cannot read properties of undefined (reading 'responses')
+ ❯ src/features/library/presentation/api-document.test.ts:56:34
+     54|       responses: Record<string, { content?: Record<string, { schema: {…
+     55|     };
+     56|     expect(Object.keys(operation.responses["200"].headers ?? {})).toEq…
+       |                                  ^
+     57|     expect(Object.keys(operation.responses["200"].content?.["applicati…
+     58|       .toEqual(["format", "version", "exportedAt", "collections", "pro…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library/backup > Given 허용한 Google 계정 When 백업을 받으면 Then 서울 시각 이름의 첨부 파일로 읽기 함수가 받는 백업을 돌려준다
+TypeError: handlers.getBackup is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:753:39
+    751|       const { handlers, service } = given(allowed);
+    752|
+    753|       const response = await handlers.getBackup(download());
+       |                                       ^
+    754|
+    755|       expect(response.status).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library/backup > Given 다른 출처의 페이지 When 백업을 받으면 Then 읽기라 출처를 묻지 않고 세션으로 판단한다
+TypeError: handlers.getBackup is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:774:37
+    772|   it("Given 다른 출처의 페이지 When 백업을 받으면 Then 읽기라 출처를 묻지 않고 세션으로 판단한다", asy…
+    773|     const { handlers } = given(allowed);
+    774|     const response = await handlers.getBackup(new Request(`${origin}/a…
+       |                                     ^
+    775|     expect(response.status).toBe(200);
+    776|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library/backup > Given signed_out When 백업을 받으면 Then 401 JSON 오류이고 보관함을 읽지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library/backup > Given forbidden When 백업을 받으면 Then 403 JSON 오류이고 보관함을 읽지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library/backup > Given unconfigured When 백업을 받으면 Then 503 JSON 오류이고 보관함을 읽지 않는다
+TypeError: handlers.getBackup is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:784:37
+    782|   ])("Given $error When 백업을 받으면 Then $status JSON 오류이고 보관함을 읽지 않는다", a…
+    783|     const { handlers, service, signOut } = given(access);
+    784|     const response = await handlers.getBackup(download());
+       |                                     ^
+    785|     expect(response.status).toBe(status);
+    786|     expect(response.headers.get("content-disposition")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library/backup > Given 저장소 오류 When 백업을 받으면 Then 503 JSON 오류이고 첨부 파일이 아니다
+TypeError: handlers.getBackup is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:795:37
+    793|     const { handlers, service } = given(allowed);
+    794|     service.exportLibrary.mockRejectedValueOnce(new LibraryError("stor…
+    795|     const response = await handlers.getBackup(download());
+       |                                     ^
+    796|     expect(response.status).toBe(503);
+    797|     expect(response.headers.get("content-disposition")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  7 failed | 170 passed (177)
+   Start at  19:55:21
+   Duration  246ms (import 48%, tests 43%, transform 7%, worker 2%)
+

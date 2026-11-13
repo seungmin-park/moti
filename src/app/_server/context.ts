@@ -65,6 +65,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
         openPicture: unavailable,
         changeProduct: unavailable,
         renameCollection: unavailable,
+        exportLibrary: unavailable,
       }),
       signOut: async () => {},
       collect: () => {},

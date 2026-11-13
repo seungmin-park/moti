@@ -1,0 +1,91 @@
+# Red: export route (step 2). Built without src/app/api/library/backup/route.ts; persistence (129) and service (42) passed with the migration, then the HTTP phase:
+# Command: npm run build (route held out) && npm run test:database
+
+Starting the built app on 127.0.0.1:3180 against the isolated Supabase stack.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/http/library-api.test.ts (10 tests) 3400ms
+   ✓ 실제 HTTP 보관함 API (6)
+     ✓ 세션 없는 조회는 계약에 맞는 401이다 306ms
+     ✓ 허용한 Google 계정은 저장한 컬렉션과 링크를 다시 로그인한 새 세션에서도 읽는다 478ms
+     ✓ 다른 Google 계정의 세션은 403이고 쿠키와 서버 세션을 폐기해 이후 쓰기도 저장하지 않는다 350ms
+     ✓ 다른 출처의 쓰기 요청은 소유자 세션이어도 403이고 저장하지 않는다 333ms
+     ✓ 업무 규칙에 맞지 않는 링크는 필드와 함께 400이고 저장하지 않는다 341ms
+     ✓ 없는 컬렉션을 지정하면 422이고 저장하지 않는다 343ms
+   ✓ 실제 HTTP 로그인 경로 (3)
+     ✓ 같은 출처의 로그아웃은 인증 쿠키를 지운다 338ms
+   ✓ 실제 HTTP 세션 갱신 (1)
+     ✓ 접근 토큰이 만료된 세션의 조회는 Route Handler가 refresh token으로 갱신하고 새 인증 쿠키를 내려준다 363ms
+ ✓ tests/http/library-organize.test.ts (5 tests) 2028ms
+   ✓ 실제 HTTP 상품 정리 (4)
+     ✓ 소유자는 실제 요청으로 이름·메모·컬렉션을 고치고 구매·기록·되돌리기를 하며 새 세션에서도 같은 값을 읽는다 501ms
+     ✓ 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 고치면 계약에 맞는 409 revision_conflict이고 저장은 그대로다 365ms
+     ✓ 업무 규칙에 맞지 않는 구매일은 필드와 함께 400이고 저장하지 않는다 360ms
+     ✓ 다른 출처의 PATCH는 소유자 세션이어도 403이고 상품과 컬렉션을 바꾸지 않는다 356ms
+   ✓ 실제 HTTP 컬렉션 이름 바꾸기 (1)
+     ✓ 이름을 바꾸면 200이고 새 세션에서도 소속 상품과 함께 새 이름을 읽으며, 다른 컬렉션과 대소문자만 다른 이름은 409다 444ms
+ ✓ tests/http/metadata-collection.test.ts (4 tests) 1683ms
+   ✓ 실제 HTTP 정보 수집 (4)
+     ✓ 저장은 바로 대기 상태로 응답하고, 응답 뒤 수집이 막힌 주소를 기록해도 링크는 남는다 382ms
+     ✓ 실패한 상품을 다시 가져오면 202와 다음 세대로 응답하고 다시 수집해 같은 이유로 실패한다 584ms
+     ✓ 막 담겨 대기 중인 상품을 다시 가져오면 409이고 작업을 늘리지 않는다 349ms
+     ✓ 없는 상품, 잘못된 경로·본문과 다른 출처의 다시 가져오기는 계약대로 거절한다 367ms
+ ✓ tests/http/product-pictures.test.ts (4 tests) 1692ms
+   ✓ 실제 HTTP 사진 사본 (4)
+     ✓ 보관함은 같은 출처의 사진 주소만 주고 그 주소는 서명한 비공개 사본으로 보낸다 434ms
+     ✓ 사본이 없거나 상품이 없으면 404로 답하고 사진 주소가 UUID가 아니면 400이다 366ms
+     ✓ 로그인하지 않았거나 허용하지 않은 계정에는 사진을 보내지 않는다 432ms
+     ✓ 사진을 가져오지 못한 상품은 다시 가져오기가 202이고 다시 읽어도 링크·이름·가격은 남는다 457ms
+ ❯ tests/http/library-backup.test.ts (2 tests | 2 failed) 741ms
+   ❯ 실제 HTTP 백업 내려받기 (2)
+     × 소유자는 서울 시각 이름의 첨부 파일로 저장한 링크와 컬렉션을 담은 백업을 받는다 399ms
+     × 세션이 없으면 첨부 파일 대신 401 JSON 오류다 341ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/http/library-backup.test.ts > 실제 HTTP 백업 내려받기 > 소유자는 서울 시각 이름의 첨부 파일로 저장한 링크와 컬렉션을 담은 백업을 받는다
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ tests/http/library-backup.test.ts:39:29
+     37|     const response = await download();
+     38|
+     39|     expect(response.status).toBe(200);
+       |                             ^
+     40|     expect(response.headers.get("content-type")).toBe("application/jso…
+     41|     expect(response.headers.get("content-disposition")).toMatch(/^atta…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/http/library-backup.test.ts > 실제 HTTP 백업 내려받기 > 세션이 없으면 첨부 파일 대신 401 JSON 오류다
+AssertionError: expected 404 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 404
+
+ ❯ tests/http/library-backup.test.ts:55:29
+     53|   it("세션이 없으면 첨부 파일 대신 401 JSON 오류다", async () => {
+     54|     const response = await download("");
+     55|     expect(response.status).toBe(401);
+       |                             ^
+     56|     expect(response.headers.get("content-disposition")).toBeNull();
+     57|     expect(errorResponseSchema.parse(await response.json()).error).toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  2 failed | 23 passed (25)
+   Start at  19:57:31
+   Duration  10.29s (tests 96%, import 4%)
+
+JSON report written to /private/var/folders/tv/r1qdgk8x6972cyp7yrxlxdb80000gn/T/moti-database-tQ9Wfq/http-results.json

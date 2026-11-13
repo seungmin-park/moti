@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_JSON_BYTES } from "../../shared/presentation/http";
+import { libraryBackupSchema } from "./library-backup";
 import {
   collectionCreateRequestSchema,
   collectionCreateResponseSchema,
@@ -41,6 +42,19 @@ export const libraryRoutes: Route[] = [
     path: "/api/library",
     summary: "보관함의 상품과 컬렉션을 읽는다.",
     responses: { 200: { description: "LibraryReadResponse", schema: libraryReadResponseSchema }, ...denied },
+  },
+  {
+    method: "get",
+    path: "/api/library/backup",
+    summary: "보관함을 백업 파일(moti.library-backup v1)로 내려받는다. 링크·옵션, 수집한 이름과 소유자 이름, 메모, 컬렉션 이름과 소속(이름), 담은 시각, 구매 상태·구매일·실구매가, 마지막 확인 가격을 담는다. id·revision·수집 상태·사진은 담지 않는다.",
+    responses: {
+      200: {
+        description: "LibraryBackupResponse. 앱이 저장하는 값만 담는다(정리된 링크·이름·메모, 대소문자를 무시하고 겹치지 않는 컬렉션 이름, 파일 안의 이름으로만 이루어진 소속, 겹치지 않는 링크). 이 규칙은 스키마 밖의 검사라 문서에 나타나지 않는다.",
+        schema: libraryBackupSchema,
+        headers: { "Content-Disposition": 'attachment; filename="moti-backup-YYYYMMDD-HHmm.json" (서울 시각)' },
+      },
+      ...denied,
+    },
   },
   {
     method: "post",

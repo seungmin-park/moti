@@ -12,6 +12,7 @@ import {
 } from "../application/commands";
 import type { LibraryService } from "../application/library-service";
 import { LibraryError, type LibraryErrorCode } from "../domain/library";
+import { backupFileName, toLibraryBackupDocument } from "./library-backup";
 import {
   collectionCreateRequestSchema,
   collectionRenameRequestSchema,
@@ -140,6 +141,20 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
 
   return {
     getLibrary: handle(async ({ service }) => json(200, toLibraryReadResponse(await service.snapshot())), { write: false }),
+    // A file the owner keeps. Errors stay JSON responses, so the screen fetches it and checks it before offering it.
+    getBackup: handle(async ({ service }) => {
+      const exportedAt = new Date();
+      const document = toLibraryBackupDocument(await service.exportLibrary(), exportedAt);
+      return new Response(JSON.stringify(document), {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "content-disposition": `attachment; filename="${backupFileName(exportedAt)}"`,
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        },
+      });
+    }, { write: false }),
     postLink: handle(async ({ service, collect }, request) => {
       const linkSaveRequest = await readRequest(request, (value) => linkSaveRequestSchema.parse(value));
       if (linkSaveRequest instanceof Response) return linkSaveRequest;
