@@ -203,7 +203,8 @@
                                             "type": "string",
                                             "enum": [
                                               "copied",
-                                              "absent"
+                                              "absent",
+                                              "waiting"
                                             ]
                                           }
                                         },
@@ -1342,7 +1343,8 @@
                                             "type": "string",
                                             "enum": [
                                               "copied",
-                                              "absent"
+                                              "absent",
+                                              "waiting"
                                             ]
                                           }
                                         },
@@ -2087,7 +2089,8 @@
                                           "type": "string",
                                           "enum": [
                                             "copied",
-                                            "absent"
+                                            "absent",
+                                            "waiting"
                                           ]
                                         }
                                       },
@@ -2469,7 +2472,8 @@
                                           "type": "string",
                                           "enum": [
                                             "copied",
-                                            "absent"
+                                            "absent",
+                                            "waiting"
                                           ]
                                         }
                                       },
@@ -4241,7 +4245,8 @@
                                           "type": "string",
                                           "enum": [
                                             "copied",
-                                            "absent"
+                                            "absent",
+                                            "waiting"
                                           ]
                                         }
                                       },
@@ -5081,7 +5086,8 @@
                                           "type": "string",
                                           "enum": [
                                             "copied",
-                                            "absent"
+                                            "absent",
+                                            "waiting"
                                           ]
                                         }
                                       },
@@ -5853,7 +5859,8 @@
                                             "type": "string",
                                             "enum": [
                                               "copied",
-                                              "absent"
+                                              "absent",
+                                              "waiting"
                                             ]
                                           }
                                         },
@@ -9021,6 +9028,252 @@
           }
         }
       }
+    },
+    "/api/scheduled-runs": {
+      "post": {
+        "summary": "예약 실행 한 번. GitHub Actions가 작업 키로 부른다. 본문과 쿠키를 읽지 않고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 수집이 끝나지 않은 위시 상품을 세 줄로 20초 동안 고르고(최대 60개) 이름과 가격만 쓴다. 사진은 소유자가 moti를 열 때 가져온다. 응답은 멈춘 이유와 셈, 이유별 실패 횟수뿐이다.",
+        "security": [
+          {
+            "workerKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ScheduledRunResponse. done은 남은 일이 없고, deadline은 남은 일을 다음 실행에 넘겼다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "stop": {
+                      "type": "string",
+                      "enum": [
+                        "done",
+                        "deadline"
+                      ]
+                    },
+                    "collections": {
+                      "type": "object",
+                      "properties": {
+                        "collected": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "failed": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "collected",
+                        "failed"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "prices": {
+                      "type": "object",
+                      "properties": {
+                        "confirmed": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "kept": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "confirmed",
+                        "kept"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "failures": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "invalid_url",
+                          "blocked_address",
+                          "dns_failed",
+                          "connect_failed",
+                          "timeout",
+                          "too_many_redirects",
+                          "blocked_by_site",
+                          "http_status",
+                          "unsupported_content",
+                          "too_large",
+                          "decode_failed",
+                          "no_product_data",
+                          "attempts_exhausted",
+                          "internal"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  },
+                  "required": [
+                    "stop",
+                    "collections",
+                    "prices",
+                    "failures"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "키가 없거나 형식이 다르거나 모르는 키이거나 폐기한 키다. 실행 중 폐기도 같다. 모두 같은 본문이다(worker_key_rejected).",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "Bearer",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "worker_key_rejected",
+                        "run_busy",
+                        "run_lost",
+                        "run_limit",
+                        "unconfigured",
+                        "unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "다른 실행이 임대를 쥐고 있거나(run_busy) 실행 중 임대를 잃었다(run_lost).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "worker_key_rejected",
+                        "run_busy",
+                        "run_lost",
+                        "run_limit",
+                        "unconfigured",
+                        "unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "지난 24시간에 여덟 번 시작했다(run_limit).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "worker_key_rejected",
+                        "run_busy",
+                        "run_lost",
+                        "run_limit",
+                        "unconfigured",
+                        "unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "설정이 없거나(unconfigured) 저장소를 쓸 수 없다(unavailable).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "worker_key_rejected",
+                        "run_busy",
+                        "run_lost",
+                        "run_limit",
+                        "unconfigured",
+                        "unavailable"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9029,6 +9282,11 @@
         "type": "http",
         "scheme": "bearer",
         "description": "공유 저장 화면에서 만든 추가 전용 키(moti_sk_ 뒤에 base64url 43자). 링크 추가에만 쓰고 세션이 되지 않는다."
+      },
+      "workerKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "자동 확인 화면에서 만든 작업 키(moti_wk_ 뒤에 base64url 43자). 예약 실행에만 쓰고 세션이 되지 않으며 공유 키와 서로 대신하지 않는다."
       }
     }
   }

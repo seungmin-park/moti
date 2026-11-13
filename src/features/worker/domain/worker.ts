@@ -23,3 +23,22 @@ export type WorkerCounts = {
   failures: Partial<Record<CollectionErrorCode, number>>;
 };
 export type WorkerRun = WorkerCounts & { id: string; startedAt: string; finishedAt: string | null; state: WorkerRunState };
+
+export function parseWorkerSecret(value: unknown): WorkerSecret | null {
+  return typeof value === "string" && WORKER_SECRET_PATTERN.test(value) ? (value as WorkerSecret) : null;
+}
+
+// One `Bearer <key>` credential and nothing else. Repeated headers arrive comma-joined and are refused.
+export function readWorkerSecret(authorization: string | null): WorkerSecret | null {
+  const match = authorization === null ? null : /^Bearer ([^\s,]+)$/i.exec(authorization);
+  return match ? parseWorkerSecret(match[1]) : null;
+}
+
+export type WorkerErrorCode = "key_rejected" | "run_busy" | "run_lost" | "run_limit" | "storage_unavailable";
+
+export class WorkerError extends Error {
+  constructor(readonly code: WorkerErrorCode, message: string) {
+    super(message);
+    this.name = "WorkerError";
+  }
+}

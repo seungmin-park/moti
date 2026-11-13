@@ -54,7 +54,7 @@ export const productResponseSchema = z.object({
       attempts: z.number().int(),
       completedAt: timestamp,
       image: z.discriminatedUnion("outcome", [
-        z.object({ outcome: z.enum(["copied", "absent"]) }).strict(),
+        z.object({ outcome: z.enum(["copied", "absent", "waiting"]) }).strict(),
         z.object({ outcome: z.literal("failed"), errorCode: z.enum(imageErrorCodes) }).strict(),
       ]),
     }).strict(),

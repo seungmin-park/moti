@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { collectionErrorCodes } from "../../metadata/domain/collection-error";
-import type { WorkerKeyIssueResult, WorkerReadResult } from "../application/commands";
+import type { ScheduledRunResult, WorkerKeyIssueResult, WorkerReadResult } from "../application/commands";
 import { WORKER_SECRET_PATTERN, type WorkerCounts, type WorkerKey, type WorkerRun } from "../domain/worker";
+
+export const SCHEDULED_RUNS_PATH = "/api/scheduled-runs";
+// What the owner sets in GitHub. Nothing runs until both are set; the screen shows these names.
+export const WORKER_TOKEN_SECRET = "MOTI_WORKER_TOKEN";
+export const WORKER_URL_VARIABLE = "MOTI_WORKER_URL";
 
 const count = z.number().int().min(0);
 const countsSchema = {
@@ -11,8 +16,40 @@ const countsSchema = {
   failures: z.partialRecord(z.enum(collectionErrorCodes), z.number().int().min(1)),
 };
 
+export const scheduledRunResponseSchema = z.object({ stop: z.enum(["done", "deadline"]), ...countsSchema }).strict();
+export const scheduledRunErrorCodes = [
+  "worker_key_rejected",
+  "run_busy",
+  "run_lost",
+  "run_limit",
+  "unconfigured",
+  "unavailable",
+] as const;
+export type ScheduledRunErrorCode = (typeof scheduledRunErrorCodes)[number];
+export const scheduledRunErrorResponseSchema = z.object({
+  error: z.enum(scheduledRunErrorCodes),
+  message: z.string().min(1),
+}).strict();
+
+export type ScheduledRunResponse = z.infer<typeof scheduledRunResponseSchema>;
+export type ScheduledRunErrorResponse = z.infer<typeof scheduledRunErrorResponseSchema>;
+
+// What the GitHub log shows. A refused key reads the same whether it was unknown, revoked or malformed.
+export const scheduledRunMessages: Record<ScheduledRunErrorCode, string> = {
+  worker_key_rejected: `작업 키가 맞지 않거나 폐기됐어요. moti의 자동 확인에서 새 키를 만들어 GitHub 비밀값 ${WORKER_TOKEN_SECRET}을 바꿔 주세요.`,
+  run_busy: "다른 실행이 아직 진행 중이에요. 이번 실행은 건너뛰어요.",
+  run_lost: "실행 중에 실행 기록이 닫혔어요. 다음 예약 실행에서 이어가요.",
+  run_limit: "24시간에 8번까지 실행해요. 다음 예약 실행을 기다려 주세요.",
+  unconfigured: "moti 서버 설정이 아직 없어요.",
+  unavailable: "지금은 실행하지 못했어요. 다음 예약 실행에서 다시 시도해요.",
+};
+
 function toCountsResponse({ collections, prices, failures }: WorkerCounts) {
   return { collections: { ...collections }, prices: { ...prices }, failures: { ...failures } };
+}
+
+export function toScheduledRunResponse(result: Extract<ScheduledRunResult, { kind: "finished" }>): ScheduledRunResponse {
+  return { stop: result.stop, ...toCountsResponse(result) };
 }
 
 const timestamp = z.iso.datetime();

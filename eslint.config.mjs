@@ -85,6 +85,31 @@ export default defineConfig([
     },
   },
   {
+    files: ["src/app/_server/worker-context.ts", "src/app/api/scheduled-runs/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [
+        {
+          group: ["next/headers", "@supabase/ssr", "**/_server/context", "./context"],
+          message: "예약 실행 요청은 쿠키를 읽지도 쓰지도 않는다. 작업 키만 인증이다.",
+        },
+        {
+          group: ["**/product-pictures", "**/picture-copy"],
+          message: "작업자는 Storage에 닿지 않는다. 사진은 소유자의 화면이 가져온다.",
+        },
+      ] }],
+    },
+  },
+  {
+    // Layer rules already use no-restricted-imports here, and a later block would replace them, so this one matches syntax.
+    files: ["src/features/worker/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", {
+        selector: "ImportDeclaration[source.value=/(product-pictures|picture-copy)$/]",
+        message: "작업자는 Storage에 닿지 않는다. 사진은 소유자의 화면이 가져온다.",
+      }],
+    },
+  },
+  {
     files: ["src/app/**/page.tsx"],
     rules: {
       "no-restricted-imports": ["error", { patterns: [

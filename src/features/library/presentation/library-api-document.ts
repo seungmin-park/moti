@@ -12,6 +12,9 @@ import {
   shareLinkErrorResponseSchema,
 } from "../../share/presentation/share-dto";
 import {
+  SCHEDULED_RUNS_PATH,
+  scheduledRunErrorResponseSchema,
+  scheduledRunResponseSchema,
   workerKeyIssueRequestSchema,
   workerKeyIssueResponseSchema,
   workerKeyRevokeResponseSchema,
@@ -40,7 +43,7 @@ type Route = {
   path: string;
   summary: string;
   // Routes without it use the owner's cookie session.
-  security?: "shareKey";
+  security?: "shareKey" | "workerKey";
   parameters?: { name: string; in?: "path" | "query"; description: string; schema: z.ZodType }[];
   request?: z.ZodType;
   responses: Record<number, { description: string; schema?: z.ZodType; headers?: Record<string, string> }>;
@@ -271,6 +274,24 @@ export const libraryRoutes: Route[] = [
       503: { description: "설정이 없거나(unconfigured) 저장소를 쓸 수 없다(unavailable).", schema: shareLinkErrorResponseSchema },
     },
   },
+  // GitHub's scheduled call: the worker key is its only credential, and the run happens inside the request.
+  {
+    method: "post",
+    path: SCHEDULED_RUNS_PATH,
+    summary: "예약 실행 한 번. GitHub Actions가 작업 키로 부른다. 본문과 쿠키를 읽지 않고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 수집이 끝나지 않은 위시 상품을 세 줄로 20초 동안 고르고(최대 60개) 이름과 가격만 쓴다. 사진은 소유자가 moti를 열 때 가져온다. 응답은 멈춘 이유와 셈, 이유별 실패 횟수뿐이다.",
+    security: "workerKey",
+    responses: {
+      200: { description: "ScheduledRunResponse. done은 남은 일이 없고, deadline은 남은 일을 다음 실행에 넘겼다.", schema: scheduledRunResponseSchema },
+      401: {
+        description: "키가 없거나 형식이 다르거나 모르는 키이거나 폐기한 키다. 실행 중 폐기도 같다. 모두 같은 본문이다(worker_key_rejected).",
+        schema: scheduledRunErrorResponseSchema,
+        headers: { "WWW-Authenticate": "Bearer" },
+      },
+      409: { description: "다른 실행이 임대를 쥐고 있거나(run_busy) 실행 중 임대를 잃었다(run_lost).", schema: scheduledRunErrorResponseSchema },
+      429: { description: "지난 24시간에 여덟 번 시작했다(run_limit).", schema: scheduledRunErrorResponseSchema },
+      503: { description: "설정이 없거나(unconfigured) 저장소를 쓸 수 없다(unavailable).", schema: scheduledRunErrorResponseSchema },
+    },
+  },
 ];
 
 export function buildApiDocument() {
@@ -317,6 +338,11 @@ export function buildApiDocument() {
           type: "http",
           scheme: "bearer",
           description: "공유 저장 화면에서 만든 추가 전용 키(moti_sk_ 뒤에 base64url 43자). 링크 추가에만 쓰고 세션이 되지 않는다.",
+        },
+        workerKey: {
+          type: "http",
+          scheme: "bearer",
+          description: "자동 확인 화면에서 만든 작업 키(moti_wk_ 뒤에 base64url 43자). 예약 실행에만 쓰고 세션이 되지 않으며 공유 키와 서로 대신하지 않는다.",
         },
       },
     },

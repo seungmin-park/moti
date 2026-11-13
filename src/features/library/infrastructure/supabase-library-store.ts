@@ -75,7 +75,7 @@ export const productRowSchema = z.object({
   metadata_error_code: z.enum(collectionErrorCodes).nullable(),
   metadata_stalled: z.boolean(),
   metadata_completed_at: timestamp.nullable(),
-  metadata_image: z.enum(["copied", "absent", "failed"]).nullable(),
+  metadata_image: z.enum(["copied", "absent", "failed", "waiting"]).nullable(),
   metadata_image_error_code: z.enum(imageErrorCodes).nullable(),
   ...lastSuccessColumns,
   picture_version: z.uuid().nullable(),

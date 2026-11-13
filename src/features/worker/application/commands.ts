@@ -1,5 +1,5 @@
 import { LibraryError } from "../../library/domain/library";
-import type { WorkerKey, WorkerKeyId, WorkerRun, WorkerSecret } from "../domain/worker";
+import type { WorkerCounts, WorkerErrorCode, WorkerKey, WorkerKeyId, WorkerRun, WorkerSecret } from "../domain/worker";
 
 // The owner's view: the active key (else the latest revoked one, else none) and the latest runs.
 export type WorkerReadResult = { key: WorkerKey | null; runs: WorkerRun[] };
@@ -8,6 +8,12 @@ export type WorkerKeyIssueCommand = { replaces: WorkerKeyId | null };
 // The only time the secret leaves the database.
 export type WorkerKeyIssueResult = { key: WorkerKey; secret: WorkerSecret };
 export type WorkerKeyRevokeCommand = { keyId: WorkerKeyId };
+
+export type ScheduledRunCommand = { secret: WorkerSecret };
+// A run either finished (done: nothing was left to pick; deadline: it stopped picking first) or was refused.
+export type ScheduledRunResult =
+  | ({ kind: "finished"; stop: "done" | "deadline" } & WorkerCounts)
+  | { kind: "refused"; code: WorkerErrorCode };
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

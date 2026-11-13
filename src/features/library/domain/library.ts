@@ -8,7 +8,8 @@ export type Purchase =
   | { status: "wish" }
   | { status: "purchased"; date: string | null; price: Money | null };
 // What this generation's run did with the page's picture. The shown picture can be an earlier generation's copy.
-export type ImageOutcome = { outcome: "copied" | "absent" } | { outcome: "failed"; errorCode: ImageErrorCode };
+// `waiting`: the scheduled worker read the page, and only the owner's session can copy its picture.
+export type ImageOutcome = { outcome: "copied" | "absent" | "waiting" } | { outcome: "failed"; errorCode: ImageErrorCode };
 export type MetadataState = { generation: number; attempts: number } & (
   | { phase: "queued" | "running"; stalled: boolean }
   | { phase: "ready"; completedAt: string; image: ImageOutcome }

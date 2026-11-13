@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
+import type { WorkerSecret } from "../../src/features/worker/domain/worker";
+import { createSupabaseWorkerRunStore } from "../../src/features/worker/infrastructure/supabase-worker-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
@@ -292,5 +294,64 @@ describe("작업자의 수집 결과", () => {
     const second = await start();
     await rpc("moti_worker_finish", { ...step(second), p_stop: "done" });
     expect((await next(second)).code).toBe("M0013");
+  });
+});
+
+describe("작업 실행 어댑터", () => {
+  const store = (client: SupabaseClient = fixture.anonymous) => createSupabaseWorkerRunStore(client);
+  const page = { title: "북유럽 램프", price: { amountMinor: 12000, currency: "KRW" }, imageSourceUrl: "https://img.example/lamp.jpg" };
+
+  it("시작·집기·쓰기·실패·끝내기를 도메인 값으로 돌려준다", async () => {
+    const { data: issued } = await rpc<Issued>("moti_worker_key_issue", { p_replaces: null }, fixture.owner.client);
+    const secret = issued.secret as WorkerSecret;
+    const lamp = await save("lamp", 5);
+    await save("desk", 10);
+
+    const lease = await store().begin(secret);
+    expect(lease).toEqual({ secret, run: expect.stringMatching(/^[0-9a-f-]{36}$/), lease: expect.stringMatching(/^[0-9a-f-]{36}$/) });
+    const first = await store().next(lease);
+    expect(first).toEqual({
+      kind: "collection",
+      job: { id: await jobOf(lamp), leaseToken: expect.stringMatching(/^[0-9a-f-]{36}$/), sourceUrl: "https://shop.example/lamp" },
+    });
+    if (first.kind !== "collection") throw new Error("집은 작업이 없습니다");
+    expect(await store().complete(lease, first.job, page)).toBe("applied");
+    expect(await store().complete(lease, first.job, page)).toBe("stale");
+    const second = await store().next(lease);
+    if (second.kind !== "collection") throw new Error("집은 작업이 없습니다");
+    expect(await store().fail(lease, second.job, "http_status")).toBe("applied");
+    expect(await store().next(lease)).toEqual({ kind: "none" });
+
+    expect(await store().finish(lease, "done")).toEqual({
+      stop: "done",
+      collections: { collected: 1, failed: 1 },
+      prices: { confirmed: 0, kept: 0 },
+      failures: { http_status: 1 },
+    });
+    expect(await productRow(lamp)).toMatchObject({ title: "북유럽 램프", metadata_image: "waiting" });
+  });
+
+  it("DB의 거절을 작업 오류 코드로 바꾸고 메시지에 DB 문구를 싣지 않는다", async () => {
+    const run = await start();
+    const secret = run.secret as WorkerSecret;
+    const lease = { secret, run: run.run, lease: run.lease };
+    const refusal = (promise: Promise<unknown>) => promise.then(() => null, (error: unknown) => error as { code: string; message: string });
+
+    expect(await refusal(store().begin(`moti_wk_${"A".repeat(43)}` as WorkerSecret))).toMatchObject({ code: "key_rejected" });
+    expect(await refusal(store().begin(secret))).toMatchObject({ code: "run_busy" });
+    expect(await refusal(store().next({ ...lease, lease: randomUUID() }))).toMatchObject({ code: "run_lost" });
+    const unknown = await refusal(store().finish({ ...lease, secret: `moti_wk_${"B".repeat(43)}` as WorkerSecret }, "done"));
+    expect(unknown).toMatchObject({ code: "key_rejected" });
+    expect(unknown?.message).not.toMatch(/worker|M00|key/i);
+    expect(await refusal(store(fixture.owner.client).next(lease))).toMatchObject({ code: "storage_unavailable" });
+
+    await rpc("moti_worker_finish", { ...step(run), p_stop: "done" });
+    await fixture.admin.query(
+      `insert into moti.worker_runs (owner_id, key_id, started_at, finished_at, stop_reason)
+       select $1, $2, now() - (n || ' hours')::interval, now() - (n || ' hours')::interval + interval '5 seconds', 'done'
+       from generate_series(1, 7) n`,
+      [fixture.owner.id, run.keyId],
+    );
+    expect(await refusal(store().begin(secret))).toMatchObject({ code: "run_limit" });
   });
 });
