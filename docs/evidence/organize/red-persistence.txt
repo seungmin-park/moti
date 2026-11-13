@@ -1,0 +1,481 @@
+# npm run test:database on 80b74ee + tests/persistence/library-organize.test.ts, without supabase/migrations/20261114000000_library_organize.sql
+
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/persistence/picture-storage.test.ts (27 tests) 7932ms
+   ✓ 상품 사진 사본 저장소 (27)
+     ✓ 사진 버킷은 비공개이고 1 MiB 이하의 WebP만 받는다 324ms
+     ✓ 작업을 맡으면 DB가 이 시도의 사진 이름을 정해 돌려준다 301ms
+     ✓ 임대가 살아 있는 작업의 예약된 이름에만 소유자 토큰으로 WebP를 한 번 올린다 367ms
+     ✓ 맡지 않았거나 끝났거나 임대가 지난 작업의 이름에는 올릴 수 없다 317ms
+     ✓ 소유자는 서명한 주소로 같은 바이트를 받고 공개 주소·다른 계정·익명은 읽지 못한다 310ms
+     ✓ 완료는 이번 사진 결과를 기록하고 새 사본만 보여줄 사진을 바꾼다 346ms
+     ✓ 소유자도 보여주는 사진은 지우지 못하고 바뀐 사진만 지운다 318ms
+     ✓ 완료는 보여줄 사본의 저장 버전을 작업과 함께 기록하고 둘 중 하나만 남길 수 없다 301ms
+     ✓ 임대 중에 받은 서명 업로드 주소로 완료 뒤 사본을 바꾸면 그 사본은 다시 찾지도 서명하지도 않는다 318ms
+     ✓ 작업이 끝난 뒤 서명 업로드 주소로 예약된 이름에 써도 보여줄 사진은 바뀌지 않는다 305ms
+ ❯ tests/persistence/library-organize.test.ts (40 tests | 40 failed) 10918ms
+   ❯ 상품 정리: 이름·메모·컬렉션 (16)
+     × 이름·메모·컬렉션을 한 번에 고치면 revision과 수정 시각이 바뀌고 새로 읽어도 같다 315ms
+     × 이름을 보내지 않거나 보이는 이름과 같으면 소유자 이름을 정하지 않는다 275ms
+     × 소유자가 이름을 고친 뒤 수집이 끝나도 고친 이름을 보이고 수집한 이름은 따로 남으며 revision은 그대로다 277ms
+     × 없는 컬렉션이나 다른 소유자의 컬렉션을 섞으면 M0003이고 소속과 메모를 바꾸지 않는다 275ms
+     × 다른 소유자의 상품이나 없는 상품은 M0006이다 269ms
+     × 클라이언트 검증을 거치지 않은 앞뒤 공백 이름 수정은 M0002이고 아무것도 쓰지 않는다 271ms
+     × 클라이언트 검증을 거치지 않은 빈 이름 수정은 M0002이고 아무것도 쓰지 않는다 270ms
+     × 클라이언트 검증을 거치지 않은 121자 이름 수정은 M0002이고 아무것도 쓰지 않는다 270ms
+     × 클라이언트 검증을 거치지 않은 제어 문자 이름 수정은 M0002이고 아무것도 쓰지 않는다 270ms
+     × 클라이언트 검증을 거치지 않은 NFC가 아닌 이름 수정은 M0002이고 아무것도 쓰지 않는다 269ms
+     × 클라이언트 검증을 거치지 않은 3001자 메모 수정은 M0002이고 아무것도 쓰지 않는다 270ms
+     × 클라이언트 검증을 거치지 않은 메모 없음 수정은 M0002이고 아무것도 쓰지 않는다 270ms
+     × 클라이언트 검증을 거치지 않은 컬렉션 목록 없음 수정은 M0002이고 아무것도 쓰지 않는다 269ms
+     × 클라이언트 검증을 거치지 않은 비어 있는 컬렉션 ID 수정은 M0002이고 아무것도 쓰지 않는다 269ms
+     × 클라이언트 검증을 거치지 않은 101개 컬렉션 수정은 M0002이고 아무것도 쓰지 않는다 273ms
+     × 클라이언트 검증을 거치지 않은 0 revision 수정은 M0002이고 아무것도 쓰지 않는다 272ms
+   ❯ 상품 정리: 구매 기록 (10)
+     × 구매완료·구매 기록·위시로 되돌리기를 거쳐도 이름·메모·컬렉션은 그대로고 단계마다 revision이 오른다 270ms
+     × 위시 상품의 구매 기록은 지금 revision이면 M0002, 오래된 revision이면 M0008이다 271ms
+     × 서울 기준 내일 기록은 M0002이고 아무것도 쓰지 않는다 271ms
+     × 1900년 이전 기록은 M0002이고 아무것도 쓰지 않는다 268ms
+     × 원화가 아닌 통화 기록은 M0002이고 아무것도 쓰지 않는다 269ms
+     × 음수 금액 기록은 M0002이고 아무것도 쓰지 않는다 270ms
+     × 안전한 정수를 넘는 금액 기록은 M0002이고 아무것도 쓰지 않는다 271ms
+     × 통화 없는 금액 기록은 M0002이고 아무것도 쓰지 않는다 274ms
+     × 금액 없는 통화 기록은 M0002이고 아무것도 쓰지 않는다 271ms
+     × 서울 기준 오늘은 구매일로 받는다 271ms
+   ❯ 상품 정리: 같은 값과 오래된 revision (3)
+     × 이미 저장된 값과 같은 변경은 오래된 revision이어도 성공하고 revision과 수정 시각을 바꾸지 않는다 271ms
+     × 오래된 revision으로 다른 값을 보내면 M0008이고 아무것도 쓰지 않는다 272ms
+     × 같은 revision으로 동시에 12번 고치면 하나만 커밋하고 나머지는 M0008이다 276ms
+   ❯ 컬렉션 이름 바꾸기 (9)
+     × 이름을 바꾸면 revision이 오르고 소속 상품은 그대로다 276ms
+     × 대소문자만 바꾼 자기 이름은 받고, 다른 컬렉션과 대소문자만 다른 이름은 M0004다 271ms
+     × 같은 이름은 오래된 revision이어도 바꾸지 않고, 다른 이름은 M0008이다 279ms
+     × 없는 컬렉션이나 다른 소유자의 컬렉션은 M0003이다 271ms
+     × 유효하지 않은 이름 " 책상"은 M0002다 269ms
+     × 유효하지 않은 이름 ""은 M0002다 270ms
+     × 유효하지 않은 이름 "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"은 M0002다 273ms
+     × 유효하지 않은 이름 null은 M0002다 272ms
+     × 유효하지 않은 이름 "가방"은 M0002다 270ms
+   ❯ 정리 RPC의 소유자 경계 (2)
+     × anonymous는 다섯 정리 RPC를 실행하지 못하고 아무것도 바뀌지 않는다 277ms
+     × stranger는 다섯 정리 RPC를 실행하지 못하고 아무것도 바뀌지 않는다 279ms
+ ✓ tests/persistence/metadata-jobs.test.ts (26 tests) 7386ms
+   ✓ 수집 작업 저장소 (26)
+     ✓ 맡은 작업을 완료하면 이름과 가격을 기록하고 작업에만 이미지 주소를 남긴다 321ms
+ ❯ tests/persistence/library-security.test.ts (19 tests | 1 failed) 5240ms
+   ❯ 실제 DB 소유자 경계 (19)
+     ✓ anonymous 접근은 조회와 두 쓰기 명령을 모두 거절한다 310ms
+     ✓ stranger 접근은 조회와 두 쓰기 명령을 모두 거절한다 281ms
+     ✓ missing_config 접근은 조회와 두 쓰기 명령을 모두 거절한다 278ms
+     ✓ missing_google 접근은 조회와 두 쓰기 명령을 모두 거절한다 277ms
+     ✓ wrong_subject 접근은 조회와 두 쓰기 명령을 모두 거절한다 279ms
+     ✓ 공개 REST에서 테이블을 노출하지 않는다 275ms
+     × 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다 273ms
+     ✓ RPC 역할로 직접 읽거나 써도 다른 소유자의 행에는 RLS가 적용된다 279ms
+     ✓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":""} 271ms
+     ✓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"javascript:alert(1)"} 272ms
+     ✓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"https://name:secret@example.com/item"} 271ms
+     ✓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"https://example.com/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"} 273ms
+     ✓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_identity_url":""} 271ms
+     ✓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_option":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"} 271ms
+     ✓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_collection_ids":null} 272ms
+     ✓ failed 수집 상태는 오류 코드가 없으면 DB가 거절한다 274ms
+     ✓ RPC가 유효하지 않은 컬렉션 이름  를 거절한다 272ms
+     ✓ RPC가 유효하지 않은 컬렉션 이름 가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가를 거절한다 271ms
+     ✓ RPC가 유효하지 않은 컬렉션 이름 null를 거절한다 271ms
+ ✓ tests/service/collection-runner.test.ts (16 tests) 4523ms
+   ✓ 실제 저장소를 사용하는 수집 실행 (16)
+     ✓ 쇼핑몰 페이지를 읽어 이름과 하나의 가격을 저장하고 원본 링크는 그대로 둔다 326ms
+ ✓ tests/persistence/library-store.test.ts (14 tests) 3955ms
+   ✓ 실제 Supabase 저장소 (14)
+     ✓ 새 소유자의 보관함을 빈 도메인 값으로 읽는다 307ms
+ ✓ tests/service/library-service.test.ts (10 tests) 2776ms
+   ✓ 실제 저장소를 사용하는 서비스 (10)
+     ✓ 생성한 컬렉션과 링크를 서비스 인스턴스를 바꾸어 다시 읽는다 316ms
+ ✓ tests/service/picture-copy.test.ts (6 tests) 2070ms
+   ✓ 실제 저장소를 쓰는 사진 사본 복사 (6)
+     ✓ 페이지의 사진을 비공개 WebP 사본으로 저장하고 이름·가격과 함께 사본을 보여준다 382ms
+     ✓ 사진 요청이 시간 초과여도 링크·이름·가격은 저장하고 다시 가져오면 사진을 복사한다 344ms
+     ✓ 새 사본이 생기면 이전 사본을 지워 상품마다 사본이 하나만 남는다 389ms
+     ✓ 올린 뒤 새 세대로 바뀐 실행은 결과를 쓰지 않고 자기 사본을 지운다 333ms
+     ✓ 임대가 끝나 저장소가 올리기를 거절해도 링크·이름·가격은 남고 올리기 실패로 기록한다 323ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 41 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 이름·메모·컬렉션을 한 번에 고치면 revision과 수정 시각이 바뀌고 새로 읽어도 같다
+Error: moti_edit_product 실패: PGRST202
+ ❯ changed tests/persistence/library-organize.test.ts:30:19
+     28| async function changed(name: string, parameters: Record<string, unknow…
+     29|   const { data, code } = await rpc(name, parameters);
+     30|   if (code) throw new Error(`${name} 실패: ${code}`);
+       |                   ^
+     31|   return toProduct(productRowSchema.parse(data));
+     32| }
+ ❯ tests/persistence/library-organize.test.ts:62:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 이름을 보내지 않거나 보이는 이름과 같으면 소유자 이름을 정하지 않는다
+Error: moti_edit_product 실패: PGRST202
+ ❯ changed tests/persistence/library-organize.test.ts:30:19
+     28| async function changed(name: string, parameters: Record<string, unknow…
+     29|   const { data, code } = await rpc(name, parameters);
+     30|   if (code) throw new Error(`${name} 실패: ${code}`);
+       |                   ^
+     31|   return toProduct(productRowSchema.parse(data));
+     32| }
+ ❯ tests/persistence/library-organize.test.ts:75:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 소유자가 이름을 고친 뒤 수집이 끝나도 고친 이름을 보이고 수집한 이름은 따로 남으며 revision은 그대로다
+Error: moti_edit_product 실패: PGRST202
+ ❯ changed tests/persistence/library-organize.test.ts:30:19
+     28| async function changed(name: string, parameters: Record<string, unknow…
+     29|   const { data, code } = await rpc(name, parameters);
+     30|   if (code) throw new Error(`${name} 실패: ${code}`);
+       |                   ^
+     31|   return toProduct(productRowSchema.parse(data));
+     32| }
+ ❯ tests/persistence/library-organize.test.ts:86:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 없는 컬렉션이나 다른 소유자의 컬렉션을 섞으면 M0003이고 소속과 메모를 바꾸지 않는다
+AssertionError: expected 'PGRST202' to be 'M0003' // Object.is equality
+
+Expected: "M0003"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:108:10
+    106|     for (const other of [randomUUID(), foreign.rows[0].id]) {
+    107|       expect((await rpc("moti_edit_product", edit(product, 1, { note: …
+    108|         .toBe("M0003");
+       |          ^
+    109|     }
+    110|     expect(await current(product)).toEqual(product);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 다른 소유자의 상품이나 없는 상품은 M0006이다
+AssertionError: expected 'PGRST202' to be 'M0006' // Object.is equality
+
+Expected: "M0006"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:121:104
+    119|     for (const id of [foreign.rows[0].id, randomUUID()]) {
+    120|       const product = { id } as Product;
+    121|       expect((await rpc("moti_edit_product", edit(product, 1, { note: …
+       |                                                                                                        ^
+    122|       expect((await rpc("moti_purchase_product", at(product, 1))).code…
+    123|       expect((await rpc("moti_record_purchase", record(product, 1, nul…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 앞뒤 공백 이름 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 빈 이름 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 121자 이름 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 제어 문자 이름 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 NFC가 아닌 이름 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 3001자 메모 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 메모 없음 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 컬렉션 목록 없음 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 비어 있는 컬렉션 ID 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 101개 컬렉션 수정은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 이름·메모·컬렉션 > 클라이언트 검증을 거치지 않은 0 revision 수정은 M0002이고 아무것도 쓰지 않는다
+AssertionError: expected 'PGRST202' to be 'M0002' // Object.is equality
+
+Expected: "M0002"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:144:122
+    142|   ])("클라이언트 검증을 거치지 않은 %s 수정은 M0002이고 아무것도 쓰지 않는다", async (_, override…
+    143|     const product = await saved();
+    144|     expect((await rpc("moti_edit_product", { ...edit(product, 1, { not…
+       |                                                                                                                          ^
+    145|     expect(await current(product)).toEqual(product);
+    146|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 구매완료·구매 기록·위시로 되돌리기를 거쳐도 이름·메모·컬렉션은 그대로고 단계마다 revision이 오른다
+Error: moti_edit_product 실패: PGRST202
+ ❯ changed tests/persistence/library-organize.test.ts:30:19
+     28| async function changed(name: string, parameters: Record<string, unknow…
+     29|   const { data, code } = await rpc(name, parameters);
+     30|   if (code) throw new Error(`${name} 실패: ${code}`);
+       |                   ^
+     31|   return toProduct(productRowSchema.parse(data));
+     32| }
+ ❯ tests/persistence/library-organize.test.ts:154:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 위시 상품의 구매 기록은 지금 revision이면 M0002, 오래된 revision이면 M0008이다
+AssertionError: expected 'PGRST202' to be 'M0002' // Object.is equality
+
+Expected: "M0002"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:178:94
+    176|   it("위시 상품의 구매 기록은 지금 revision이면 M0002, 오래된 revision이면 M0008이다", asyn…
+    177|     const product = await saved();
+    178|     expect((await rpc("moti_record_purchase", record(product, 1, "2026…
+       |                                                                                              ^
+    179|     await changed("moti_edit_product", edit(product, 1, { note: "다른 탭"…
+    180|     expect((await rpc("moti_record_purchase", record(product, 1, "2026…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 서울 기준 내일 기록은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 1900년 이전 기록은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 원화가 아닌 통화 기록은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 음수 금액 기록은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 안전한 정수를 넘는 금액 기록은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 통화 없는 금액 기록은 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 금액 없는 통화 기록은 M0002이고 아무것도 쓰지 않는다
+Error: moti_purchase_product 실패: PGRST202
+ ❯ changed tests/persistence/library-organize.test.ts:30:19
+     28| async function changed(name: string, parameters: Record<string, unknow…
+     29|   const { data, code } = await rpc(name, parameters);
+     30|   if (code) throw new Error(`${name} 실패: ${code}`);
+       |                   ^
+     31|   return toProduct(productRowSchema.parse(data));
+     32| }
+ ❯ tests/persistence/library-organize.test.ts:194:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 구매 기록 > 서울 기준 오늘은 구매일로 받는다
+Error: moti_purchase_product 실패: PGRST202
+ ❯ changed tests/persistence/library-organize.test.ts:30:19
+     28| async function changed(name: string, parameters: Record<string, unknow…
+     29|   const { data, code } = await rpc(name, parameters);
+     30|   if (code) throw new Error(`${name} 실패: ${code}`);
+       |                   ^
+     31|   return toProduct(productRowSchema.parse(data));
+     32| }
+ ❯ tests/persistence/library-organize.test.ts:201:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 같은 값과 오래된 revision > 이미 저장된 값과 같은 변경은 오래된 revision이어도 성공하고 revision과 수정 시각을 바꾸지 않는다
+Error: moti_edit_product 실패: PGRST202
+ ❯ changed tests/persistence/library-organize.test.ts:30:19
+     28| async function changed(name: string, parameters: Record<string, unknow…
+     29|   const { data, code } = await rpc(name, parameters);
+     30|   if (code) throw new Error(`${name} 실패: ${code}`);
+       |                   ^
+     31|   return toProduct(productRowSchema.parse(data));
+     32| }
+ ❯ tests/persistence/library-organize.test.ts:212:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 같은 값과 오래된 revision > 오래된 revision으로 다른 값을 보내면 M0008이고 아무것도 쓰지 않는다
+Error: moti_edit_product 실패: PGRST202
+ ❯ changed tests/persistence/library-organize.test.ts:30:19
+     28| async function changed(name: string, parameters: Record<string, unknow…
+     29|   const { data, code } = await rpc(name, parameters);
+     30|   if (code) throw new Error(`${name} 실패: ${code}`);
+       |                   ^
+     31|   return toProduct(productRowSchema.parse(data));
+     32| }
+ ❯ tests/persistence/library-organize.test.ts:228:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 상품 정리: 같은 값과 오래된 revision > 같은 revision으로 동시에 12번 고치면 하나만 커밋하고 나머지는 M0008이다
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/persistence/library-organize.test.ts:245:62
+    243|       rpc("moti_edit_product", edit(product, 1, { note: `메모 ${index}`,…
+    244|
+    245|     expect(results.filter((result) => result.code === null)).toHaveLen…
+       |                                                              ^
+    246|     expect(results.filter((result) => result.code === "M0008")).toHave…
+    247|     expect((await columns(product)).revision).toBe(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 이름을 바꾸면 revision이 오르고 소속 상품은 그대로다
+AssertionError: expected 'PGRST202' to be null
+
+- Expected:
+null
+
++ Received:
+"PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:265:18
+    263|     const { data, code } = await rpc("moti_rename_collection", rename(…
+    264|
+    265|     expect(code).toBeNull();
+       |                  ^
+    266|     expect(data).toMatchObject({ id: desk.id, name: "작업 공간", revision:…
+    267|     expect((await library().snapshot()).collections).toEqual([expect.o…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 대소문자만 바꾼 자기 이름은 받고, 다른 컬렉션과 대소문자만 다른 이름은 M0004다
+AssertionError: expected 'PGRST202' to be null
+
+- Expected:
+null
+
++ Received:
+"PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:275:81
+    273|     const room = await library().createCollection({ name: "Room" });
+    274|
+    275|     expect((await rpc("moti_rename_collection", rename(desk, 1, "desk"…
+       |                                                                                 ^
+    276|     expect((await rpc("moti_rename_collection", rename(room, 1, "DESK"…
+    277|     expect(await names()).toEqual([{ name: "desk", revision: 2 }, { na…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 같은 이름은 오래된 revision이어도 바꾸지 않고, 다른 이름은 M0008이다
+AssertionError: expected null to match object { name: '작업 공간', revision: 2 }
+
+- Expected:
+{
+  "name": "작업 공간",
+  "revision": 2,
+}
+
++ Received:
+null
+
+ ❯ tests/persistence/library-organize.test.ts:284:82
+    282|     await rpc("moti_rename_collection", rename(desk, 1, "작업 공간"));
+    283|
+    284|     expect((await rpc("moti_rename_collection", rename(desk, 1, "작업 공간…
+       |                                                                                  ^
+    285|     expect((await rpc("moti_rename_collection", rename(desk, 1, "늦은 이름…
+    286|     expect(await names()).toEqual([{ name: "작업 공간", revision: 2 }]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 없는 컬렉션이나 다른 소유자의 컬렉션은 M0003이다
+AssertionError: expected 'PGRST202' to be 'M0003' // Object.is equality
+
+Expected: "M0003"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:294:99
+    292|     );
+    293|     for (const id of [randomUUID(), foreign.rows[0].id]) {
+    294|       expect((await rpc("moti_rename_collection", rename({ id } as Col…
+       |                                                                                                   ^
+    295|     }
+    296|     const { rows } = await fixture.admin.query("select name from moti.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 유효하지 않은 이름 " 책상"은 M0002다
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 유효하지 않은 이름 ""은 M0002다
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 유효하지 않은 이름 "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"은 M0002다
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 유효하지 않은 이름 null은 M0002다
+ FAIL  tests/persistence/library-organize.test.ts > 컬렉션 이름 바꾸기 > 유효하지 않은 이름 "가방"은 M0002다
+AssertionError: expected 'PGRST202' to be 'M0002' // Object.is equality
+
+Expected: "M0002"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:302:89
+    300|   it.each([" 책상", "", "가".repeat(41), null, "가방".normalize("NFD")])("유…
+    301|     const desk = await library().createCollection({ name: "책상" });
+    302|     expect((await rpc("moti_rename_collection", rename(desk, 1, name a…
+       |                                                                                         ^
+    303|     expect(await names()).toEqual([{ name: "책상", revision: 1 }]);
+    304|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 정리 RPC의 소유자 경계 > anonymous는 다섯 정리 RPC를 실행하지 못하고 아무것도 바뀌지 않는다
+AssertionError: expected 'PGRST202' to be '42501' // Object.is equality
+
+Expected: "42501"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:314:111
+    312|     const denied = who === "anonymous" ? "42501" : "M0001";
+    313|
+    314|     expect((await rpc("moti_edit_product", edit(product, 1, { note: "x…
+       |                                                                                                               ^
+    315|     expect((await rpc("moti_purchase_product", at(product, 1), client)…
+    316|     expect((await rpc("moti_record_purchase", record(product, 1, null,…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/41]⎯
+
+ FAIL  tests/persistence/library-organize.test.ts > 정리 RPC의 소유자 경계 > stranger는 다섯 정리 RPC를 실행하지 못하고 아무것도 바뀌지 않는다
+AssertionError: expected 'PGRST202' to be 'M0001' // Object.is equality
+
+Expected: "M0001"
+Received: "PGRST202"
+
+ ❯ tests/persistence/library-organize.test.ts:314:111
+    312|     const denied = who === "anonymous" ? "42501" : "M0001";
+    313|
+    314|     expect((await rpc("moti_edit_product", edit(product, 1, { note: "x…
+       |                                                                                                               ^
+    315|     expect((await rpc("moti_purchase_product", at(product, 1), client)…
+    316|     expect((await rpc("moti_record_purchase", record(product, 1, null,…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/41]⎯
+
+ FAIL  tests/persistence/library-security.test.ts > 실제 DB 소유자 경계 > 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다
+AssertionError: expected [ 'moti_create_collection', …(7) ] to deeply equal [ 'moti_create_collection', …(12) ]
+
+- Expected
++ Received
+
+  [
+    "moti_create_collection",
+-   "moti_edit_product",
+    "moti_metadata_claim",
+    "moti_metadata_complete",
+    "moti_metadata_fail",
+    "moti_metadata_retry",
+    "moti_picture_locate",
+-   "moti_purchase_product",
+-   "moti_record_purchase",
+-   "moti_rename_collection",
+-   "moti_return_to_wish",
+    "moti_save_link",
+    "moti_snapshot",
+  ]
+
+ ❯ tests/persistence/library-security.test.ts:79:65
+     77|        where n.nspname = 'public' and p.proname like 'moti_%'`,
+     78|     );
+     79|     expect(functions.rows.map((row) => row.proname).toSorted()).toEqua…
+       |                                                                 ^
+     80|       "moti_create_collection", "moti_edit_product", "moti_metadata_cl…
+     81|       "moti_metadata_retry", "moti_picture_locate", "moti_purchase_pro…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/41]⎯
+
+
+ Test Files  2 failed | 6 passed (8)
+      Tests  41 failed | 117 passed (158)
+   Start at  18:19:02
+   Duration  45.94s (tests 99%, import 1%)
+
