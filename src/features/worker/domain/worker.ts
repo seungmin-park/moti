@@ -1,4 +1,9 @@
-import type { CollectionErrorCode } from "../../metadata/domain/collection-error";
+import {
+  collectionErrorCodes,
+  priceCheckCodes,
+  type CollectionErrorCode,
+  type PriceCheckCode,
+} from "../../metadata/domain/collection-error";
 
 // The scheduled worker's key: a fixed prefix that differs from the share key's, so each route's format check refuses
 // the other, then 256 random bits in base64url. The database makes it and keeps only its SHA-256.
@@ -16,11 +21,15 @@ export type WorkerKey = {
 };
 // `cut` is a run whose lease ended before it finished; `revoked` one its key's revoke stopped.
 export type WorkerRunState = "running" | "done" | "deadline" | "cut" | "revoked";
-// What a run did, counted as it went. Failures are reasons from the closed list, never links or names.
+// Why a collection failed or why a daily price check kept the previous price: the reasons a run counts.
+export type WorkerFailureCode = CollectionErrorCode | PriceCheckCode;
+export const workerFailureCodes = [...new Set([...collectionErrorCodes, ...priceCheckCodes])] as [WorkerFailureCode, ...WorkerFailureCode[]];
+// What a run did, counted as it went. Failures are reasons from the closed lists, never links or names. A kept price
+// counts its reason too, so the failures add up to the failed collections and the kept prices.
 export type WorkerCounts = {
   collections: { collected: number; failed: number };
   prices: { confirmed: number; kept: number };
-  failures: Partial<Record<CollectionErrorCode, number>>;
+  failures: Partial<Record<WorkerFailureCode, number>>;
 };
 export type WorkerRun = WorkerCounts & { id: string; startedAt: string; finishedAt: string | null; state: WorkerRunState };
 

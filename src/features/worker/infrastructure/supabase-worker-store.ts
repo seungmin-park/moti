@@ -1,11 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { callRpc, readResponse } from "../../library/infrastructure/supabase-library-store";
-import { collectionErrorCodes } from "../../metadata/domain/collection-error";
 import type { WorkerKeyStore, WorkerRunLease, WorkerRunStore } from "../application/worker-store";
 import {
   WORKER_SECRET_PATTERN,
   WorkerError,
+  workerFailureCodes,
   type WorkerCounts,
   type WorkerErrorCode,
   type WorkerKey,
@@ -21,13 +21,17 @@ const countsColumns = {
   collect_failed: count,
   prices_confirmed: count,
   prices_kept: count,
-  failures: z.partialRecord(z.enum(collectionErrorCodes), z.number().int().min(1)),
+  failures: z.partialRecord(z.enum(workerFailureCodes), z.number().int().min(1)),
 };
 
 // The worker's answers carry ids, a link and counts, never a library row: anything else means the function reads more.
 const beginRowSchema = z.object({ run: z.uuid(), lease: z.uuid() }).strict();
 const itemRowSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("collection"), job: z.uuid(), job_lease: z.uuid(), source_url: z.string().min(1) }).strict(),
+  // The check's time stays the database's text: rounding it to milliseconds would make every settle stale.
+  z.object({
+    kind: z.literal("price"), product: z.uuid(), checked_at: z.iso.datetime({ offset: true }), source_url: z.string().min(1),
+  }).strict(),
   z.object({ kind: z.literal("none") }).strict(),
 ]);
 const settlementRowSchema = z.object({ kind: z.enum(["applied", "stale"]) }).strict();
@@ -68,9 +72,14 @@ export function createSupabaseWorkerRunStore(client: SupabaseClient): WorkerRunS
     },
     async next(lease) {
       const row = await call("moti_worker_next", step(lease), itemRowSchema);
-      return row.kind === "none"
-        ? row
-        : { kind: "collection", job: { id: row.job, leaseToken: row.job_lease, sourceUrl: row.source_url } };
+      switch (row.kind) {
+        case "collection":
+          return { kind: "collection", job: { id: row.job, leaseToken: row.job_lease, sourceUrl: row.source_url } };
+        case "price":
+          return { kind: "price", check: { productId: row.product, fence: row.checked_at, sourceUrl: row.source_url } };
+        case "none":
+          return row;
+      }
     },
     async complete(lease, job, page) {
       const row = await call("moti_worker_complete", {
@@ -87,6 +96,15 @@ export function createSupabaseWorkerRunStore(client: SupabaseClient): WorkerRunS
     async fail(lease, job, code) {
       const row = await call("moti_worker_fail", {
         ...step(lease), p_job: job.id, p_job_lease: job.leaseToken, p_error_code: code,
+      }, settlementRowSchema);
+      return row.kind;
+    },
+    async price(lease, check, outcome) {
+      const found = outcome.kind === "price"
+        ? { p_amount_minor: outcome.price.amountMinor, p_currency: outcome.price.currency, p_code: null }
+        : { p_amount_minor: null, p_currency: null, p_code: outcome.code };
+      const row = await call("moti_worker_price", {
+        ...step(lease), p_product: check.productId, p_checked_at: check.fence, ...found,
       }, settlementRowSchema);
       return row.kind;
     },

@@ -6,7 +6,7 @@ import type { Product } from "../../src/features/library/domain/library";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import { createCollectionRunner, type PageRead, type PageSource } from "../../src/features/metadata/application/collection";
 import { createPictureCopier, type ImageSource } from "../../src/features/metadata/application/picture-copy";
-import type { CollectionErrorCode } from "../../src/features/metadata/domain/collection-error";
+import type { FetchErrorCode } from "../../src/features/metadata/domain/collection-error";
 import { createPictureStore } from "../../src/features/library/infrastructure/product-pictures";
 import { readProductPage } from "../../src/features/metadata/infrastructure/html-reader";
 import { normalizePicture } from "../../src/features/metadata/infrastructure/sharp-normalizer";
@@ -83,7 +83,7 @@ describe("실제 저장소를 사용하는 수집 실행", () => {
     });
   });
 
-  it.each<CollectionErrorCode>([
+  it.each<FetchErrorCode>([
     "blocked_address", "dns_failed", "connect_failed", "timeout", "too_many_redirects", "blocked_by_site",
     "http_status", "unsupported_content", "too_large", "decode_failed",
   ])("쇼핑몰 요청이 %s로 실패해도 링크를 지키고 실패 코드를 기록한다", async (code) => {

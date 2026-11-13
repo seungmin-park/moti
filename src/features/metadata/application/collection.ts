@@ -1,5 +1,5 @@
 import type { Product, ProductId } from "../../library/domain/library";
-import type { CollectionErrorCode } from "../domain/collection-error";
+import type { CollectionErrorCode, FetchErrorCode } from "../domain/collection-error";
 import type { PageFacts } from "../domain/page-facts";
 import { pickSinglePrice, type Price } from "../domain/price";
 import type { MetadataRetryCommand, MetadataRetryResult, MetadataWakeCommand, MetadataWakeResult } from "./commands";
@@ -31,7 +31,7 @@ export interface CollectionJobStore {
 }
 
 export type FetchedPage = { html: string; url: string; status: number };
-export type PageRead = { ok: true; page: FetchedPage } | { ok: false; code: CollectionErrorCode; status: number | null };
+export type PageRead = { ok: true; page: FetchedPage } | { ok: false; code: FetchErrorCode; status: number | null };
 
 // The boundary to the shop: everything past it is someone else's server.
 export interface PageSource {

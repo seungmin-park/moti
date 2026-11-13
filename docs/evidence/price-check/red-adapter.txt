@@ -1,0 +1,18 @@
+# Red: the worker's Supabase adapter for the price check (step 3). price() keeps its signature and throws, and next()
+# still reads only collection items, so the picked check is refused as an unreadable answer (storage_unavailable).
+# The adapter test fails; 5a's two adapter tests (collection steps, owner's key store) still pass.
+# Command: npm run test:database -- -t "가격 확인 어댑터|작업 실행 어댑터|작업 키 어댑터" (other tests filtered out, so the runner exits 1 on skips).
+ ❯ tests/persistence/worker-price.test.ts (24 tests | 1 failed | 23 skipped) 351ms
+     × 집은 확인을 도메인 값으로 돌려주고 확인 시각을 받은 그대로 보내 정산한다. 끝내기와 소유자의 기록은 가격 셈과 이유를 돌려준다 351ms
+ ✓ tests/persistence/worker-collect.test.ts (19 tests | 17 skipped) 624ms
+     ✓ 시작·집기·쓰기·실패·끝내기를 도메인 값으로 돌려준다 337ms
+ ✓ tests/persistence/worker-keys.test.ts (14 tests | 11 skipped) 864ms
+     ✓ 만들기·읽기·바꾸기·폐기를 도메인 값으로 돌려주고 DB 오류를 보관함 오류 코드로 바꾼다 317ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/persistence/worker-price.test.ts > 가격 확인 어댑터 > 집은 확인을 도메인 값으로 돌려주고 확인 시각을 받은 그대로 보내 정산한다. 끝내기와 소유자의 기록은 가격 셈과 이유를 돌려준다
+WorkerError: 저장 응답을 확인할 수 없어요.
+ ❯ call src/features/worker/infrastructure/supabase-worker-store.ts:59:29
+ ❯ Object.next src/features/worker/infrastructure/supabase-worker-store.ts:70:19
+ ❯ tests/persistence/worker-price.test.ts:379:19
+ Test Files  1 failed | 2 passed | 18 skipped (21)
+      Tests  1 failed | 5 passed | 305 skipped (311)

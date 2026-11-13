@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
+import type { WorkerSecret } from "../../src/features/worker/domain/worker";
+import { createSupabaseWorkerKeyStore, createSupabaseWorkerRunStore } from "../../src/features/worker/infrastructure/supabase-worker-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
@@ -362,5 +364,34 @@ describe("작업자의 수집이 오늘의 가격 확인을 대신한다", () =>
       p_amount_minor: 12000, p_currency: "KRW", p_image_source_url: null,
     });
     expect(await productRow(product)).toMatchObject({ title: "산 물건", price_checked_at: null, price_check_code: null });
+  });
+});
+
+describe("가격 확인 어댑터", () => {
+  const store = () => createSupabaseWorkerRunStore(fixture.anonymous);
+
+  it("집은 확인을 도메인 값으로 돌려주고 확인 시각을 받은 그대로 보내 정산한다. 끝내기와 소유자의 기록은 가격 셈과 이유를 돌려준다", async () => {
+    const { data: issued } = await rpc<Issued>("moti_worker_key_issue", { p_replaces: null }, fixture.owner.client);
+    const lamp = await collected("lamp", undefined, 20);
+    const desk = await collected("desk", undefined, 10);
+    const lease = await store().begin(issued.secret as WorkerSecret);
+
+    const first = await store().next(lease);
+    expect(first).toEqual({ kind: "price", check: { productId: lamp, fence: expect.any(String), sourceUrl: "https://shop.example/lamp" } });
+    if (first.kind !== "price") throw new Error("집은 가격 확인이 없습니다");
+    expect(Date.parse(first.check.fence)).toBe((await productRow(lamp)).price_checked_at?.getTime());
+    expect(await store().price(lease, first.check, { kind: "price", price: { amountMinor: 8000, currency: "KRW" } })).toBe("applied");
+    expect(await store().price(lease, first.check, { kind: "kept", code: "timeout" })).toBe("stale");
+    const second = await store().next(lease);
+    if (second.kind !== "price") throw new Error("집은 가격 확인이 없습니다");
+    expect(await store().price(lease, second.check, { kind: "kept", code: "no_single_price" })).toBe("applied");
+    expect(await store().next(lease)).toEqual({ kind: "none" });
+
+    const counts = { collections: { collected: 0, failed: 0 }, prices: { confirmed: 1, kept: 1 }, failures: { no_single_price: 1 } };
+    expect(await store().finish(lease, "done")).toEqual({ stop: "done", ...counts });
+    expect(await productRow(lamp)).toMatchObject({ last_success_amount_minor: "8000", price_check_code: null });
+    expect(await productRow(desk)).toMatchObject({ last_success_amount_minor: "9000", price_check_code: "no_single_price" });
+    const { runs } = await createSupabaseWorkerKeyStore(fixture.owner.client).read();
+    expect(runs).toEqual([expect.objectContaining({ state: "done", ...counts })]);
   });
 });
