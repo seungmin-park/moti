@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { loginPath } from "../../auth/presentation/login-error";
+import { MAX_BACKUP_BYTES, backupFileName, readLibraryBackup, type BackupCounts } from "../presentation/library-backup";
 import {
   collectionCreateResponseSchema,
   collectionRenameResponseSchema,
@@ -30,7 +31,17 @@ export type ApiFailure =
   | { kind: "stale"; message: string }
   | { kind: "unavailable"; message: string };
 export type ApiOutcome<T> = { ok: true; value: T } | { ok: false; failure: ApiFailure };
-export type Endpoint = "library.read" | "link.save" | "collection.create" | "collection.rename" | "metadata.retry" | "product.change";
+export type Endpoint =
+  | "library.read"
+  | "link.save"
+  | "collection.create"
+  | "collection.rename"
+  | "metadata.retry"
+  | "product.change"
+  | "library.backup"
+  | "library.restore";
+// A backup the server made and the reader accepted, kept as the exact text the owner downloads.
+export type BackupFile = { name: string; text: string; counts: BackupCounts; restorable: boolean };
 export type LibraryApi = {
   read(): Promise<ApiOutcome<LibraryReadResponse>>;
   saveLink(body: LinkSaveRequest): Promise<ApiOutcome<LinkSaveResponse>>;
@@ -38,6 +49,9 @@ export type LibraryApi = {
   renameCollection(collectionId: string, body: CollectionRenameRequest): Promise<ApiOutcome<CollectionRenameResponse>>;
   retryMetadata(productId: string, body: MetadataRetryRequest): Promise<ApiOutcome<MetadataRetryResponse>>;
   changeProduct(productId: string, body: ProductChangeRequest): Promise<ApiOutcome<ProductChangeResponse>>;
+  exportBackup(): Promise<ApiOutcome<BackupFile>>;
+  // Sends the chosen file's text unchanged, so the server checks exactly what the screen checked.
+  restore(text: string): Promise<ApiOutcome<LibraryReadResponse>>;
 };
 
 const connection: ApiFailure = { kind: "unavailable", message: "연결을 확인하고 다시 시도해 주세요." };
@@ -61,6 +75,11 @@ const readFailed = unavailable("보관함을 불러오지 못했어요. 잠시 �
 const retryLater = unavailable("잠시 뒤 다시 시도해 주세요.");
 const reload = unavailable("화면을 새로고침한 뒤 다시 시도해 주세요.");
 const changedElsewhere = stale("다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 저장해 주세요.");
+const backupFailed = unavailable("백업을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+// The server refused before or inside the rolled-back transaction, so the library is known to be unchanged.
+const unchanged = (message: string) => (): ApiFailure => ({ kind: "invalid", field: null, message: `${message} 보관함은 바뀌지 않았어요.` });
+// A commit can precede a lost answer, so the screen re-reads instead of saying nothing changed.
+const restoreUnknown = unavailable("복원을 마쳤는지 확인하지 못했어요.");
 
 const failures: Record<Endpoint, Mapping> = {
   "library.read": {
@@ -161,6 +180,36 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
   },
+  "library.backup": {
+    ...session,
+    storage_unavailable: backupFailed,
+    cross_origin: backupFailed,
+    unsupported_media_type: backupFailed,
+    payload_too_large: backupFailed,
+    invalid_input: backupFailed,
+    collection_missing: backupFailed,
+    collection_duplicate: backupFailed,
+    identity_conflict: backupFailed,
+    product_missing: backupFailed,
+    metadata_not_retryable: backupFailed,
+    revision_conflict: backupFailed,
+    picture_missing: backupFailed,
+  },
+  "library.restore": {
+    ...session,
+    storage_unavailable: restoreUnknown,
+    cross_origin: unchanged("화면을 새로고침한 뒤 다시 시도해 주세요."),
+    unsupported_media_type: unchanged("복원 요청을 보내지 못했어요."),
+    payload_too_large: unchanged("4MB보다 큰 백업은 한 번에 복원할 수 없어요."),
+    invalid_input: (error) => unchanged(error.message)(),
+    collection_missing: restoreUnknown,
+    collection_duplicate: restoreUnknown,
+    identity_conflict: restoreUnknown,
+    product_missing: restoreUnknown,
+    metadata_not_retryable: restoreUnknown,
+    revision_conflict: restoreUnknown,
+    picture_missing: restoreUnknown,
+  },
 };
 
 export function toApiFailure(endpoint: Endpoint, status: number, body: unknown): ApiFailure {
@@ -171,10 +220,15 @@ export function toApiFailure(endpoint: Endpoint, status: number, body: unknown):
 
 type Success<T> = { status: number; parse: (body: unknown) => T | null };
 
+// A large restore runs one transaction and the route allows 60 s; every other request gives up after 15 s.
+const RESTORE_TIMEOUT_MS = 60_000;
+
 export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(input, init), timeoutMs = 15_000): LibraryApi {
-  async function request<T>(endpoint: Endpoint, path: string, init: RequestInit, success: Success<T>[]): Promise<ApiOutcome<T>> {
+  async function request<T>(
+    endpoint: Endpoint, path: string, init: RequestInit, success: Success<T>[], timeout = timeoutMs,
+  ): Promise<ApiOutcome<T>> {
     try {
-      const response = await fetcher(path, { ...init, cache: "no-store", signal: AbortSignal.timeout(timeoutMs) });
+      const response = await fetcher(path, { ...init, cache: "no-store", signal: AbortSignal.timeout(timeout) });
       const body: unknown = await response.json().catch(() => undefined);
       if (!response.ok) return { ok: false, failure: toApiFailure(endpoint, response.status, body) };
       const value = success.find((expected) => expected.status === response.status)?.parse(body) ?? null;
@@ -219,5 +273,38 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
     changeProduct: (productId, body) => request("product.change", `/api/products/${segment(productId)}`, write("PATCH", body), [
       { status: 200, parse: parsed(productChangeResponseSchema) },
     ]),
+    async exportBackup() {
+      try {
+        const response = await fetcher("/api/library/backup", {
+          method: "GET", headers: { accept: "application/json" }, cache: "no-store", signal: AbortSignal.timeout(timeoutMs),
+        });
+        const text = await response.text();
+        let body: unknown;
+        try {
+          body = JSON.parse(text);
+        } catch {
+          body = undefined;
+        }
+        if (!response.ok) return { ok: false, failure: toApiFailure("library.backup", response.status, body) };
+        const reading = readLibraryBackup(body);
+        if (!reading.ok) return { ok: false, failure: backupFailed() };
+        return {
+          ok: true,
+          value: {
+            name: backupFileName(new Date(reading.document.exportedAt)),
+            text,
+            counts: reading.counts,
+            restorable: new TextEncoder().encode(text).byteLength <= MAX_BACKUP_BYTES,
+          },
+        };
+      } catch {
+        return { ok: false, failure: connection };
+      }
+    },
+    restore: (text) => request("library.restore", "/api/library/restore", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: text,
+    }, [{ status: 200, parse: parsed(libraryReadResponseSchema) }], RESTORE_TIMEOUT_MS),
   };
 }

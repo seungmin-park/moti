@@ -1,8 +1,9 @@
 "use client";
 
-import { Bookmark, Check, Folder, LogOut, Pencil, Plus, ShoppingBag, X } from "lucide-react";
+import { Archive, Bookmark, Check, Folder, LogOut, Pencil, Plus, ShoppingBag, X } from "lucide-react";
 import type { LibraryReadResponse } from "../presentation/library-dto";
 import { AddLinkDialog } from "./AddLinkDialog";
+import { BackupDialog } from "./BackupDialog";
 import { CollectionDialog } from "./CollectionDialog";
 import { LibraryProductCard } from "./LibraryProductCard";
 import { ProductDetailDialog } from "./ProductDetailDialog";
@@ -126,6 +127,9 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
       />
     );
   }
+  if (dialog?.kind === "backup") {
+    return <BackupDialog step={dialog.step} notice={dialog.notice} blocked={state.writing !== null || state.refreshing} send={send} />;
+  }
   if (dialog?.kind === "detail") {
     const product = library.products.find((item) => item.id === dialog.productId);
     return product ? (
@@ -179,11 +183,22 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
             </button>
           ))}
         </nav>
-        <SignOut />
+        <div className="sidebar-footer">
+          <button className="text-button" onClick={() => send({ type: "backup.open" })}>
+            <Archive size={15} aria-hidden="true" />
+            백업과 복원
+          </button>
+          <SignOut />
+        </div>
       </aside>
       <div className="mobile-top">
         <Brand size={21} onClick={() => filter(null)} />
-        <SignOut />
+        <div className="mobile-actions">
+          <button className="icon-button" aria-label="백업과 복원" title="백업과 복원" onClick={() => send({ type: "backup.open" })}>
+            <Archive size={19} aria-hidden="true" />
+          </button>
+          <SignOut />
+        </div>
       </div>
       <main className="main-content" id="main-content">
         <header className="page-heading">

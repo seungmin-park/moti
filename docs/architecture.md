@@ -105,3 +105,16 @@ claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트
 ```
 
 소유자가 고친 이름은 `owner_title`에 두고 `product_json`이 `coalesce(owner_title, title)`로 보인다. 수집은 `title`만 쓰고 `revision`을 올리지 않는다. 설계 비교와 검증은 [changes/organize.md](changes/organize.md)에 있다.
+
+## 백업과 복원
+
+백업 파일의 정의는 `presentation/library-backup.ts` 하나다. 화면은 고른 파일을, 복원 경로는 같은 바이트를 같은 엄격한 읽기 함수(`readLibraryBackup`)로 검사한다. 앱이 저장하는 값만 받으므로 공유 규칙 모듈을 쓰는 이 읽기 함수는 "presentation은 형태만"의 예외다. 서버 시각에 기대는 규칙(구매일)과 판별 주소 만들기는 명령(`toLibraryRestoreCommand`)이 한다.
+
+```text
+내보내기: GET /api/library/backup → moti_backup(수집한 이름과 소유자 이름을 따로, 소속은 이름) → toLibraryBackupDocument → 첨부
+복원: 파일 → readLibraryBackup(화면) → 확인 → POST /api/library/restore(글자 그대로, 4MiB) → readLibraryBackup(서버) → 명령 → moti_restore_library(한 트랜잭션) → 바뀐 보관함
+      응답 뒤: followUpRestore(지운 상품의 사본 버리기 → 수집 대기 상품을 최근 것부터 40초 동안 두 개씩 수집)
+```
+
+교체 규칙은 SQL에 있다. 입력 전체를 먼저 검사하고, 복원을 하나씩 실행하며, 수집 쓰기와 같은 순서로 행을 잠근다. 상품은 링크 판별 값, 컬렉션은 이름(대소문자 무시)으로 맞춰 맞은 행은 id·사진·수집 값을 지키고 revision을 올린다. 설계 비교와 검증은 [changes/backup.md](changes/backup.md)에 있다.
+

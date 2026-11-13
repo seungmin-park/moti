@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Product, ProductId } from "../../library/domain/library";
-import { createCollectionRunner, decideOutcome, type CollectionJob, type CollectionJobStore } from "./collection";
+import { createCollectionRunner, decideOutcome, runWithin, type CollectionJob, type CollectionJobStore } from "./collection";
 import type { ImageCopy, PictureCopier, PictureObject } from "./picture-copy";
 
 describe("수집 결과 결정", () => {
@@ -146,5 +146,56 @@ describe("수집 실행기", () => {
     });
     await expect(runner.run(request)).resolves.toEqual({ kind: "skipped", reason: "busy" });
     expect(source.read).not.toHaveBeenCalled();
+  });
+});
+
+describe("시간 안에 나눠 실행", () => {
+  function clock(start = 0) {
+    let time = start;
+    return { now: () => time, advance: (ms: number) => { time += ms; } };
+  }
+
+  it("Given 다섯 항목 When 동시 2개로 실행하면 Then 한 번에 둘을 넘지 않고 순서대로 모두 시작한다", async () => {
+    const { now } = clock();
+    let running = 0;
+    let most = 0;
+    const started: number[] = [];
+    const count = await runWithin([1, 2, 3, 4, 5], async (item) => {
+      started.push(item);
+      running += 1;
+      most = Math.max(most, running);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      running -= 1;
+    }, { concurrency: 2, deadline: 1000, now });
+
+    expect(count).toBe(5);
+    expect(started).toEqual([1, 2, 3, 4, 5]);
+    expect(most).toBe(2);
+  });
+
+  it("Given 마감이 지남 When 다음 항목을 고르면 Then 새로 시작하지 않고 시작한 수를 돌려준다", async () => {
+    const time = clock();
+    const started: string[] = [];
+    const count = await runWithin(["a", "b", "c", "d"], async (item) => {
+      started.push(item);
+      time.advance(30);
+    }, { concurrency: 1, deadline: 50, now: time.now });
+
+    expect(started).toEqual(["a", "b"]);
+    expect(count).toBe(2);
+  });
+
+  it("Given 예외를 던지는 실행 When 실행하면 Then 예외 없이 나머지를 이어서 시작한다", async () => {
+    const { now } = clock();
+    const started: number[] = [];
+    await expect(runWithin([1, 2, 3], async (item) => {
+      started.push(item);
+      if (item === 1) throw new Error("boom");
+    }, { concurrency: 1, deadline: 1000, now })).resolves.toBe(3);
+    expect(started).toEqual([1, 2, 3]);
+  });
+
+  it("Given 빈 목록 When 실행하면 Then 아무것도 시작하지 않는다", async () => {
+    await expect(runWithin([], async () => undefined, { concurrency: 2, deadline: 1000, now: () => 0 })).resolves.toBe(0);
   });
 });

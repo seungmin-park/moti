@@ -1,0 +1,290 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/application/restore-follow-up.test.ts (5 tests | 5 failed) 6ms
+   ❯ 복원 뒤 정리 (5)
+     × Given 지운 상품의 사본과 수집을 기다리는 상품 When 정리하면 Then 사본을 먼저 버리고 기다리는 상품만 최근 것부터 수집한다 3ms
+     × Given 사본 2,500개 When 정리하면 Then 1,000개씩 나눠 버린다 0ms
+     × Given 버릴 사본이 없음 When 정리하면 Then Storage를 부르지 않는다 0ms
+     × Given 사본 버리기가 실패 When 정리하면 Then 예외 없이 수집을 이어서 한다 1ms
+     × Given 40초가 지남 When 다음 상품을 고르면 Then 새 수집을 시작하지 않는다 0ms
+ ❯ src/features/metadata/application/collection.test.ts (14 tests | 4 failed) 29ms
+   ❯ 시간 안에 나눠 실행 (4)
+     × Given 다섯 항목 When 동시 2개로 실행하면 Then 한 번에 둘을 넘지 않고 순서대로 모두 시작한다 4ms
+     × Given 마감이 지남 When 다음 항목을 고르면 Then 새로 시작하지 않고 시작한 수를 돌려준다 2ms
+     × Given 예외를 던지는 실행 When 실행하면 Then 예외 없이 나머지를 이어서 시작한다 1ms
+     × Given 빈 목록 When 실행하면 Then 아무것도 시작하지 않는다 0ms
+ ❯ src/features/library/presentation/api-document.test.ts (6 tests | 1 failed) 31ms
+   ❯ API 문서 (6)
+     × 복원은 백업 파일을 본문으로 받는 POST로 200·400·413·415 응답과 4MiB 한도를 문서에 남긴다 3ms
+ ❯ src/features/library/presentation/library-handlers.test.ts (137 tests | 17 failed) 161ms
+   ❯ POST /api/library/restore (17)
+     × Given 백업 파일 When 복원하면 Then 링크에서 판별 주소를 얻은 명령으로 바꾸고, 결과를 응답 뒤 정리에 넘기고, 바뀐 보관함을 돌려준다 62ms
+     × Given 16KiB를 넘지만 4MiB 이하인 백업 When 복원하면 Then 받는다 1ms
+     × Given 4MiB를 넘는 선언한 길이 When 복원하면 Then 413이고 바꾸지 않는다 13ms
+     × Given 4MiB를 넘는 길이 없이 흘려보낸 본문 When 복원하면 Then 413이고 바꾸지 않는다 18ms
+     × Given 다른 출처 When 복원하면 Then 403이고 본문을 읽지 않는다 0ms
+     × Given JSON이 아닌 형식 When 복원하면 Then 415다 0ms
+     × Given 깨진 JSON When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다 0ms
+     × Given moti 백업이 아닌 JSON When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다 0ms
+     × Given 더 새로운 버전 When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다 0ms
+     × Given 바뀐 파일 When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다 0ms
+     × Given 서버의 오늘보다 뒤의 구매일 When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다 1ms
+     × Given 저장소가 LibraryError: 보관함 요청을 처리하지 못했어요.로 거절 When 복원하면 Then 400이고 응답 뒤 정리를 하지 않는다 1ms
+     × Given 저장소가 LibraryError: 보관함 요청을 처리하지 못했어요.로 거절 When 복원하면 Then 503이고 응답 뒤 정리를 하지 않는다 0ms
+     × Given 저장소가 Error: network로 거절 When 복원하면 Then 503이고 응답 뒤 정리를 하지 않는다 0ms
+     × Given signed_out When 복원하면 Then 401 응답이고 보관함을 바꾸지 않는다 1ms
+     × Given forbidden When 복원하면 Then 403 응답이고 보관함을 바꾸지 않는다 1ms
+     × Given unconfigured When 복원하면 Then 503 응답이고 보관함을 바꾸지 않는다 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 27 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/metadata/application/collection.test.ts > 시간 안에 나눠 실행 > Given 다섯 항목 When 동시 2개로 실행하면 Then 한 번에 둘을 넘지 않고 순서대로 모두 시작한다
+Error: not implemented
+ ❯ runWithin src/features/metadata/application/collection.ts:115:9
+    113|   void run;
+    114|   void window;
+    115|   throw new Error("not implemented");
+       |         ^
+    116| }
+    117|
+ ❯ src/features/metadata/application/collection.test.ts:163:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/27]⎯
+
+ FAIL  src/features/metadata/application/collection.test.ts > 시간 안에 나눠 실행 > Given 마감이 지남 When 다음 항목을 고르면 Then 새로 시작하지 않고 시작한 수를 돌려준다
+Error: not implemented
+ ❯ runWithin src/features/metadata/application/collection.ts:115:9
+    113|   void run;
+    114|   void window;
+    115|   throw new Error("not implemented");
+       |         ^
+    116| }
+    117|
+ ❯ src/features/metadata/application/collection.test.ts:179:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/27]⎯
+
+ FAIL  src/features/metadata/application/collection.test.ts > 시간 안에 나눠 실행 > Given 예외를 던지는 실행 When 실행하면 Then 예외 없이 나머지를 이어서 시작한다
+AssertionError: promise rejected "Error: not implemented" instead of resolving
+ ❯ src/features/metadata/application/collection.test.ts:194:49
+    192|       started.push(item);
+    193|       if (item === 1) throw new Error("boom");
+    194|     }, { concurrency: 1, deadline: 1000, now })).resolves.toBe(3);
+       |                                                 ^
+    195|     expect(started).toEqual([1, 2, 3]);
+    196|   });
+
+Caused by: Error: not implemented
+ ❯ runWithin src/features/metadata/application/collection.ts:115:9
+ ❯ src/features/metadata/application/collection.test.ts:191:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/27]⎯
+
+ FAIL  src/features/metadata/application/collection.test.ts > 시간 안에 나눠 실행 > Given 빈 목록 When 실행하면 Then 아무것도 시작하지 않는다
+AssertionError: promise rejected "Error: not implemented" instead of resolving
+ ❯ src/features/metadata/application/collection.test.ts:199:105
+    197|
+    198|   it("Given 빈 목록 When 실행하면 Then 아무것도 시작하지 않는다", async () => {
+    199|     await expect(runWithin([], async () => undefined, { concurrency: 2…
+       |                                                                                                         ^
+    200|   });
+    201| });
+
+Caused by: Error: not implemented
+ ❯ runWithin src/features/metadata/application/collection.ts:115:9
+ ❯ src/features/metadata/application/collection.test.ts:199:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/27]⎯
+
+ FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 복원은 백업 파일을 본문으로 받는 POST로 200·400·413·415 응답과 4MiB 한도를 문서에 남긴다
+TypeError: Cannot read properties of undefined (reading 'requestBody')
+ ❯ src/features/library/presentation/api-document.test.ts:67:34
+     65|       responses: Record<string, { description: string }>;
+     66|     };
+     67|     expect(Object.keys(operation.requestBody.content["application/json…
+       |                                  ^
+     68|       .toEqual(["format", "version", "exportedAt", "collections", "pro…
+     69|     expect(Object.keys(operation.responses)).toEqual(expect.arrayConta…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/27]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 백업 파일 When 복원하면 Then 링크에서 판별 주소를 얻은 명령으로 바꾸고, 결과를 응답 뒤 정리에 넘기고, 바뀐 보관함을 돌려준다
+TypeError: handlers.postRestore is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:815:37
+    813|     service.restoreLibrary.mockResolvedValueOnce(result);
+    814|
+    815|     const response = await handlers.postRestore(restore(file()));
+       |                                     ^
+    816|
+    817|     expect(response.status).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/27]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 16KiB를 넘지만 4MiB 이하인 백업 When 복원하면 Then 받는다
+TypeError: handlers.postRestore is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:832:28
+    830|     expect(new TextEncoder().encode(body).byteLength).toBeGreaterThan(…
+    831|
+    832|     expect((await handlers.postRestore(restore(body))).status).toBe(20…
+       |                            ^
+    833|     expect(service.restoreLibrary).toHaveBeenCalledOnce();
+    834|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/27]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 4MiB를 넘는 선언한 길이 When 복원하면 Then 413이고 바꾸지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 4MiB를 넘는 길이 없이 흘려보낸 본문 When 복원하면 Then 413이고 바꾸지 않는다
+TypeError: handlers.postRestore is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:846:37
+    844|   ])("Given 4MiB를 넘는 %s When 복원하면 Then 413이고 바꾸지 않는다", async (_, reque…
+    845|     const { handlers, service, settleRestore } = given(allowed);
+    846|     const response = await handlers.postRestore(request(" ".repeat(MAX…
+       |                                     ^
+    847|     expect(response.status).toBe(413);
+    848|     expect((await errorOf(response)).error).toBe("payload_too_large");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/27]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 다른 출처 When 복원하면 Then 403이고 본문을 읽지 않는다
+TypeError: handlers.postRestore is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:855:37
+    853|   it("Given 다른 출처 When 복원하면 Then 403이고 본문을 읽지 않는다", async () => {
+    854|     const { handlers, service } = given(allowed);
+    855|     const response = await handlers.postRestore(restore(file(), { orig…
+       |                                     ^
+    856|     expect(response.status).toBe(403);
+    857|     expect((await errorOf(response)).error).toBe("cross_origin");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/27]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given JSON이 아닌 형식 When 복원하면 Then 415다
+TypeError: handlers.postRestore is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:863:28
+    861|   it("Given JSON이 아닌 형식 When 복원하면 Then 415다", async () => {
+    862|     const { handlers, service } = given(allowed);
+    863|     expect((await handlers.postRestore(restore(file(), { "content-type…
+       |                            ^
+    864|     expect(service.restoreLibrary).not.toHaveBeenCalled();
+    865|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/27]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 깨진 JSON When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given moti 백업이 아닌 JSON When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 더 새로운 버전 When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 바뀐 파일 When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 서버의 오늘보다 뒤의 구매일 When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다
+TypeError: handlers.postRestore is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:877:37
+    875|   ])("Given %s When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다", async…
+    876|     const { handlers, service, settleRestore } = given(allowed);
+    877|     const response = await handlers.postRestore(restore(body));
+       |                                     ^
+    878|     expect(response.status).toBe(400);
+    879|     expect(await errorOf(response)).toEqual({ error: "invalid_input", …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/27]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 저장소가 LibraryError: 보관함 요청을 처리하지 못했어요.로 거절 When 복원하면 Then 400이고 응답 뒤 정리를 하지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 저장소가 LibraryError: 보관함 요청을 처리하지 못했어요.로 거절 When 복원하면 Then 503이고 응답 뒤 정리를 하지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 저장소가 Error: network로 거절 When 복원하면 Then 503이고 응답 뒤 정리를 하지 않는다
+TypeError: handlers.postRestore is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:891:37
+    889|     const { handlers, service, settleRestore } = given(allowed);
+    890|     service.restoreLibrary.mockRejectedValueOnce(error);
+    891|     const response = await handlers.postRestore(restore(file()));
+       |                                     ^
+    892|     expect(response.status).toBe(status);
+    893|     expect((await errorOf(response)).error).toBe(code);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/27]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given signed_out When 복원하면 Then 401 응답이고 보관함을 바꾸지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given forbidden When 복원하면 Then 403 응답이고 보관함을 바꾸지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given unconfigured When 복원하면 Then 503 응답이고 보관함을 바꾸지 않는다
+TypeError: handlers.postRestore is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:903:28
+    901|   ])("Given $access.kind When 복원하면 Then $status 응답이고 보관함을 바꾸지 않는다", as…
+    902|     const { handlers, service, signOut } = given(access);
+    903|     expect((await handlers.postRestore(restore(file()))).status).toBe(…
+       |                            ^
+    904|     expect(service.restoreLibrary).not.toHaveBeenCalled();
+    905|     expect(signOut).toHaveBeenCalledTimes(signedOut ? 1 : 0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/27]⎯
+
+ FAIL  src/features/library/application/restore-follow-up.test.ts > 복원 뒤 정리 > Given 지운 상품의 사본과 수집을 기다리는 상품 When 정리하면 Then 사본을 먼저 버리고 기다리는 상품만 최근 것부터 수집한다
+Error: not implemented
+ ❯ followUpRestore src/features/library/application/restore-follow-up.ts:17:9
+     15|   void collect;
+     16|   void now;
+     17|   throw new Error("not implemented");
+       |         ^
+     18| }
+     19|
+ ❯ src/features/library/application/restore-follow-up.test.ts:33:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/27]⎯
+
+ FAIL  src/features/library/application/restore-follow-up.test.ts > 복원 뒤 정리 > Given 사본 2,500개 When 정리하면 Then 1,000개씩 나눠 버린다
+Error: not implemented
+ ❯ followUpRestore src/features/library/application/restore-follow-up.ts:17:9
+     15|   void collect;
+     16|   void now;
+     17|   throw new Error("not implemented");
+       |         ^
+     18| }
+     19|
+ ❯ src/features/library/application/restore-follow-up.test.ts:52:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/27]⎯
+
+ FAIL  src/features/library/application/restore-follow-up.test.ts > 복원 뒤 정리 > Given 버릴 사본이 없음 When 정리하면 Then Storage를 부르지 않는다
+Error: not implemented
+ ❯ followUpRestore src/features/library/application/restore-follow-up.ts:17:9
+     15|   void collect;
+     16|   void now;
+     17|   throw new Error("not implemented");
+       |         ^
+     18| }
+     19|
+ ❯ src/features/library/application/restore-follow-up.test.ts:60:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/27]⎯
+
+ FAIL  src/features/library/application/restore-follow-up.test.ts > 복원 뒤 정리 > Given 사본 버리기가 실패 When 정리하면 Then 예외 없이 수집을 이어서 한다
+AssertionError: promise rejected "Error: not implemented" instead of resolving
+ ❯ src/features/library/application/restore-follow-up.test.ts:69:114
+     67|     vi.mocked(pictures.discard).mockRejectedValueOnce(new Error("stora…
+     68|
+     69|     await expect(followUpRestore(result([product("new", queued)], ["a/…
+       |                                                                                                                  ^
+     70|     expect(collect).toHaveBeenCalledOnce();
+     71|   });
+
+Caused by: Error: not implemented
+ ❯ followUpRestore src/features/library/application/restore-follow-up.ts:17:9
+ ❯ src/features/library/application/restore-follow-up.test.ts:69:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/27]⎯
+
+ FAIL  src/features/library/application/restore-follow-up.test.ts > 복원 뒤 정리 > Given 40초가 지남 When 다음 상품을 고르면 Then 새 수집을 시작하지 않는다
+Error: not implemented
+ ❯ followUpRestore src/features/library/application/restore-follow-up.ts:17:9
+     15|   void collect;
+     16|   void now;
+     17|   throw new Error("not implemented");
+       |         ^
+     18| }
+     19|
+ ❯ src/features/library/application/restore-follow-up.test.ts:81:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/27]⎯
+
+
+ Test Files  4 failed | 13 passed (17)
+      Tests  27 failed | 671 passed (698)
+   Start at  20:14:51
+   Duration  578ms (tests 43%, import 31%, transform 23%, worker 3%)
+

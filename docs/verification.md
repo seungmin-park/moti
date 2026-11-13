@@ -2,6 +2,8 @@
 
 CI 작업 `mockup`은 `app`으로, Supabase 없는 브라우저 검사 `test:e2e`는 `test:ui`로 이름을 바꿨다([변경 기록](changes/naming.md)). 아래 이전 항목의 "브라우저 e2e"는 지금의 `npm run test:ui`다.
 
+보관함 백업과 복원(4b)의 검증은 [변경 기록](changes/backup.md)에 있다. 단위 953개, 실제 DB 190개(persistence 145, service 45), 실제 HTTP 30개, 실제 스택 브라우저 36개, `tests/ui` 50개가 통과했다. 메모·컬렉션이 있는 상품 1,000개 복원은 로컬에서 0.3~0.8초였다. service와 실제 스택 브라우저 검사는 동작을 만든 뒤 작성했다. 실제 Google OAuth·실제 iPhone의 내려받기·Vercel·배포는 검증하지 않았다.
+
 상품 정리와 구매 기록(4a)의 검증은 [변경 기록](changes/organize.md)에 있다. 단위 804개, 실제 DB 168개(persistence 126, service 42), 실제 HTTP 23개, 실제 스택 브라우저 30개, `tests/ui` 50개가 통과했다. 실제 스택 브라우저 검사는 동작을 만든 뒤 작성했다. 실제 Google OAuth·실제 iPhone·배포는 검증하지 않았다.
 
 상품 사진의 비공개 사본(3b)의 검증은 [변경 기록](changes/pictures.md)에 있다. 단위 615개, 실제 DB 118개, 실제 HTTP 18개, 실제 스택 브라우저 20개, `tests/ui` 50개가 통과했다. 실제 쇼핑몰 사진 결과는 [real-pages.md](evidence/pictures/real-pages.md)에 있다.

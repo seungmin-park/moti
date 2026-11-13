@@ -1,9 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Access } from "../../auth/domain/access";
-import { toLinkSaveCommand, type PictureViewResult } from "../application/commands";
-import { LibraryError, type Collection, type CollectionId, type Library, type Product, type ProductId } from "../domain/library";
+import { toLinkSaveCommand, type LibraryRestoreResult, type PictureViewResult } from "../application/commands";
+import {
+  LibraryError,
+  type Collection,
+  type CollectionId,
+  type Library,
+  type LibraryBackup,
+  type Product,
+  type ProductId,
+} from "../domain/library";
 import type { CollectionRequest } from "../../metadata/application/collection";
 import type { MetadataRetryCommand, MetadataRetryResult } from "../../metadata/application/commands";
+import { MAX_BACKUP_BYTES, readLibraryBackup, toLibraryBackupDocument } from "./library-backup";
 import { createLibraryHandlers } from "./library-handlers";
 import {
   collectionCreateResponseSchema,
@@ -42,6 +51,22 @@ const product = {
   lastSuccessfulPrice: null,
   picture: null,
 } satisfies Product;
+const backup = {
+  collections: [{ name: "책상", createdAt: "2026-11-11T00:00:00.000Z" }],
+  products: [{
+    sourceUrl: "https://example.com/item?utm_source=x",
+    identityUrl: "https://example.com/item",
+    option: "",
+    shop: "example.com",
+    collectedTitle: "무선 헤드폰",
+    ownerTitle: "내 헤드폰",
+    note: "선물용",
+    collectionNames: ["책상"],
+    addedAt: "2026-11-11T00:00:00.000Z",
+    purchase: { status: "purchased", date: null, price: { amountMinor: 0, currency: "KRW" } },
+    lastSuccessfulPrice: null,
+  }],
+} satisfies LibraryBackup;
 
 function given(access: Access) {
   const service = {
@@ -51,6 +76,8 @@ function given(access: Access) {
     openPicture: vi.fn(async (): Promise<PictureViewResult> => ({ kind: "found", url: signedUrl })),
     changeProduct: vi.fn(async (): Promise<Product> => product),
     renameCollection: vi.fn(async (): Promise<Collection> => collection),
+    exportLibrary: vi.fn(async (): Promise<LibraryBackup> => backup),
+    restoreLibrary: vi.fn(async (): Promise<LibraryRestoreResult> => ({ library: { products: [product], collections: [collection] }, replacedPictures: [] })),
   };
   const signOut = vi.fn(async () => {});
   // collect is a mock: scheduling the collection is itself the requirement, its work happens after the response.
@@ -59,8 +86,10 @@ function given(access: Access) {
     kind: "requeued",
     product: { ...product, id: command.productId, metadata: { phase: "queued", generation: 2, attempts: 0, stalled: false } },
   }));
-  const handlers = createLibraryHandlers(async () => ({ access, service, signOut, collect, retry }));
-  return { handlers, service, signOut, collect, retry };
+  // settleRestore is a mock too: handing the result over after the response is the requirement.
+  const settleRestore = vi.fn<(result: LibraryRestoreResult) => void>();
+  const handlers = createLibraryHandlers(async () => ({ access, service, signOut, collect, retry, settleRestore }));
+  return { handlers, service, signOut, collect, retry, settleRestore };
 }
 
 const get = () => new Request(`${origin}/api/library`);
@@ -713,5 +742,166 @@ describe("GET /api/products/{productId}/picture", () => {
     expect(response.status).toBe(403);
     expect(signOut).toHaveBeenCalledOnce();
     expect(service.openPicture).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/library/backup", () => {
+  const download = () => new Request(`${origin}/api/library/backup`);
+
+  it("Given 허용한 Google 계정 When 백업을 받으면 Then 서울 시각 이름의 첨부 파일로 읽기 함수가 받는 백업을 돌려준다", async () => {
+    vi.useFakeTimers({ now: new Date("2026-11-13T05:12:30.000Z"), toFake: ["Date"] });
+    try {
+      const { handlers, service } = given(allowed);
+
+      const response = await handlers.getBackup(download());
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
+      expect(response.headers.get("content-disposition")).toBe('attachment; filename="moti-backup-20261113-1412.json"');
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      const reading = readLibraryBackup(JSON.parse(await response.text()));
+      expect(reading).toMatchObject({ ok: true, counts: { products: 1, collections: 1 } });
+      expect(reading.ok && reading.document).toMatchObject({
+        exportedAt: "2026-11-13T05:12:30.000Z",
+        products: [{ sourceUrl: "https://example.com/item?utm_source=x", collectedTitle: "무선 헤드폰", ownerTitle: "내 헤드폰", collections: ["책상"] }],
+      });
+      expect(service.exportLibrary).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Given 다른 출처의 페이지 When 백업을 받으면 Then 읽기라 출처를 묻지 않고 세션으로 판단한다", async () => {
+    const { handlers } = given(allowed);
+    const response = await handlers.getBackup(new Request(`${origin}/api/library/backup`, { headers: { origin: "https://evil.test" } }));
+    expect(response.status).toBe(200);
+  });
+
+  it.each([
+    { access: { kind: "signed_out" } as Access, status: 401, error: "signed_out", signedOut: false },
+    { access: { kind: "forbidden" } as Access, status: 403, error: "forbidden", signedOut: true },
+    { access: { kind: "unconfigured" } as Access, status: 503, error: "unconfigured", signedOut: false },
+  ])("Given $error When 백업을 받으면 Then $status JSON 오류이고 보관함을 읽지 않는다", async ({ access, status, error, signedOut }) => {
+    const { handlers, service, signOut } = given(access);
+    const response = await handlers.getBackup(download());
+    expect(response.status).toBe(status);
+    expect(response.headers.get("content-disposition")).toBeNull();
+    expect((await errorOf(response)).error).toBe(error);
+    expect(service.exportLibrary).not.toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalledTimes(signedOut ? 1 : 0);
+  });
+
+  it("Given 저장소 오류 When 백업을 받으면 Then 503 JSON 오류이고 첨부 파일이 아니다", async () => {
+    const { handlers, service } = given(allowed);
+    service.exportLibrary.mockRejectedValueOnce(new LibraryError("storage_unavailable", "저장소를 사용할 수 없어요."));
+    const response = await handlers.getBackup(download());
+    expect(response.status).toBe(503);
+    expect(response.headers.get("content-disposition")).toBeNull();
+    expect((await errorOf(response)).error).toBe("storage_unavailable");
+  });
+});
+
+describe("POST /api/library/restore", () => {
+  const file = () => toLibraryBackupDocument(backup, new Date("2026-11-13T05:12:00.000Z"));
+  const restore = (body: unknown, headers: Record<string, string> = {}) => post("/api/library/restore", body, headers);
+  const restored: Library = { products: [{ ...product, title: "내 헤드폰", revision: 2 }], collections: [collection] };
+
+  it("Given 백업 파일 When 복원하면 Then 링크에서 판별 주소를 얻은 명령으로 바꾸고, 결과를 응답 뒤 정리에 넘기고, 바뀐 보관함을 돌려준다", async () => {
+    const { handlers, service, settleRestore } = given(allowed);
+    const result: LibraryRestoreResult = { library: restored, replacedPictures: [] };
+    service.restoreLibrary.mockResolvedValueOnce(result);
+
+    const response = await handlers.postRestore(restore(file()));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(libraryReadResponseSchema.parse(await response.json())).toEqual({
+      products: [{ ...product, title: "내 헤드폰", revision: 2 }], collections: [collection],
+    });
+    expect(service.restoreLibrary).toHaveBeenCalledWith({ backup });
+    expect(settleRestore).toHaveBeenCalledWith(result);
+  });
+
+  it("Given 16KiB를 넘지만 4MiB 이하인 백업 When 복원하면 Then 받는다", async () => {
+    const { handlers, service } = given(allowed);
+    const large = { ...file(), products: [{ ...file().products[0], note: "가".repeat(3000) }] };
+    const body = JSON.stringify({ ...large, products: Array.from({ length: 10 }, (_, index) => ({ ...large.products[0], sourceUrl: `https://example.com/item/${index}` })) });
+    expect(new TextEncoder().encode(body).byteLength).toBeGreaterThan(16 * 1024);
+
+    expect((await handlers.postRestore(restore(body))).status).toBe(200);
+    expect(service.restoreLibrary).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["선언한 길이", (body: string) => restore(body, { "content-length": String(MAX_BACKUP_BYTES + 1) })],
+    ["길이 없이 흘려보낸 본문", (body: string) => new Request(`${origin}/api/library/restore`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: new Blob([body]).stream(),
+      duplex: "half",
+    } as RequestInit)],
+  ])("Given 4MiB를 넘는 %s When 복원하면 Then 413이고 바꾸지 않는다", async (_, request) => {
+    const { handlers, service, settleRestore } = given(allowed);
+    const response = await handlers.postRestore(request(" ".repeat(MAX_BACKUP_BYTES + 1)));
+    expect(response.status).toBe(413);
+    expect((await errorOf(response)).error).toBe("payload_too_large");
+    expect(service.restoreLibrary).not.toHaveBeenCalled();
+    expect(settleRestore).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 출처 When 복원하면 Then 403이고 본문을 읽지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.postRestore(restore(file(), { origin: "https://evil.test" }));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(service.restoreLibrary).not.toHaveBeenCalled();
+  });
+
+  it("Given JSON이 아닌 형식 When 복원하면 Then 415다", async () => {
+    const { handlers, service } = given(allowed);
+    expect((await handlers.postRestore(restore(file(), { "content-type": "text/plain" }))).status).toBe(415);
+    expect(service.restoreLibrary).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["깨진 JSON", "{", undefined, "입력을 확인해 주세요."],
+    ["moti 백업이 아닌 JSON", { products: [] }, undefined, "moti 백업 파일이 아니에요."],
+    ["더 새로운 버전", { format: "moti.library-backup", version: 2 }, "version", "더 새로운 moti에서 만든 백업이에요. 화면을 새로고침한 뒤 다시 시도해 주세요."],
+    ["바뀐 파일", { ...toLibraryBackupDocument(backup, new Date()), signature: "x" }, "signature", "백업 파일이 손상되었거나 바뀌었어요."],
+    ["서버의 오늘보다 뒤의 구매일", {
+      ...toLibraryBackupDocument({ ...backup, products: [{ ...backup.products[0], purchase: { status: "purchased", date: "2999-01-01", price: null } }] }, new Date()),
+    }, "products.0.purchase.date", "구매일은 오늘까지 입력할 수 있어요."],
+  ])("Given %s When 복원하면 Then 400과 첫 문제의 위치를 돌려주고 보관함을 바꾸지 않는다", async (_, body, field, message) => {
+    const { handlers, service, settleRestore } = given(allowed);
+    const response = await handlers.postRestore(restore(body));
+    expect(response.status).toBe(400);
+    expect(await errorOf(response)).toEqual({ error: "invalid_input", message, ...(field && { field }) });
+    expect(service.restoreLibrary).not.toHaveBeenCalled();
+    expect(settleRestore).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [new LibraryError("invalid_input", "보관함 요청을 처리하지 못했어요."), 400, "invalid_input"],
+    [new LibraryError("storage_unavailable", "보관함 요청을 처리하지 못했어요."), 503, "storage_unavailable"],
+    [new Error("network"), 503, "storage_unavailable"],
+  ])("Given 저장소가 %s로 거절 When 복원하면 Then %i이고 응답 뒤 정리를 하지 않는다", async (error, status, code) => {
+    const { handlers, service, settleRestore } = given(allowed);
+    service.restoreLibrary.mockRejectedValueOnce(error);
+    const response = await handlers.postRestore(restore(file()));
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(settleRestore).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { access: { kind: "signed_out" } as Access, status: 401, signedOut: false },
+    { access: { kind: "forbidden" } as Access, status: 403, signedOut: true },
+    { access: { kind: "unconfigured" } as Access, status: 503, signedOut: false },
+  ])("Given $access.kind When 복원하면 Then $status 응답이고 보관함을 바꾸지 않는다", async ({ access, status, signedOut }) => {
+    const { handlers, service, signOut } = given(access);
+    expect((await handlers.postRestore(restore(file()))).status).toBe(status);
+    expect(service.restoreLibrary).not.toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalledTimes(signedOut ? 1 : 0);
   });
 });

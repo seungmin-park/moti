@@ -48,4 +48,25 @@ describe("API 문서", () => {
       expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "409", "413", "415", "422", "503"]));
     }
   });
+
+  it("백업 내려받기는 GET 200에 백업 파일 스키마와 첨부 이름 헤더를 문서에 남긴다", () => {
+    const operation = buildApiDocument().paths["/api/library/backup"]?.get as {
+      responses: Record<string, { content?: Record<string, { schema: { properties?: Record<string, unknown> } }>; headers?: Record<string, unknown> }>;
+    };
+    expect(Object.keys(operation.responses["200"].headers ?? {})).toEqual(["Content-Disposition"]);
+    expect(Object.keys(operation.responses["200"].content?.["application/json"].schema.properties ?? {}))
+      .toEqual(["format", "version", "exportedAt", "collections", "products"]);
+    expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "401", "403", "503"]));
+  });
+
+  it("복원은 백업 파일을 본문으로 받는 POST로 200·400·413·415 응답과 4MiB 한도를 문서에 남긴다", () => {
+    const operation = buildApiDocument().paths["/api/library/restore"]?.post as {
+      requestBody: { content: Record<string, { schema: { properties?: Record<string, unknown> } }> };
+      responses: Record<string, { description: string }>;
+    };
+    expect(Object.keys(operation.requestBody.content["application/json"].schema.properties ?? {}))
+      .toEqual(["format", "version", "exportedAt", "collections", "products"]);
+    expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "413", "415", "503"]));
+    expect(operation.responses["413"].description).toContain("4194304");
+  });
 });

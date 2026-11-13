@@ -64,7 +64,7 @@ export default defineConfig([
           message: "화면은 API 계약만 쓰는 HTTP 클라이언트다.",
         },
         { regex: "(^|/)(application|domain|infrastructure)(/|$)", message: "화면은 내부 계층을 가져오지 않는다." },
-        { regex: "/presentation/(?!(library-dto|login-error)$)", message: "공개 계약만 가져온다." },
+        { regex: "/presentation/(?!(library-dto|library-backup|login-error)$)", message: "공개 계약만 가져온다." },
         { regex: "(^@/app/|/_server/)", message: "조립 위치(Route Handler)에 의존하지 않는다." },
         {
           regex: "/wishlist/(?!(link|collection-name|product-fields|CollectionPicker|Dialog)$)",

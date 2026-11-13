@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { parseLink } from "../../wishlist/link";
 import {
   toCollectionCreateCommand,
   toCollectionRenameCommand,
+  toLibraryRestoreCommand,
   toLinkSaveCommand,
   toProductChangeCommand,
+  type LibraryRestoreInput,
   type ProductChangeInput,
 } from "./commands";
 
@@ -149,5 +152,97 @@ describe("컬렉션 이름 바꾸기 명령", () => {
     [collectionId, { revision: 0, name: "책상" }, undefined],
   ])("%s의 잘못된 입력 %j은 입력 오류다", (id, input, field) => {
     expect(() => toCollectionRenameCommand(id, input)).toThrowError(expect.objectContaining({ code: "invalid_input", field }));
+  });
+});
+
+describe("복원 명령", () => {
+  const file: LibraryRestoreInput = {
+    collections: [{ name: "거실", createdAt: "2026-10-02T03:00:00.123Z" }],
+    products: [
+      {
+        sourceUrl: "https://www.shop.example/p/1?utm_source=x&b=2&a=1",
+        option: "블랙 / M",
+        collectedTitle: "오크 사이드 테이블",
+        ownerTitle: "내 테이블",
+        note: "  선물용\n",
+        collections: ["거실"],
+        addedAt: "2026-10-05T01:00:00.456Z",
+        purchase: { status: "purchased", date: "2026-11-13", price: { amountMinor: 0, currency: "KRW" } },
+        lastSuccessfulPrice: { amountMinor: 129000, currency: "KRW", checkedAt: "2026-11-01T00:00:00.000Z" },
+      },
+      {
+        sourceUrl: "https://shop.example/p/2",
+        option: "",
+        collectedTitle: "새로 담은 상품",
+        ownerTitle: null,
+        note: "",
+        collections: [],
+        addedAt: "2026-10-04T01:00:00.000Z",
+        purchase: { status: "wish" },
+        lastSuccessfulPrice: null,
+      },
+    ],
+  };
+
+  it("링크에서 저장할 때와 같은 판별 주소와 쇼핑몰을 얻고 나머지 값은 파일 그대로 담는다", () => {
+    const command = toLibraryRestoreCommand(file, "2026-11-13");
+
+    expect(command).toEqual({
+      backup: {
+        collections: [{ name: "거실", createdAt: "2026-10-02T03:00:00.123Z" }],
+        products: [
+          {
+            sourceUrl: "https://www.shop.example/p/1?utm_source=x&b=2&a=1",
+            identityUrl: "https://www.shop.example/p/1?a=1&b=2",
+            option: "블랙 / M",
+            shop: "shop.example",
+            collectedTitle: "오크 사이드 테이블",
+            ownerTitle: "내 테이블",
+            note: "  선물용\n",
+            collectionNames: ["거실"],
+            addedAt: "2026-10-05T01:00:00.456Z",
+            purchase: { status: "purchased", date: "2026-11-13", price: { amountMinor: 0, currency: "KRW" } },
+            lastSuccessfulPrice: { amountMinor: 129000, currency: "KRW", checkedAt: "2026-11-01T00:00:00.000Z" },
+          },
+          {
+            sourceUrl: "https://shop.example/p/2",
+            identityUrl: "https://shop.example/p/2",
+            option: "",
+            shop: "shop.example",
+            collectedTitle: "새로 담은 상품",
+            ownerTitle: null,
+            note: "",
+            collectionNames: [],
+            addedAt: "2026-10-04T01:00:00.000Z",
+            purchase: { status: "wish" },
+            lastSuccessfulPrice: null,
+          },
+        ],
+      },
+    });
+    const parsed = parseLink(file.products[0].sourceUrl, file.products[0].option);
+    expect(parsed.ok && parsed.link).toEqual({
+      sourceUrl: command.backup.products[0].sourceUrl,
+      identityUrl: command.backup.products[0].identityUrl,
+      option: command.backup.products[0].option,
+      shop: command.backup.products[0].shop,
+    });
+  });
+
+  it("서버의 서울 날짜보다 뒤의 구매일은 그 상품의 위치와 함께 거절한다", () => {
+    expect(() => toLibraryRestoreCommand(file, "2026-11-12")).toThrowError(
+      expect.objectContaining({ code: "invalid_input", field: "products.0.purchase.date" }),
+    );
+  });
+
+  it("읽기를 거치지 않은 잘못된 링크는 거절한다", () => {
+    const broken = { ...file, products: [file.products[1], { ...file.products[1], sourceUrl: "javascript:alert(1)" }] };
+    expect(() => toLibraryRestoreCommand(broken, "2026-11-13")).toThrowError(
+      expect.objectContaining({ code: "invalid_input", field: "products.1.sourceUrl" }),
+    );
+  });
+
+  it("빈 보관함 파일도 명령이 된다", () => {
+    expect(toLibraryRestoreCommand({ collections: [], products: [] }, "2026-11-13")).toEqual({ backup: { collections: [], products: [] } });
   });
 });

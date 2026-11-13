@@ -40,6 +40,19 @@ export type Library = {
   products: Product[];
   collections: Collection[];
 };
+// What the owner can see or set, without the ids, revisions, jobs and picture copies the server keeps for itself.
+// Membership is by collection name, which is unique per owner.
+export type BackupCollection = { name: string; createdAt: string };
+export type BackupProduct = SavedLink & {
+  collectedTitle: string;
+  ownerTitle: string | null;
+  note: string;
+  collectionNames: string[];
+  addedAt: string;
+  purchase: Purchase;
+  lastSuccessfulPrice: (Money & { checkedAt: string }) | null;
+};
+export type LibraryBackup = { collections: BackupCollection[]; products: BackupProduct[] };
 export type LibraryErrorCode =
   | "invalid_input"
   | "unauthorized"

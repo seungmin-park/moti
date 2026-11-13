@@ -1,6 +1,7 @@
 import { parseCollectionName } from "../../wishlist/collection-name";
 import { parseLink } from "../../wishlist/link";
 import { parsePaidPrice, parseProductNote, parseProductTitle, parsePurchaseDate } from "../../wishlist/product-fields";
+import { MAX_BACKUP_BYTES, readLibraryBackup, type BackupCounts, type BackupProblem, type LibraryBackupDocument } from "../presentation/library-backup";
 import type {
   CollectionCreateRequest,
   CollectionCreateResponse,
@@ -16,7 +17,7 @@ import type {
   ProductChangeResponse,
   ProductResponse,
 } from "../presentation/library-dto";
-import type { ApiFailure, ApiOutcome, FieldName, LibraryApi } from "./library-api";
+import type { ApiFailure, ApiOutcome, BackupFile, FieldName, LibraryApi } from "./library-api";
 import { canRetry } from "./product-view";
 
 export type View = "wish" | "purchased";
@@ -27,10 +28,20 @@ export type FormError = { field: FieldName | null; message: string };
 export type DetailDraft = { title?: string; note?: string; collectionIds?: string[]; date?: string; price?: string };
 export type DetailForm = "retry" | "details" | "record" | "status";
 export type DetailNotice = { form: DetailForm; kind: "error" | "saved"; field: FieldName | null; message: string };
+export type BackupStep =
+  | { name: "menu" }
+  | { name: "exporting" }
+  | { name: "exported"; file: BackupFile }
+  | { name: "reading"; fileName: string }
+  // `removed` counts the shown products whose link the file does not have: the restore deletes them.
+  | { name: "confirm"; fileName: string; text: string; exportedAt: string; current: BackupCounts; incoming: BackupCounts; removed: number }
+  | { name: "restoring"; incoming: BackupCounts };
+export type BackupNotice = { kind: "error" | "info"; message: string };
 export type ScreenDialog =
   | { kind: "add"; draft: LinkDraft; saving: boolean; creating: string | null; error: FormError | null }
   | { kind: "collection"; renaming: string | null; name: string; saving: boolean; error: FormError | null }
-  | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; draft: DetailDraft; notice: DetailNotice | null };
+  | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; draft: DetailDraft; notice: DetailNotice | null }
+  | { kind: "backup"; step: BackupStep; notice: BackupNotice | null };
 export type ProductChange = ProductChangeRequest["change"];
 export type ProductIntent = "retry" | ProductChange["type"];
 // The purchase toast offers undo only while the product still has the revision the purchase gave it.
@@ -57,7 +68,10 @@ export type ApiCall =
   | { type: "collection.rename"; collectionId: string; body: CollectionRenameRequest }
   | { type: "metadata.retry"; productId: string; body: MetadataRetryRequest }
   | { type: "product.change"; productId: string; body: ProductChangeRequest }
-  | { type: "library.poll" };
+  | { type: "library.poll" }
+  | { type: "backup.export" }
+  | { type: "backup.file"; file: File }
+  | { type: "library.restore"; text: string };
 export type ScreenEvent =
   | { type: "retry" }
   | { type: "resume" }
@@ -89,7 +103,16 @@ export type ScreenEvent =
   | { type: "metadata.settled"; productId: string; outcome: ApiOutcome<MetadataRetryResponse> }
   | { type: "change.settled"; productId: string; intent: ProductChange["type"]; outcome: ApiOutcome<ProductChangeResponse> }
   | { type: "poll" }
-  | { type: "poll.settled"; outcome: ApiOutcome<LibraryReadResponse> };
+  | { type: "poll.settled"; outcome: ApiOutcome<LibraryReadResponse> }
+  | { type: "backup.open" }
+  | { type: "backup.export" }
+  | { type: "backup.exported"; outcome: ApiOutcome<BackupFile> }
+  | { type: "backup.choose"; file: File }
+  | { type: "backup.read"; fileName: string; text: string }
+  | { type: "backup.unreadable" }
+  | { type: "backup.back" }
+  | { type: "backup.restore" }
+  | { type: "restore.settled"; outcome: ApiOutcome<LibraryReadResponse> };
 export type Transition = { state: LibraryScreenState; call: ApiCall | null };
 
 export const initialScreen: Transition = { state: { phase: "loading" }, call: { type: "library.read" } };
@@ -98,6 +121,7 @@ type Ready = Extract<LibraryScreenState, { phase: "ready" }>;
 type AddDialog = Extract<ScreenDialog, { kind: "add" }>;
 type CollectionDialog = Extract<ScreenDialog, { kind: "collection" }>;
 type DetailDialog = Extract<ScreenDialog, { kind: "detail" }>;
+type BackupDialog = Extract<ScreenDialog, { kind: "backup" }>;
 
 const stay = (state: LibraryScreenState): Transition => ({ state, call: null });
 const leave = (to: string): Transition => stay({ phase: "leaving", to });
@@ -109,6 +133,7 @@ function busy(state: Ready): boolean {
   const { dialog, writing } = state;
   if (dialog === null) return false;
   if (dialog.kind === "detail") return writing !== null && writing.productId === dialog.productId && writing.intent !== "retry";
+  if (dialog.kind === "backup") return ["exporting", "reading", "restoring"].includes(dialog.step.name);
   return dialog.saving || (dialog.kind === "add" && dialog.creating !== null);
 }
 
@@ -222,8 +247,10 @@ function findProduct(state: Ready, productId: string): ProductResponse | undefin
   return state.library.products.find((item) => item.id === productId);
 }
 
+// A restore replaces every product, so no other write may start from a revision it is about to change.
 function canWrite(state: Ready): boolean {
-  return state.writing === null && !state.refreshing;
+  const restoring = state.dialog?.kind === "backup" && state.dialog.step.name === "restoring";
+  return state.writing === null && !state.refreshing && !restoring;
 }
 
 function write(state: Ready, product: ProductResponse, change: ProductChange): Transition {
@@ -472,6 +499,92 @@ function onCollection(state: Ready, dialog: CollectionDialog, event: ScreenEvent
   };
 }
 
+const backupProblems: Record<BackupProblem, string> = {
+  not_backup: "moti 백업 파일이 아니에요.",
+  newer_version: "더 새로운 moti에서 만든 백업이에요. 화면을 새로고침한 뒤 다시 시도해 주세요.",
+  invalid: "백업 파일이 손상되었거나 바뀌었어요. 보관함은 바뀌지 않았어요.",
+};
+const restoredNotice = "보관함을 복원했어요. 새 상품의 사진은 차례로 다시 가져와요.";
+const restoreUnknown = "복원을 마쳤는지 확인하지 못했어요. 최신 보관함을 다시 불러와요. 필요하면 같은 파일로 다시 복원해 주세요.";
+
+const linkKey = (identityUrl: string, option: string) => JSON.stringify([identityUrl, option]);
+
+// Shown products the restore deletes: their link identity is not in the file.
+function removedBy(library: LibraryReadResponse, document: LibraryBackupDocument): number {
+  const kept = new Set(document.products.flatMap(({ sourceUrl, option }) => {
+    const parsed = parseLink(sourceUrl, option);
+    return parsed.ok ? [linkKey(parsed.link.identityUrl, parsed.link.option)] : [];
+  }));
+  return library.products.filter(({ identityUrl, option }) => !kept.has(linkKey(identityUrl, option))).length;
+}
+
+function readChosen(text: string): ReturnType<typeof readLibraryBackup> {
+  try {
+    return readLibraryBackup(JSON.parse(text));
+  } catch {
+    return { ok: false, problem: "not_backup", path: null };
+  }
+}
+
+function onBackup(state: Ready, dialog: BackupDialog, event: ScreenEvent): Transition {
+  const at = (step: BackupStep, notice: BackupNotice | null = null): Ready => ({ ...state, dialog: { kind: "backup", step, notice } });
+  const menuWith = (kind: BackupNotice["kind"], message: string) => at({ name: "menu" }, { kind, message });
+  const { step } = dialog;
+  switch (event.type) {
+    case "backup.export":
+      if (busy(state)) return stay(state);
+      return { state: at({ name: "exporting" }), call: { type: "backup.export" } };
+    case "backup.exported":
+      if (step.name !== "exporting") return stay(state);
+      if (event.outcome.ok) return stay(at({ name: "exported", file: event.outcome.value }));
+      if (event.outcome.failure.kind === "redirect") return leave(event.outcome.failure.to);
+      return stay(menuWith("error", event.outcome.failure.message));
+    case "backup.choose":
+      if (busy(state)) return stay(state);
+      if (event.file.size > MAX_BACKUP_BYTES) return stay(menuWith("error", "4MB보다 큰 백업은 한 번에 복원할 수 없어요."));
+      return { state: at({ name: "reading", fileName: event.file.name }), call: { type: "backup.file", file: event.file } };
+    case "backup.read": {
+      if (step.name !== "reading") return stay(state);
+      const reading = readChosen(event.text);
+      if (!reading.ok) return stay(menuWith("error", backupProblems[reading.problem]));
+      const { library } = state;
+      return stay(at({
+        name: "confirm",
+        fileName: event.fileName,
+        text: event.text,
+        exportedAt: reading.document.exportedAt,
+        current: { products: library.products.length, collections: library.collections.length },
+        incoming: reading.counts,
+        removed: removedBy(library, reading.document),
+      }));
+    }
+    case "backup.unreadable":
+      return step.name === "reading" ? stay(menuWith("error", "파일을 읽지 못했어요.")) : stay(state);
+    case "backup.back":
+      return busy(state) ? stay(state) : stay(at({ name: "menu" }));
+    case "backup.restore":
+      if (step.name !== "confirm" || !canWrite(state)) return stay(state);
+      return { state: at({ name: "restoring", incoming: step.incoming }), call: { type: "library.restore", text: step.text } };
+    default:
+      return stay(state);
+  }
+}
+
+// The response is the whole restored library: it replaces the shown one instead of merging, since restored products
+// carry new ids or higher revisions and deleted ones are gone.
+function onRestored(state: Ready, outcome: ApiOutcome<LibraryReadResponse>): Transition {
+  if (outcome.ok) {
+    return stay({
+      ...state, library: outcome.value, view: "wish", collectionId: null, dialog: null, toast: { kind: "notice", message: restoredNotice },
+    });
+  }
+  const { failure } = outcome;
+  if (failure.kind === "redirect") return leave(failure.to);
+  const at = (notice: BackupNotice): Ready => ({ ...state, dialog: { kind: "backup", step: { name: "menu" }, notice } });
+  if (failure.kind === "invalid") return stay(at({ kind: "error", message: failure.message }));
+  return { state: { ...at({ kind: "info", message: restoreUnknown }), refreshing: true }, call: refresh };
+}
+
 function onReady(state: Ready, event: ScreenEvent): Transition {
   const { dialog } = state;
   switch (event.type) {
@@ -499,6 +612,11 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
     case "detail.open":
       if (busy(state)) return stay(state);
       return stay({ ...state, toast: null, dialog: { kind: "detail", productId: event.productId, arrival: null, draft: {}, notice: null } });
+    case "backup.open":
+      if (busy(state)) return stay(state);
+      return stay({ ...state, toast: null, dialog: { kind: "backup", step: { name: "menu" }, notice: null } });
+    case "restore.settled":
+      return dialog?.kind === "backup" && dialog.step.name === "restoring" ? onRestored(state, event.outcome) : stay(state);
     case "dialog.close":
       return busy(state) ? stay(state) : stay({ ...state, dialog: null });
     case "library.settled":
@@ -580,6 +698,7 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       if (dialog?.kind === "add") return onAdd(state, dialog, event);
       if (dialog?.kind === "collection") return onCollection(state, dialog, event);
       if (dialog?.kind === "detail") return onDetail(state, dialog, event);
+      if (dialog?.kind === "backup") return onBackup(state, dialog, event);
       return stay(state);
   }
 }
@@ -627,6 +746,16 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       };
     case "library.poll":
       return { type: "poll.settled", outcome: await api.read() };
+    case "backup.export":
+      return { type: "backup.exported", outcome: await api.exportBackup() };
+    case "backup.file":
+      try {
+        return { type: "backup.read", fileName: call.file.name, text: await call.file.text() };
+      } catch {
+        return { type: "backup.unreadable" };
+      }
+    case "library.restore":
+      return { type: "restore.settled", outcome: await api.restore(call.text) };
   }
 }
 

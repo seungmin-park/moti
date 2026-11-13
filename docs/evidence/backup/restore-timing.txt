@@ -1,0 +1,13 @@
+# Local restore timing (step 3), 2026-11-13T11:09Z, Apple Silicon macOS, native Supabase stack from npm run test:database.
+# One-off test (not committed): store.restoreLibrary through PostgREST with the owner's JWT. Each product: ~100-char URL, option, owner title,
+# 3 of 20 collections, purchase with 0 won, last price. 'bytes' is the RPC body (snake_case, identity_url included), larger than the file.
+# Role settings on the local stack:
+[{"rolname":"authenticated","rolconfig":["statement_timeout=8s"]},{"rolname":"anon","rolconfig":["statement_timeout=3s"]},{"rolname":"authenticator","rolconfig":["session_preload_libraries=supautils, safeupdate","statement_timeout=8s","lock_timeout=8s"]}]
+1000 products, note 1000, 2860670 bytes, empty-or-replace: 296 ms
+1000 products, note 1000, 2860670 bytes, same (all matched): 254 ms
+5000 products, note 0, 2632670 bytes, empty-or-replace: 1060 ms
+5000 products, note 0, 2632670 bytes, same (all matched): 1238 ms
+5000 products, note 300, 6132670 bytes, empty-or-replace: 1312 ms
+5000 products, note 300, 6132670 bytes, same (all matched): 1214 ms
+5000 products, note 1000, 14302670 bytes, empty-or-replace: 1568 ms
+5000 products, note 1000, 14302670 bytes, same (all matched): 1632 ms

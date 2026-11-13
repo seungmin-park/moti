@@ -1,6 +1,6 @@
 # 기능 지도
 
-세 화면 경로가 있다. `/`는 허용한 Google 계정의 실제 보관함이다. `/login`은 로그인 진입과 실패 안내다. `/demo`는 예시 데이터 목업이며 상태가 새로고침할 때 초기화된다. 실제 보관함은 상품 이름·가격과 사진 사본을 수집하고, 소유자가 상품을 정리하고 구매를 기록한다. 정기 가격 추적, 내보내기·복원과 공유 저장은 아직 연결하지 않았다.
+세 화면 경로가 있다. `/`는 허용한 Google 계정의 실제 보관함이다. `/login`은 로그인 진입과 실패 안내다. `/demo`는 예시 데이터 목업이며 상태가 새로고침할 때 초기화된다. 실제 보관함은 상품 이름·가격과 사진 사본을 수집하고, 소유자가 상품을 정리하고 구매를 기록하며, 보관함을 파일로 내려받고 그 파일로 복원한다. 정기 가격 추적과 공유 저장은 아직 연결하지 않았다.
 
 ## 실제 보관함 (`/`, `/login`)
 
@@ -17,6 +17,7 @@
 | 구매 기록 | 위시 카드의 구매완료 버튼 또는 상세의 "구매완료로 이동" → "구매완료 목록으로 옮겼어요" 알림과 실행 취소. 구매완료 상품의 상세에서 구매일(서울 기준 오늘까지)과 실구매가(원)를 적고 구매 정보 저장. 빈 값은 "실구매가 미입력", 0은 "₩0"이다. "위시로 되돌리기"는 구매 기록을 지우고 메모·컬렉션을 남긴다. 실행 취소는 구매 뒤 상품이 다시 바뀌지 않았을 때만 보인다. | 같음. 전환은 SQL RPC `moti_purchase_product`·`moti_record_purchase`·`moti_return_to_wish` | Vitest, 실제 DB, 실제 HTTP, 실제 Supabase 브라우저 |
 | 보기 전환 | 사이드바 또는 모바일 하단의 위시리스트·구매완료. 컬렉션 거르기와 함께 쓰며 제목·개수·빈 상태가 보기를 따른다. 화면 안의 상태라 새로고침하면 위시리스트 전체로 돌아간다. | `screen-state.ts`의 `view`, `visibleProducts` | Vitest, 실제 Supabase 브라우저 |
 | 컬렉션 이름 바꾸기 | 컬렉션을 고른 뒤 제목 옆 "컬렉션 이름 바꾸기" → 이름 저장. 이름이 그대로면 호출 없이 닫고, 다른 컬렉션과 대소문자만 다른 이름은 거절한다. 소속 상품과 거르기는 유지된다. | 같음. 이름 규칙은 `wishlist/collection-name.ts`, 전환은 SQL RPC `moti_rename_collection` | Vitest, 실제 DB, 실제 HTTP, 실제 Supabase 브라우저 |
+| 백업과 복원 | 사이드바 로그아웃 위 또는 모바일 상단 아이콘의 "백업과 복원". "백업 만들기" → 확인한 백업의 "내려받기" 링크(`moti-backup-YYYYMMDD-HHmm.json`, 사진 없음). "백업 파일 선택" → 요청 전에 파일을 검사하고 지금과 파일의 상품·컬렉션 수, 파일에 없어 지워질 상품 수를 보인 뒤 "취소"에 초점 → "보관함 바꾸기". 바꾸는 중에는 닫히지 않는다. 성공하면 위시 전체 보기와 알림, 바뀐 파일·백업이 아닌 파일·서버 거절은 바뀌지 않았다는 오류, 503·연결 끊김은 결과를 모른다고 알리고 다시 읽는다. 링크가 같은 상품은 사진과 id를 지키고, 새 상품은 응답 뒤 수집한다. | 형식과 읽기 함수는 `presentation/library-backup.ts`(화면과 서버가 함께 씀), 대화상자 전환은 `screen-state.ts`, 교체는 SQL RPC `moti_restore_library`, 응답 뒤 작업은 `application/restore-follow-up.ts` | Vitest, 실제 DB, 실제 HTTP, 실제 Supabase 브라우저 |
 | 로그아웃 | 사이드바 또는 모바일 상단의 로그아웃 → 같은 출처 POST `/auth/logout` → `/login`. | 서버 세션 | 실제 Supabase 브라우저 |
 
 화면 모듈(`src/features/*/screen/`)은 API 계약(`presentation/library-dto.ts`, `login-error.ts`)과 공유 순수 규칙만 가져온다. 다른 계층, `_server`, Supabase와 목업 상태를 가져오면 ESLint가 실패한다.
@@ -52,6 +53,8 @@
 | `POST /api/products/{productId}/metadata` | `MetadataRetryRequest` → 202. 실패·멈춤·사진만 실패한 상품을 다시 수집한다. | 같음 | handler, 실제 HTTP |
 | `GET /api/products/{productId}/picture` | 302 서명한 Storage 주소(개인 캐시 50분), 404 `picture_missing` | 같음 | handler, 실제 DB, 실제 HTTP |
 | `PATCH /api/products/{productId}` | `ProductChangeRequest`(`revision`, `change.type`: `details`·`purchase`·`purchase.record`·`wish`) → 200 `ProductChangeResponse`. 저장된 값과 같으면 revision과 상관없이 200, 오래된 revision은 409 `revision_conflict`, 위시 상품의 구매 기록과 미래 구매일은 400 | 같음 | handler, 실제 DB, 실제 HTTP |
+| `GET /api/library/backup` | 200 백업 파일(`moti.library-backup` v1) 첨부, `no-store`·`nosniff`. 오류는 JSON | 같음 | handler, 실제 DB, 실제 HTTP |
+| `POST /api/library/restore` | 본문은 백업 파일 글자 그대로(JSON, 4MiB 이하) → 200 `LibraryReadResponse`. 바뀐 파일·더 새로운 버전·서버 날짜보다 뒤의 구매일은 400(`field`는 첫 문제 위치), 4MiB 초과 413, 잠금 대기 초과 503. 실패하면 아무것도 바뀌지 않는다 | 같음 | handler, 실제 DB, 실제 HTTP |
 | `PATCH /api/collections/{collectionId}` | `CollectionRenameRequest`(`revision`, `name`) → 200 `CollectionRenameResponse`. 다른 컬렉션과 대소문자만 다른 이름은 409 `collection_duplicate`, 오래된 revision은 409 `revision_conflict`, 없는 컬렉션은 422 | 같음 | handler, 실제 DB, 실제 HTTP |
 
 요청·응답·오류 계약은 [OpenAPI 문서](api/openapi.json)에 있다.

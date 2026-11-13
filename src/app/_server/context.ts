@@ -13,7 +13,9 @@ import {
   type AuthConfig,
 } from "@/features/auth/infrastructure/supabase-auth";
 import type { AuthRequestContext } from "@/features/auth/presentation/auth-handlers";
+import type { LibraryRestoreResult } from "@/features/library/application/commands";
 import { createLibraryService } from "@/features/library/application/library-service";
+import { followUpRestore } from "@/features/library/application/restore-follow-up";
 import { createPictureStore } from "@/features/library/infrastructure/product-pictures";
 import { createSupabaseLibraryStore } from "@/features/library/infrastructure/supabase-library-store";
 import type { LibraryRequestContext } from "@/features/library/presentation/library-handlers";
@@ -36,11 +38,13 @@ function unavailable(): never {
   throw new Error("Supabase 설정이 없습니다.");
 }
 
-// Cookie writes throw once the response is sent, so the collection run never reuses the cookie client.
-function scheduleCollection(config: AuthConfig, accessToken: string | null, request: CollectionRequest) {
-  if (!accessToken) return;
-  const client = createAccessTokenClient(config, accessToken, { requestTimeoutMs: 10_000 });
-  const runner = createCollectionRunner({
+// Cookie writes throw once the response is sent, so work after it never reuses the cookie client.
+function afterResponseClient(config: AuthConfig, accessToken: string) {
+  return createAccessTokenClient(config, accessToken, { requestTimeoutMs: 10_000 });
+}
+
+function collectionRunner(client: ReturnType<typeof afterResponseClient>) {
+  return createCollectionRunner({
     store: createSupabaseCollectionStore(client),
     source: createSafePageSource({ policy: strictFetchPolicy }),
     read: readProductPage,
@@ -50,7 +54,19 @@ function scheduleCollection(config: AuthConfig, accessToken: string | null, requ
       pictures: createPictureStore(client),
     }),
   });
+}
+
+function scheduleCollection(config: AuthConfig, accessToken: string | null, request: CollectionRequest) {
+  if (!accessToken) return;
+  const runner = collectionRunner(afterResponseClient(config, accessToken));
   after(() => runner.run(request));
+}
+
+function scheduleRestoreFollowUp(config: AuthConfig, accessToken: string | null, result: LibraryRestoreResult) {
+  if (!accessToken) return;
+  const client = afterResponseClient(config, accessToken);
+  const runner = collectionRunner(client);
+  after(() => followUpRestore(result, { pictures: createPictureStore(client), collect: runner.run, now: Date.now }));
 }
 
 export async function libraryContext(): Promise<LibraryRequestContext> {
@@ -65,10 +81,13 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
         openPicture: unavailable,
         changeProduct: unavailable,
         renameCollection: unavailable,
+        exportLibrary: unavailable,
+        restoreLibrary: unavailable,
       }),
       signOut: async () => {},
       collect: () => {},
       retry: unavailable,
+      settleRestore: () => {},
     };
   }
   const { config, client } = connection;
@@ -80,6 +99,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
     signOut: () => signOut(client),
     collect: (request) => scheduleCollection(config, accessToken, request),
     retry: (command) => createSupabaseCollectionStore(client).retry(command),
+    settleRestore: (result) => scheduleRestoreFollowUp(config, accessToken, result),
   };
 }
 
