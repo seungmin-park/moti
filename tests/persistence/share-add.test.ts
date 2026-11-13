@@ -268,6 +268,11 @@ describe("저장 키 역할의 권한", () => {
        union all select c.oid::regclass::text from pg_class c where c.relowner = 'moti_share'::regrole`,
     );
     expect(owned.rows).toEqual([{ name: "moti_share_add(text,text,text,text,text)" }]);
+    // Only the migration owner may act as the role (one row per grantor): a member such as authenticator would hold its grants.
+    const members = await fixture.admin.query(
+      `select distinct m.member::regrole::text as member from pg_auth_members m where m.roleid = 'moti_share'::regrole order by 1`,
+    );
+    expect(members.rows).toEqual([{ member: "postgres" }]);
   });
 
   it("moti_share 역할에 직접 준 권한은 추가에 필요한 것뿐이다", async () => {

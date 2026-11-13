@@ -19,12 +19,12 @@ describe("저장 키 표시", () => {
     });
   });
 
-  it("Given 아직 쓰지 않은 활성 키 When 보이면 Then 끝 네 글자와 만든 날, 아직 담은 상품이 없다는 것만 보여준다", () => {
-    expect(shareKeyView(key)).toEqual({ title: "저장 키 ••••a1B2 · 11월 13일 만듦", detail: "아직 이 키로 담은 상품이 없어요." });
+  it("Given 아직 쓰지 않은 활성 키 When 보이면 Then 끝 네 글자와 만든 날, 아직 쓴 적이 없다는 것만 보여준다", () => {
+    expect(shareKeyView(key)).toEqual({ title: "저장 키 ••••a1B2 · 11월 13일 만듦", detail: "아직 이 키를 쓴 적이 없어요." });
   });
 
-  it("Given 단축어가 쓴 키 When 보이면 Then 서울 시각으로 마지막으로 담은 때를 보여준다", () => {
-    expect(shareKeyView({ ...key, lastUsedAt: "2026-11-13T05:04:00.000Z" }).detail).toBe("마지막으로 이 키로 담은 때: 11월 13일 오후 2:04");
+  it("Given 단축어가 쓴 키 When 보이면 Then 서울 시각으로 마지막으로 쓴 때를 보여준다", () => {
+    expect(shareKeyView({ ...key, lastUsedAt: "2026-11-13T05:04:00.000Z" }).detail).toBe("마지막으로 이 키를 쓴 때: 11월 13일 오후 2:04");
   });
 
   it("Given 폐기한 키 When 보이면 Then 언제 폐기했고 그 키로는 담을 수 없다고 알린다", () => {

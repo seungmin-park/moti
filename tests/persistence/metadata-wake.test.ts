@@ -47,6 +47,9 @@ describe("기다리는 수집 깨우기", () => {
     const middle = await waiting("middle", 20);
     const newest = await waiting("newest", 10);
     const started = await waiting("started", 5);
+    // A job a retry put back in the queue: it already ran once, so the retry's own runner owns it, not a wake.
+    const resumed = await waiting("resumed", 4);
+    await fixture.admin.query("update moti.metadata_jobs set attempts = 1 where product_id = $1", [resumed]);
     await createSupabaseCollectionStore(fixture.owner.client).claim({ productId: started as never, generation: 1 });
     // A job left from an earlier generation: the product already moved on, so this job is not its collection.
     const earlier = await waiting("earlier", 1);
@@ -73,6 +76,7 @@ describe("기다리는 수집 깨우기", () => {
 
     expect(rest.data?.map((product) => product.id)).toEqual([newest, middle, oldest]);
     expect(await job(started)).toMatchObject({ status: "running", attempts: 1 });
+    expect(await job(resumed)).toEqual({ status: "queued", attempts: 1, fresh: false });
     expect(await job(earlier)).toEqual({ status: "queued", attempts: 0, fresh: false });
     expect(await job(other.rows[0].id)).toEqual({ status: "queued", attempts: 0, fresh: false });
   });

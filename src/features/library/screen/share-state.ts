@@ -121,7 +121,8 @@ export function onShare(panel: SharePanel, event: ShareEvent, visible: boolean):
       return failedWrite(panel, event.outcome.failure, panel.key);
     case "share.revoke.settled":
       if (!panel.busy) return stay(panel);
-      if (event.outcome.ok) return stay(settled(event.outcome.value.key));
+      // Revoking by id is safe even if another device already rotated, but then a newer key is active: read it.
+      if (event.outcome.ok) return { panel: settled(event.outcome.value.key), call: { type: "share.read" }, leave: null };
       return failedWrite(panel, event.outcome.failure, panel.key);
     default:
       return stay(panel);

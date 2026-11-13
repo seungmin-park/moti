@@ -91,11 +91,14 @@ describe("새 키로 바꾸기와 폐기", () => {
       .toEqual({ panel: ready({ confirm: "rotate", busy: true }), call: { type: "share.issue", replaces: key.id }, leave: null });
   });
 
-  it("Given 활성 키 When 폐기를 확인하면 Then 그 키를 폐기하고, 결과로 폐기한 키를 보여준다", () => {
+  it("Given 활성 키 When 폐기를 확인하면 Then 그 키를 폐기하고, 결과로 폐기한 키를 보인 뒤 다른 곳에서 만든 키가 있는지 다시 읽는다", () => {
     const confirmed = onShare(ready({ confirm: "revoke" }), { type: "share.confirm" }, true);
     expect(confirmed).toEqual({ panel: ready({ confirm: "revoke", busy: true }), call: { type: "share.revoke", keyId: key.id }, leave: null });
-    expect(onShare(confirmed.panel, { type: "share.revoke.settled", outcome: { ok: true, value: { key: revoked } } }, true).panel)
-      .toEqual(ready({ key: revoked }));
+    const done = onShare(confirmed.panel, { type: "share.revoke.settled", outcome: { ok: true, value: { key: revoked } } }, true);
+    expect(done).toEqual({ panel: ready({ key: revoked }), call: { type: "share.read" }, leave: null });
+    // Another device already replaced the key this tab revoked: the read shows that newer key is still active.
+    expect(onShare(done.panel, { type: "share.read.settled", outcome: { ok: true, value: { key: next } } }, true).panel)
+      .toEqual(ready({ key: next }));
   });
 
   it("Given 비밀이 보이거나 키가 없거나 폐기된 패널 When 바꾸기·폐기를 물으면 Then 확인을 열지 않는다", () => {

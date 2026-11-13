@@ -5,8 +5,8 @@ const day = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "l
 const moment = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
 const masked = (hint: string) => `••••${hint}`;
 
-// The screen cannot know whether the Shortcut is installed, so it never says so. The time the key last added a link
-// is the only evidence it shows, and it is labelled as exactly that.
+// The screen cannot know whether the Shortcut is installed, so it never says so. The time the key was last used (an
+// add or an already-saved link) is the only evidence it shows, and it is labelled as exactly that.
 export function shareKeyView(key: ShareKeyResponse | null): { title: string; detail: string } {
   if (key === null) {
     return { title: "아직 저장 키가 없어요.", detail: "단축어를 먼저 만들고, 마지막에 키를 만들어 붙여 넣으세요." };
@@ -20,8 +20,8 @@ export function shareKeyView(key: ShareKeyResponse | null): { title: string; det
   return {
     title: `저장 키 ${masked(key.hint)} · ${day.format(new Date(key.createdAt))} 만듦`,
     detail: key.lastUsedAt === null
-      ? "아직 이 키로 담은 상품이 없어요."
-      : `마지막으로 이 키로 담은 때: ${moment.format(new Date(key.lastUsedAt))}`,
+      ? "아직 이 키를 쓴 적이 없어요."
+      : `마지막으로 이 키를 쓴 때: ${moment.format(new Date(key.lastUsedAt))}`,
   };
 }
 

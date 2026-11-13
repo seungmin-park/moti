@@ -79,7 +79,7 @@ test("소유자는 키를 한 번만 보고, 단축어가 그 키로 담으면 �
   await openShare(page);
   await expect(keyPanel(page).locator(".share-secret")).toHaveCount(0);
   await expect(keyPanel(page)).toContainText(`저장 키 ••••${secret.slice(-4)}`);
-  await expect(keyPanel(page)).toContainText("아직 이 키로 담은 상품이 없어요.");
+  await expect(keyPanel(page)).toContainText("아직 이 키를 쓴 적이 없어요.");
   await expect(page.locator("body")).not.toContainText(secret);
 
   expect((await shortcut(secret)).status).toBe(201);
@@ -90,7 +90,7 @@ test("소유자는 키를 한 번만 보고, 단축어가 그 키로 담으면 �
   // Nothing collected it at share time; opening the library woke it, and the strict fetch policy then refused the link.
   await expect(card).toContainText("정보를 가져오지 못했어요", { timeout: 20_000 });
   await openShare(page);
-  await expect(keyPanel(page)).toContainText("마지막으로 이 키로 담은 때:");
+  await expect(keyPanel(page)).toContainText("마지막으로 이 키를 쓴 때:");
   await expect(claimsDone(page)).toHaveCount(0);
 });
 
