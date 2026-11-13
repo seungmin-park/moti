@@ -27,7 +27,8 @@ export interface PictureStore {
 export type PictureTask = { imageUrl: string | null; pageUrl: string; target: PictureObject; deadline: number };
 export interface PictureCopier {
   // Copies the page's picture under `task.target`, hands the outcome to `settle` exactly once, then removes the
-  // object the settlement left unreferenced. Never throws for image problems; rethrows only what `settle` throws.
+  // object the settlement left unreferenced. Never throws for image problems; rethrows only what `settle` throws,
+  // and then removes nothing: a settlement that threw here may still commit and point the product at the copy.
   settleWith(task: PictureTask, settle: (image: ImageCopy) => Promise<JobSettlement>): Promise<JobSettlement>;
 }
 
@@ -65,15 +66,9 @@ export function createPictureCopier({ source, normalize, pictures, now = Date.no
   return {
     async settleWith(task, settle) {
       const image = await copy(task);
-      const uploaded = image.outcome === "copied";
-      let settlement: JobSettlement;
-      try {
-        settlement = await settle(image);
-      } catch (error) {
-        if (uploaded) await pictures.discard([task.target]);
-        throw error;
-      }
-      if (uploaded && settlement.kind === "stale") await pictures.discard([task.target]);
+      // An object left by a thrown settlement is unreferenced if it never commits; unit 5 sweeps those.
+      const settlement = await settle(image);
+      if (image.outcome === "copied" && settlement.kind === "stale") await pictures.discard([task.target]);
       if (settlement.kind === "applied" && settlement.replacedPicture !== null) {
         await pictures.discard([settlement.replacedPicture]);
       }

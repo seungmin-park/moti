@@ -1,0 +1,86 @@
+# Red: review finding N1, a thrown settlement discarded the copy a late complete may reference
+# 2026-11-13T07:38:37Z 126eb24+working tree
+# 1) Application test: createPictureCopier still discards its own upload when settle throws (a complete that timed out client-side can commit afterwards).
+# 2) Persistence test on a local native stack with Storage: with that discard gone no path deletes a running job's current object, so may_discard is narrowed;
+#    today the owner's token can delete the object of an unsettled job, which would make a later complete fail with 'picture not stored'.
+
+## 1) npx vitest run src/features/metadata/application/picture-copy.test.ts
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/metadata/application/picture-copy.test.ts (15 tests | 1 failed) 8ms
+   ❯ 사진 사본 복사 (15)
+     × Given 사본을 올렸지만 끝내기가 예외 When 끝내면 Then 늦게 반영될 수 있으니 자기 사본을 지우지 않고 그 오류를 그대로 던진다 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/metadata/application/picture-copy.test.ts > 사진 사본 복사 > Given 사본을 올렸지만 끝내기가 예외 When 끝내면 Then 늦게 반영될 수 있으니 자기 사본을 지우지 않고 그 오류를 그대로 던진다
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      Array [
+        "owner/product/job-1.webp",
+      ],
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/features/metadata/application/picture-copy.test.ts:124:34
+    122|     await expect(copier.settleWith(task, async () => { throw failure; …
+    123|     expect(pictures.put).toHaveBeenCalledExactlyOnceWith(target, webp);
+    124|     expect(pictures.discard).not.toHaveBeenCalled();
+       |                                  ^
+    125|   });
+    126|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 passed (15)
+   Start at  16:38:09
+   Duration  99ms (transform 50%, tests 26%, import 19%, worker 5%)
+
+
+## 2) tests/persistence/picture-storage.test.ts -t "끝나지 않은 작업"
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ tests/persistence/picture-storage.test.ts (27 tests | 1 failed | 26 skipped) 371ms
+   ❯ 상품 사진 사본 저장소 (27)
+     × 끝나지 않은 작업이 이번 시도에 올린 사본은 임대가 지나도 소유자가 지우지 못하고 다음 시도가 맡은 뒤에만 지운다 371ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/picture-storage.test.ts > 상품 사진 사본 저장소 > 끝나지 않은 작업이 이번 시도에 올린 사본은 임대가 지나도 소유자가 지우지 못하고 다음 시도가 맡은 뒤에만 지운다
+AssertionError: expected [] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+- [
+-   "dc399785-6a27-4ad3-a175-2ad5712b7830/244adcbd-f76d-40b7-8b44-d80107ce3302/83dd7aba-216a-4fb6-ac73-579e05b0eda1-1.webp",
+- ]
++ []
+
+ ❯ tests/persistence/picture-storage.test.ts:214:50
+    212|
+    213|     await pictures(fixture.owner.client).remove([first.picture]);
+    214|     expect(await stored(`${fixture.owner.id}/`)).toEqual([first.pictur…
+       |                                                  ^
+    215|     // An expired lease that nobody claimed again still lets a late co…
+    216|     await expireLease(first);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 26 skipped (27)
+   Start at  16:38:28
+   Duration  537ms (tests 78%, import 15%, transform 7%)
+

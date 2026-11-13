@@ -205,6 +205,24 @@ describe("상품 사진 사본 저장소", () => {
     expect(await stored(`${fixture.owner.id}/`)).toEqual([second.picture]);
   });
 
+  it("끝나지 않은 작업이 이번 시도에 올린 사본은 임대가 지나도 소유자가 지우지 못하고 다음 시도가 맡은 뒤에만 지운다", async () => {
+    const product = await saved();
+    const first = await claimed(product);
+    expect((await upload(fixture.owner.client, first.picture)).error).toBeNull();
+
+    await pictures(fixture.owner.client).remove([first.picture]);
+    expect(await stored(`${fixture.owner.id}/`)).toEqual([first.picture]);
+    // An expired lease that nobody claimed again still lets a late complete record this copy.
+    await expireLease(first);
+    await pictures(fixture.owner.client).remove([first.picture]);
+    expect(await stored(`${fixture.owner.id}/`)).toEqual([first.picture]);
+
+    const second = await claimed(product);
+    expect(second.attempts).toBe(2);
+    await pictures(fixture.owner.client).remove([first.picture]);
+    expect(await stored(`${fixture.owner.id}/`)).toEqual([]);
+  });
+
   it("완료는 보여줄 사본의 저장 버전을 작업과 함께 기록하고 둘 중 하나만 남길 수 없다", async () => {
     const product = await saved();
     const job = await copiedPicture(product);

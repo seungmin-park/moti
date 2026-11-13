@@ -115,11 +115,13 @@ describe("사진 사본 복사", () => {
     expect(pictures.discard).toHaveBeenCalledExactlyOnceWith([target]);
   });
 
-  it("Given 사본을 올렸지만 끝내기가 실패 When 끝내면 Then 자기 사본을 지우고 그 오류를 그대로 던진다", async () => {
+  it("Given 사본을 올렸지만 끝내기가 예외 When 끝내면 Then 늦게 반영될 수 있으니 자기 사본을 지우지 않고 그 오류를 그대로 던진다", async () => {
     const { pictures, copier } = given();
-    const failure = new Error("db down");
+    // A complete that timed out here may still commit and point the product at this copy.
+    const failure = new Error("complete timed out");
     await expect(copier.settleWith(task, async () => { throw failure; })).rejects.toBe(failure);
-    expect(pictures.discard).toHaveBeenCalledExactlyOnceWith([target]);
+    expect(pictures.put).toHaveBeenCalledExactlyOnceWith(target, webp);
+    expect(pictures.discard).not.toHaveBeenCalled();
   });
 
   it("Given 올린 것이 없음 When 끝내기가 실패하거나 세대가 바뀌면 Then 지울 것이 없다", async () => {

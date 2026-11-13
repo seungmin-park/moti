@@ -337,14 +337,21 @@ language sql stable security definer set search_path = '' as $$
   select split_part(p_name, '/', 1) = moti.owner_or_null()::text
 $$;
 
--- Delete: any of the owner's objects except the one a product shows.
+-- Delete: the owner's objects that no product shows and that no unsettled job may still record. The runner removes
+-- only the copy its stale settlement left or the copy a new one replaced. complete accepts an expired lease until the
+-- job is claimed again, so the current attempt's name stays protected regardless of the lease.
 create function moti_storage.may_discard(p_name text) returns boolean
 language sql stable security definer set search_path = '' as $$
-  select moti_storage.may_read(p_name) and not exists (
-    select 1 from moti.products p
-    where p.picture_job_id is not null
-      and moti.picture_object(p.owner_id, p.id, p.picture_job_id, p.picture_attempt) = p_name
-  )
+  select moti_storage.may_read(p_name)
+    and not exists (
+      select 1 from moti.products p
+      where p.picture_job_id is not null
+        and moti.picture_object(p.owner_id, p.id, p.picture_job_id, p.picture_attempt) = p_name
+    )
+    and not exists (
+      select 1 from moti.metadata_jobs j
+      where j.status = 'running' and moti.picture_object(j.owner_id, j.product_id, j.id, j.attempts) = p_name
+    )
 $$;
 
 grant create on schema moti_storage to moti_rpc;
