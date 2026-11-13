@@ -1,0 +1,42 @@
+# Red: the SQL list of failures the worker retries (step 4). The migration has no such list yet, so the list read from it is empty.
+# Command: npx vitest run src/features/metadata/domain/collection-error.test.ts
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/metadata/domain/collection-error.test.ts (1 test | 1 failed) 4ms
+   ❯ 작업자가 다시 집는 수집 실패 (1)
+     × SQL의 목록은 다시 시도할 수 있는 이유에서 시도 소진을 뺀 것과 같다 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/metadata/domain/collection-error.test.ts > 작업자가 다시 집는 수집 실패 > SQL의 목록은 다시 시도할 수 있는 이유에서 시도 소진을 뺀 것과 같다
+AssertionError: expected [] to deeply equal [ 'blocked_by_site', …(5) ]
+
+- Expected
++ Received
+
+- [
+-   "blocked_by_site",
+-   "connect_failed",
+-   "dns_failed",
+-   "http_status",
+-   "internal",
+-   "timeout",
+- ]
++ []
+
+ ❯ src/features/metadata/domain/collection-error.test.ts:12:19
+     10|     const inSql = [...list.matchAll(/'([a-z_]+)'/g)].map(([, code]) =>…
+     11|     const retryable = collectionErrorCodes.filter((code) => collection…
+     12|     expect(inSql).toEqual(retryable);
+       |                   ^
+     13|     expect(inSql.length).toBeGreaterThan(0);
+     14|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  00:13:48
+   Duration  89ms (transform 51%, import 22%, tests 19%, worker 8%)
+

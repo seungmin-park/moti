@@ -1,0 +1,65 @@
+# Red (review): after a successful issue the key panel must read again, so a rotation that stopped the worker's open
+# run shows it stopped. Before the fix `key.issue.settled` returned `call: null`.
+# Command: npx vitest run src/features/library/screen/screen-state.test.ts src/features/library/screen/key-panel-state.test.ts -t "새 키가 오면|비밀을 받으면 Then 새 키와"
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/screen/key-panel-state.test.ts (20 tests | 1 failed | 19 skipped) 5ms
+   ❯ 저장 키 만들기 (7)
+     × Given 만드는 중 When 비밀을 받으면 Then 새 키와 비밀을 한 번 보여주고, 붙여 넣었다고 하면 비밀을 지운다 4ms
+ ❯ src/features/library/screen/screen-state.test.ts (120 tests | 1 failed | 119 skipped) 7ms
+   ❯ 자동 확인 (9)
+     × Given 실행 중인 기록이 보이는 자동 확인에서 바꾸기를 확인함 When 새 키가 오면 Then 비밀을 보이고 기록을 다시 읽어 멈춘 실행을 보인다 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/screen/key-panel-state.test.ts > 저장 키 만들기 > Given 만드는 중 When 비밀을 받으면 Then 새 키와 비밀을 한 번 보여주고, 붙여 넣었다고 하면 비밀을 지운다
+AssertionError: expected null to deeply equal { type: 'key.read', endpoint: 'share' }
+
+- Expected:
+{
+  "endpoint": "share",
+  "type": "key.read",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/key-panel-state.test.ts:77:24
+     75|     const shown = onKeyPanel(ready({ key: null, busy: true }), { type:…
+     76|     expect(shown.panel).toEqual(ready({ key: next, secret }));
+     77|     expect(shown.call).toEqual({ type: "key.read", endpoint: "share" }…
+       |                        ^
+     78|     expect(onKeyPanel(shown.panel, { type: "key.pasted", endpoint: "sh…
+     79|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 자동 확인 > Given 실행 중인 기록이 보이는 자동 확인에서 바꾸기를 확인함 When 새 키가 오면 Then 비밀을 보이고 기록을 다시 읽어 멈춘 실행을 보인다
+AssertionError: expected null to deeply equal { Object (type, endpoint) }
+
+- Expected:
+{
+  "endpoint": "worker",
+  "type": "key.read",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:1205:25
+    1203|       type: "key.issue.settled", endpoint: "worker", outcome: { ok: tr…
+    1204|     });
+    1205|     expect(issued.call).toEqual({ type: "key.read", endpoint: "worker"…
+       |                         ^
+    1206|     expect((issued.state as Ready).worker).toEqual({ panel: shown, run…
+    1207|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 138 skipped (140)
+   Start at  01:45:51
+   Duration  176ms (transform 56%, import 35%, tests 7%, worker 2%)
+

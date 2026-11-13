@@ -9,6 +9,15 @@ import {
   type ShareKeyReadResponse,
   type ShareKeyRevokeResponse,
 } from "../../share/presentation/share-dto";
+import {
+  workerKeyIssueResponseSchema,
+  workerKeyRevokeResponseSchema,
+  workerReadResponseSchema,
+  type WorkerKeyIssueRequest,
+  type WorkerKeyIssueResponse,
+  type WorkerKeyRevokeResponse,
+  type WorkerReadResponse,
+} from "../../worker/presentation/worker-dto";
 import { MAX_BACKUP_BYTES, backupFileName, readLibraryBackup, type BackupCounts } from "../presentation/library-backup";
 import {
   collectionCreateResponseSchema,
@@ -54,7 +63,10 @@ export type Endpoint =
   | "library.restore"
   | "share.read"
   | "share.issue"
-  | "share.revoke";
+  | "share.revoke"
+  | "worker.read"
+  | "worker.issue"
+  | "worker.revoke";
 // A backup the server made and the reader accepted, kept as the exact text the owner downloads.
 export type BackupFile = { name: string; text: string; counts: BackupCounts; restorable: boolean };
 export type LibraryApi = {
@@ -71,6 +83,9 @@ export type LibraryApi = {
   readShareKey(): Promise<ApiOutcome<ShareKeyReadResponse>>;
   issueShareKey(body: ShareKeyIssueRequest): Promise<ApiOutcome<ShareKeyIssueResponse>>;
   revokeShareKey(keyId: string): Promise<ApiOutcome<ShareKeyRevokeResponse>>;
+  readWorker(): Promise<ApiOutcome<WorkerReadResponse>>;
+  issueWorkerKey(body: WorkerKeyIssueRequest): Promise<ApiOutcome<WorkerKeyIssueResponse>>;
+  revokeWorkerKey(keyId: string): Promise<ApiOutcome<WorkerKeyRevokeResponse>>;
 };
 
 const connection: ApiFailure = { kind: "unavailable", message: "연결을 확인하고 다시 시도해 주세요." };
@@ -115,6 +130,7 @@ const readFailures: Mapping = {
   revision_conflict: readFailed,
   picture_missing: readFailed,
   share_key_missing: readFailed,
+  worker_key_missing: readFailed,
 };
 
 const every = (failure: () => ApiFailure) => ({
@@ -131,6 +147,7 @@ const every = (failure: () => ApiFailure) => ({
   revision_conflict: failure,
   picture_missing: failure,
   share_key_missing: failure,
+  worker_key_missing: failure,
 });
 const keyChanged = stale("다른 곳에서 키가 바뀌었어요. 최신 상태를 불러왔어요.");
 // A key write whose answer is lost may still have committed, so the panel re-reads after any of these.
@@ -140,12 +157,16 @@ const keyWrite = (unknown: string): Mapping => ({
   cross_origin: reload,
   revision_conflict: keyChanged,
   share_key_missing: keyChanged,
+  worker_key_missing: keyChanged,
 });
 
 const failures: Record<Endpoint, Mapping> = {
   "share.read": { ...session, ...every(unavailable("저장 키를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.")) },
   "share.issue": keyWrite("새 키를 받지 못했어요. 최신 상태를 불러왔어요."),
   "share.revoke": keyWrite("키를 폐기했는지 확인하지 못했어요. 최신 상태를 불러왔어요."),
+  "worker.read": { ...session, ...every(unavailable("자동 확인 상태를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.")) },
+  "worker.issue": keyWrite("새 키를 받지 못했어요. 최신 상태를 불러왔어요."),
+  "worker.revoke": keyWrite("키를 폐기했는지 확인하지 못했어요. 최신 상태를 불러왔어요."),
   // The screen shows nothing when a wake fails: the library it read is still right, and the retry button remains.
   "metadata.wake": readFailures,
   "library.read": readFailures,
@@ -164,6 +185,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: retryLater,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "collection.create": {
     ...session,
@@ -184,6 +206,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: retryLater,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "collection.rename": {
     ...session,
@@ -204,6 +227,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "metadata.retry": {
     ...session,
@@ -220,6 +244,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: retryLater,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "product.change": {
     ...session,
@@ -236,6 +261,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "library.backup": {
     ...session,
@@ -252,6 +278,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: backupFailed,
     picture_missing: backupFailed,
     share_key_missing: backupFailed,
+    worker_key_missing: backupFailed,
   },
   "library.restore": {
     ...session,
@@ -268,6 +295,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: restoreUnknown,
     picture_missing: restoreUnknown,
     share_key_missing: restoreUnknown,
+    worker_key_missing: restoreUnknown,
   },
 };
 
@@ -378,5 +406,15 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
       method: "DELETE",
       headers: { accept: "application/json" },
     }, [{ status: 200, parse: parsed(shareKeyRevokeResponseSchema) }]),
+    readWorker: () => request("worker.read", "/api/worker-keys", { method: "GET", headers: { accept: "application/json" } }, [
+      { status: 200, parse: parsed(workerReadResponseSchema) },
+    ]),
+    issueWorkerKey: (body) => request("worker.issue", "/api/worker-keys", write("POST", body), [
+      { status: 201, parse: parsed(workerKeyIssueResponseSchema) },
+    ]),
+    revokeWorkerKey: (keyId) => request("worker.revoke", `/api/worker-keys/${segment(keyId)}`, {
+      method: "DELETE",
+      headers: { accept: "application/json" },
+    }, [{ status: 200, parse: parsed(workerKeyRevokeResponseSchema) }]),
   };
 }

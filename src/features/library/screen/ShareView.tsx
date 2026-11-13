@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { CircleAlert, Copy, Info, KeyRound, LoaderCircle, Smartphone } from "lucide-react";
+import { Copy, Smartphone } from "lucide-react";
 import { SHARE_LINKS_PATH, shareLinkMessages } from "../../share/presentation/share-dto";
+import { KeyPanel, useCopy, type KeyPanelText } from "./KeyPanel";
+import type { KeyPanel as KeyPanelState } from "./key-panel-state";
 import type { ScreenEvent } from "./screen-state";
-import type { ShareConfirm, ShareNotice, SharePanel } from "./share-state";
 import { shareConfirmView, shareKeyView } from "./share-view";
 
 type Send = (event: ScreenEvent) => void;
-type Ready = Extract<SharePanel, { status: "ready" }>;
-type CopyTarget = "endpoint" | "secret";
 
 // What the Shortcut can show after a share, in the words the route answers with.
 const shortcutMessages = [
@@ -20,180 +18,24 @@ const shortcutMessages = [
   shareLinkMessages.share_key_busy,
 ];
 
-// The clipboard needs a secure context and a permission; when it refuses, the text stays selectable.
-function useCopy() {
-  const [copied, setCopied] = useState<{ target: CopyTarget; ok: boolean } | null>(null);
-  async function copy(target: CopyTarget, text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied({ target, ok: true });
-    } catch {
-      setCopied({ target, ok: false });
-    }
-  }
-  const status = (target: CopyTarget) => {
-    if (copied?.target !== target) return null;
-    return copied.ok ? "복사했어요." : "복사하지 못했어요. 글자를 길게 눌러 직접 복사해 주세요.";
-  };
-  return { copy, status };
-}
-
-function Notice({ notice }: { notice: ShareNotice | null }) {
-  if (notice === null) return null;
-  return notice.kind === "error" ? (
-    <p className="form-error" role="alert">
-      <CircleAlert size={16} aria-hidden="true" />
-      {notice.message}
-    </p>
-  ) : (
-    <p className="form-note share-notice" role="status">
-      <Info size={16} aria-hidden="true" />
-      {notice.message}
-    </p>
-  );
-}
-
-function Secret({ secret, send }: { secret: string; send: Send }) {
-  const { copy, status } = useCopy();
-  const header = `Bearer ${secret}`;
-  return (
-    <div className="share-secret-block">
-      <p className="share-key-label">단축어의 Authorization 헤더 값</p>
-      <code className="share-secret">{header}</code>
-      <button className="button secondary full" autoFocus onClick={() => void copy("secret", header)}>
-        <Copy size={16} aria-hidden="true" />
-        헤더 값 복사
-      </button>
-      <p className="share-copy-status" role="status">{status("secret")}</p>
-      <p className="form-note">
-        <Info size={16} aria-hidden="true" />
-        이 키는 지금 한 번만 보여요. 이 화면을 떠나면 다시 볼 수 없어요. 잃어버리면 새 키로 바꾸면 돼요.
-      </p>
-      <button className="button primary full" onClick={() => send({ type: "share.pasted" })}>
-        붙여 넣었어요
-      </button>
-    </div>
-  );
-}
-
-function Confirm({ panel, confirm, send }: { panel: Ready & { key: NonNullable<Ready["key"]> }; confirm: ShareConfirm; send: Send }) {
-  const messageId = useId();
-  const { message, action } = shareConfirmView(confirm, panel.key);
-  const cancelOnEscape = (event: KeyboardEvent) => {
-    if (event.key !== "Escape") return;
-    event.preventDefault();
-    send({ type: "share.cancel" });
-  };
-  return (
-    <div className="share-confirm" role="group" aria-labelledby={messageId} onKeyDown={cancelOnEscape}>
-      <p id={messageId}>{message}</p>
-      <div className="share-key-actions">
-        <button className="button secondary" autoFocus disabled={panel.busy} onClick={() => send({ type: "share.cancel" })}>
-          취소
-        </button>
-        <button className="button primary" disabled={panel.busy} onClick={() => send({ type: "share.confirm" })}>
-          {action}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function KeyState({ panel, send }: { panel: Ready; send: Send }) {
-  const rotate = useRef<HTMLButtonElement>(null);
-  const revoke = useRef<HTMLButtonElement>(null);
-  const asked = useRef<ShareConfirm | null>(null);
-  const { key, confirm, busy } = panel;
-  // A closed confirmation hands focus back to the button that opened it, or to the next action when it is gone.
-  useEffect(() => {
-    if (confirm !== null) {
-      asked.current = confirm;
-      return;
-    }
-    const last = asked.current;
-    asked.current = null;
-    if (last === null) return;
-    const opener = last === "rotate" ? rotate.current : revoke.current;
-    (opener ?? document.querySelector<HTMLElement>(".share-key-panel .button"))?.focus();
-  }, [confirm]);
-  const view = shareKeyView(key);
-  const active = key !== null && key.revokedAt === null;
-  return (
-    <>
-      <p className="share-key-title">{view.title}</p>
-      <p className="share-key-detail">{view.detail}</p>
-      {active && confirm !== null ? (
-        <Confirm panel={{ ...panel, key }} confirm={confirm} send={send} />
-      ) : active ? (
-        <div className="share-key-actions">
-          <button ref={rotate} className="button secondary" disabled={busy} onClick={() => send({ type: "share.ask", confirm: "rotate" })}>
-            새 키로 바꾸기
-          </button>
-          <button ref={revoke} className="button secondary" disabled={busy} onClick={() => send({ type: "share.ask", confirm: "revoke" })}>
-            키 폐기
-          </button>
-        </div>
-      ) : (
-        <button className="button primary full" disabled={busy} onClick={() => send({ type: "share.create" })}>
-          저장 키 만들기
-        </button>
-      )}
-      {busy && (
-        <p className="share-key-progress" role="status">
-          <LoaderCircle size={16} aria-hidden="true" />
-          저장 키를 처리하는 중이에요…
-        </p>
-      )}
-    </>
-  );
-}
-
-function KeyPanel({ panel, send }: { panel: SharePanel; send: Send }) {
-  const titleId = useId();
-  const section = useRef<HTMLElement>(null);
-  const showing = panel.status === "ready" && panel.secret !== null;
-  const shown = useRef(showing);
-  // The secret block takes the focus when it appears; when it goes, the focus stays in the panel.
-  useEffect(() => {
-    if (shown.current && !showing) section.current?.querySelector<HTMLElement>(".button")?.focus();
-    shown.current = showing;
-  }, [showing]);
-  return (
-    <section ref={section} className="share-key-panel" aria-labelledby={titleId}>
-      <h3 id={titleId}>
-        <KeyRound size={17} aria-hidden="true" />
-        저장 키
-      </h3>
-      {(panel.status === "unread" || panel.status === "loading") && (
-        <p className="share-key-progress" role="status">
-          <LoaderCircle size={16} aria-hidden="true" />
-          저장 키를 확인하고 있어요…
-        </p>
-      )}
-      {panel.status === "failed" && (
-        <>
-          <p className="form-error" role="alert">
-            <CircleAlert size={16} aria-hidden="true" />
-            {panel.message}
-          </p>
-          <button className="button secondary full" onClick={() => send({ type: "share.retry" })}>
-            다시 불러오기
-          </button>
-        </>
-      )}
-      {panel.status === "ready" && (
-        <>
-          <Notice notice={panel.notice} />
-          {panel.secret !== null ? <Secret secret={panel.secret} send={send} /> : <KeyState panel={panel} send={send} />}
-        </>
-      )}
-    </section>
-  );
-}
+const shareKeyText: KeyPanelText = {
+  heading: "저장 키",
+  checking: "저장 키를 확인하고 있어요…",
+  working: "저장 키를 처리하는 중이에요…",
+  create: "저장 키 만들기",
+  describe: shareKeyView,
+  confirm: shareConfirmView,
+  secret: {
+    label: "단축어의 Authorization 헤더 값",
+    show: (secret) => `Bearer ${secret}`,
+    copy: "헤더 값 복사",
+    note: "이 키는 지금 한 번만 보여요. 이 화면을 떠나면 다시 볼 수 없어요. 잃어버리면 새 키로 바꾸면 돼요.",
+  },
+};
 
 // The real share view. It sets up a Shortcut the owner builds by hand, and it cannot tell whether one exists: nothing
 // here says the Shortcut is connected or installed.
-export function ShareView({ panel, send }: { panel: SharePanel; send: Send }) {
+export function ShareView({ panel, send }: { panel: KeyPanelState; send: Send }) {
   const { copy, status } = useCopy();
   const endpoint = new URL(SHARE_LINKS_PATH, window.location.origin).href;
   return (
@@ -252,7 +94,7 @@ export function ShareView({ panel, send }: { panel: SharePanel; send: Send }) {
           </li>
         </ol>
       </div>
-      <KeyPanel panel={panel} send={send} />
+      <KeyPanel panel={panel} endpoint="share" text={shareKeyText} send={send} />
     </section>
   );
 }

@@ -63,7 +63,7 @@ describe("실제 DB 소유자 경계", () => {
        join pg_roles r on r.oid = c.relowner where n.nspname = 'moti' and c.relkind = 'r'`,
     );
     expect(tables.rows.map((row) => row.relname).toSorted()).toEqual([
-      "collections", "metadata_jobs", "owner_config", "product_collections", "products", "share_keys",
+      "collections", "metadata_jobs", "owner_config", "product_collections", "products", "share_keys", "worker_keys", "worker_runs",
     ]);
     expect(tables.rows.every((row) => row.relrowsecurity && row.relforcerowsecurity)).toBe(true);
     const functions = await fixture.admin.query<{
@@ -81,10 +81,16 @@ describe("실제 DB 소유자 경계", () => {
       "moti_metadata_retry", "moti_metadata_wake", "moti_picture_locate", "moti_purchase_product", "moti_record_purchase",
       "moti_rename_collection", "moti_restore_library", "moti_return_to_wish", "moti_save_link", "moti_share_add",
       "moti_share_key_issue", "moti_share_key_read", "moti_share_key_revoke", "moti_snapshot",
+      "moti_worker_begin", "moti_worker_complete", "moti_worker_fail", "moti_worker_finish", "moti_worker_key_issue",
+      "moti_worker_key_revoke", "moti_worker_next", "moti_worker_read",
+    ]);
+    // A request without a session runs only the share key's add and the worker's steps; share-add.test.ts and
+    // worker-runs.test.ts pin their roles.
+    const keyFunctions = new Set([
+      "moti_share_add", "moti_worker_begin", "moti_worker_next", "moti_worker_complete", "moti_worker_fail", "moti_worker_finish",
     ]);
     for (const row of functions.rows) {
-      // The share key's add is the one function a request without a session runs; share-add.test.ts pins its role.
-      const keyOnly = row.proname === "moti_share_add";
+      const keyOnly = keyFunctions.has(row.proname);
       expect(row).toMatchObject({ rolbypassrls: false, rolsuper: false, prosecdef: true, anon_execute: keyOnly, authenticated_execute: !keyOnly });
       expect(tables.rows.every((table) => table.owner !== row.owner)).toBe(true);
     }

@@ -1,0 +1,195 @@
+# Red (review): the moti_worker catalog checks must fail when the role gets more than the work needs. With
+# `grant update (owner_title) on moti.products to moti_worker;` appended to the migration (removed afterwards), both
+# grant checks fail: the exact grant list differs and the out-of-scope update is no longer refused.
+# Command: npm run test:database -- -t "작업 역할의 권한|익명으로 실행할 수 있는" (other tests filtered out, so the runner exits 1 on skips).
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs -t 작업 역할의 권한|익명으로 실행할 수 있는
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ✓ tests/persistence/share-add.test.ts (20 tests | 19 skipped) 320ms
+   ✓ 저장 키 역할의 권한 (3)
+     ✓ 익명으로 실행할 수 있는 moti 함수는 moti_share가 소유한 moti_share_add와 moti_worker가 소유한 작업 단계뿐이고 로그인 세션은 실행하지 못한다 319ms
+ ↓ tests/persistence/worker-collect.test.ts (19 tests | 19 skipped)
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ❯ tests/persistence/worker-runs.test.ts (13 tests | 2 failed | 10 skipped) 880ms
+   ↓ 작업 실행의 시작과 끝 (10)
+     ↓ 작업 키로 시작하면 90초 임대의 열린 실행 하나를 만들고 키를 마지막으로 쓴 때를 남긴다
+     ↓ 형식이 다르거나 모르거나 폐기했거나 공유 키이거나 소유자 설정이 바뀐 키는 모두 같은 M0012이고 아무것도 쓰지 않는다
+     ↓ 열린 실행이 있으면 다음 시작은 M0014다. 임대가 끝난 실행은 임대가 끝난 때 cut으로 닫고 새 실행을 시작한다
+     ↓ 24시간 안에 8번 시작했으면 9번째는 M0015이고 아무것도 쓰지 않는다. 30일이 지난 기록은 시작할 때 지운다
+     ↓ 끝내면 done이나 deadline으로 닫고 셈을 돌려준다. 다른 임대·닫힌 실행·다른 키는 M0013·M0012이고 다른 끝은 M0002다
+     ↓ 임대가 끝난 실행의 다음 단계는 M0013이다
+     ↓ 실행 중에 키를 폐기하면 다음 단계는 M0012이고 실행은 revoked로 읽는다
+     ↓ 단계가 키를 확인한 뒤 실행 행을 기다리는 사이 폐기가 커밋되면 그 단계도 M0012다
+     ↓ 로그인 세션은 작업 함수를 실행하지 못하고, PostgREST에 작업 키를 Bearer로 보내면 세션이 아니라서 거절한다
+     ↓ 공유 키 함수에 작업 키를 보내면 M0009다
+   ❯ 작업 역할의 권한 (3)
+     ✓ moti_worker는 로그인할 수 없고 상속·RLS 우회가 없으며 구성원은 postgres뿐이다. 소유한 것은 익명이 실행하는 작업 함수뿐이다 304ms
+     × moti_worker 역할에 직접 준 권한과 정책은 작업에 필요한 것뿐이다 278ms
+     × moti_worker 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다 297ms
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (11 tests | 11 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/service/scheduled-run.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 역할의 권한 > moti_worker 역할에 직접 준 권한과 정책은 작업에 필요한 것뿐이다
+AssertionError: expected [ …(66) ] to deeply equal [ …(65) ]
+
+- Expected
++ Received
+
+@@ -32,10 +32,11 @@
+    "column moti.products.metadata_generation SELECT",
+    "column moti.products.metadata_image UPDATE",
+    "column moti.products.metadata_image_error_code UPDATE",
+    "column moti.products.metadata_phase UPDATE",
+    "column moti.products.owner_id SELECT",
++   "column moti.products.owner_title UPDATE",
+    "column moti.products.purchase_status SELECT",
+    "column moti.products.source_url SELECT",
+    "column moti.products.title UPDATE",
+    "column moti.worker_keys.id SELECT",
+    "column moti.worker_keys.last_used_at UPDATE",
+
+ ❯ tests/persistence/worker-runs.test.ts:268:53
+    266|        ) g order by g.grant`,
+    267|     );
+    268|     expect(rows.map((row) => row.grant).toSorted()).toEqual(WORKER_GRA…
+       |                                                     ^
+    269|     const policies = await fixture.admin.query<{ policy: string }>(
+    270|       `select format('%s %s %s', tablename, policyname, cmd) as policy…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 역할의 권한 > moti_worker 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다
+AssertionError: promise resolved "Result{ command: 'UPDATE', …(9) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ Result {
++   "RowCtor": null,
++   "_parsers": undefined,
++   "_prebuiltEmptyResultObject": null,
++   "_types": TypeOverrides {
++     "_types": {
++       "arrayParser": {
++         "create": [Function create],
++       },
++       "builtins": {
++         "ABSTIME": 702,
++         "ACLITEM": 1033,
++         "BIT": 1560,
++         "BOOL": 16,
++         "BPCHAR": 1042,
++         "BYTEA": 17,
++         "CHAR": 18,
++         "CID": 29,
++         "CIDR": 650,
++         "CIRCLE": 718,
++         "DATE": 1082,
++         "FLOAT4": 700,
++         "FLOAT8": 701,
++         "GTSVECTOR": 3642,
++         "INET": 869,
++         "INT2": 21,
++         "INT4": 23,
++         "INT8": 20,
++         "INTERVAL": 1186,
++         "JSON": 114,
++         "JSONB": 3802,
++         "MACADDR": 829,
++         "MACADDR8": 774,
++         "MONEY": 790,
++         "NUMERIC": 1700,
++         "OID": 26,
++         "PATH": 602,
++         "PG_DEPENDENCIES": 3402,
++         "PG_LSN": 3220,
++         "PG_NDISTINCT": 3361,
++         "PG_NODE_TREE": 194,
++         "POLYGON": 604,
++         "REFCURSOR": 1790,
++         "REGCLASS": 2205,
++         "REGCONFIG": 3734,
++         "REGDICTIONARY": 3769,
++         "REGNAMESPACE": 4089,
++         "REGOPER": 2203,
++         "REGOPERATOR": 2204,
++         "REGPROC": 24,
++         "REGPROCEDURE": 2202,
++         "REGROLE": 4096,
++         "REGTYPE": 2206,
++         "RELTIME": 703,
++         "SMGR": 210,
++         "TEXT": 25,
++         "TID": 27,
++         "TIME": 1083,
++         "TIMESTAMP": 1114,
++         "TIMESTAMPTZ": 1184,
++         "TIMETZ": 1266,
++         "TINTERVAL": 704,
++         "TSQUERY": 3615,
++         "TSVECTOR": 3614,
++         "TXID_SNAPSHOT": 2970,
++         "UUID": 2950,
++         "VARBIT": 1562,
++         "VARCHAR": 1043,
++         "XID": 28,
++         "XML": 142,
++       },
++       "getTypeParser": [Function getTypeParser],
++       "setTypeParser": [Function setTypeParser],
++     },
++     "binary": {},
++     "text": {},
++   },
++   "command": "UPDATE",
++   "fields": [],
++   "oid": null,
++   "rowAsArray": false,
++   "rowCount": 1,
++   "rows": [],
+  }
+
+ ❯ tests/persistence/worker-runs.test.ts:319:61
+    317|       await connection.query("set role moti_worker");
+    318|       for (const statement of refused) {
+    319|         await expect(connection.query(statement), statement).rejects.t…
+       |                                                             ^
+    320|       }
+    321|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed | 18 skipped (20)
+      Tests  2 failed | 2 passed | 282 skipped (286)
+   Start at  01:49:06
+   Duration  3.87s (import 51%, tests 46%, transform 2%, worker 1%)
+
+    Isolate  20 workers spawned · ~59ms startup each (spawn + environment, per file)
+             at least ~1.11s faster with isolate: false — reuses workers across files instead of one per file
+
+JSON report written to /private/var/folders/tv/r1qdgk8x6972cyp7yrxlxdb80000gn/T/moti-database-PgER7W/database-results.json

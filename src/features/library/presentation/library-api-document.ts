@@ -11,6 +11,15 @@ import {
   shareKeyRevokeResponseSchema,
   shareLinkErrorResponseSchema,
 } from "../../share/presentation/share-dto";
+import {
+  SCHEDULED_RUNS_PATH,
+  scheduledRunErrorResponseSchema,
+  scheduledRunResponseSchema,
+  workerKeyIssueRequestSchema,
+  workerKeyIssueResponseSchema,
+  workerKeyRevokeResponseSchema,
+  workerReadResponseSchema,
+} from "../../worker/presentation/worker-dto";
 import { MAX_BACKUP_BYTES, libraryBackupSchema } from "./library-backup";
 import {
   collectionCreateRequestSchema,
@@ -34,7 +43,7 @@ type Route = {
   path: string;
   summary: string;
   // Routes without it use the owner's cookie session.
-  security?: "shareKey";
+  security?: "shareKey" | "workerKey";
   parameters?: { name: string; in?: "path" | "query"; description: string; schema: z.ZodType }[];
   request?: z.ZodType;
   responses: Record<number, { description: string; schema?: z.ZodType; headers?: Record<string, string> }>;
@@ -212,6 +221,36 @@ export const libraryRoutes: Route[] = [
       404: { description: "소유자의 키가 아니다(share_key_missing).", schema: errorResponseSchema },
     },
   },
+  {
+    method: "get",
+    path: "/api/worker-keys",
+    summary: "예약 실행의 작업 키와 최근 실행 다섯 개를 읽는다. 키는 활성 키, 없으면 마지막으로 폐기한 키, 만든 적이 없으면 null이고 끝 네 글자와 만든·마지막으로 실행한·폐기한 시각만 보인다. 실행은 상태(running·done·deadline·cut·revoked)와 셈, 이유별 실패 횟수만 보인다.",
+    responses: { 200: { description: "WorkerReadResponse", schema: workerReadResponseSchema }, ...denied },
+  },
+  {
+    method: "post",
+    path: "/api/worker-keys",
+    summary: "새 작업 키를 만든다. replaces는 화면이 본 활성 키(없었으면 null)이며, 그 키를 폐기하고 열린 실행을 멈춘 뒤 새 키를 한 트랜잭션에서 만든다. 비밀은 이 응답에만 한 번 담긴다.",
+    request: workerKeyIssueRequestSchema,
+    responses: {
+      201: { description: "WorkerKeyIssueResponse. secret은 moti_wk_ 뒤에 base64url 43자다.", schema: workerKeyIssueResponseSchema },
+      ...writeFailures,
+      ...denied,
+      409: { description: "화면이 본 뒤 다른 곳에서 키가 바뀌었다(revision_conflict). 아무것도 바꾸지 않는다.", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "delete",
+    path: "/api/worker-keys/{keyId}",
+    summary: "작업 키를 폐기하고 그 키의 열린 실행을 멈춘다. 이미 폐기한 키는 처음 폐기한 시각 그대로 돌려준다.",
+    parameters: [{ name: "keyId", description: "작업 키 ID", schema: z.uuid() }],
+    responses: {
+      200: { description: "WorkerKeyRevokeResponse. revokedAt이 있다.", schema: workerKeyRevokeResponseSchema },
+      400: { description: "키 ID가 UUID가 아니다.", schema: errorResponseSchema },
+      ...denied,
+      404: { description: "소유자의 키가 아니다(worker_key_missing).", schema: errorResponseSchema },
+    },
+  },
   // The Shortcut's route: the share key is its only credential, and every answer carries the message the Shortcut shows.
   {
     method: "post",
@@ -233,6 +272,24 @@ export const libraryRoutes: Route[] = [
       415: { description: "본문이 application/json이 아니다(unsupported_media_type).", schema: shareLinkErrorResponseSchema },
       429: { description: "이 키로 지난 한 시간 동안 30번 담았다(share_key_busy). 이미 담은 링크도 센다.", schema: shareLinkErrorResponseSchema },
       503: { description: "설정이 없거나(unconfigured) 저장소를 쓸 수 없다(unavailable).", schema: shareLinkErrorResponseSchema },
+    },
+  },
+  // GitHub's scheduled call: the worker key is its only credential, and the run happens inside the request.
+  {
+    method: "post",
+    path: SCHEDULED_RUNS_PATH,
+    summary: "예약 실행 한 번. GitHub Actions가 작업 키로 부른다. 본문과 쿠키를 읽지 않고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 수집이 끝나지 않은 위시 상품을 세 줄로 20초 동안 고르고(최대 60개) 이름과 가격만 쓴다. 사진은 소유자가 moti를 열 때 가져온다. 응답은 멈춘 이유와 셈, 이유별 실패 횟수뿐이다.",
+    security: "workerKey",
+    responses: {
+      200: { description: "ScheduledRunResponse. done은 남은 일이 없고, deadline은 남은 일을 다음 실행에 넘겼다.", schema: scheduledRunResponseSchema },
+      401: {
+        description: "키가 없거나 형식이 다르거나 모르는 키이거나 폐기한 키다. 실행 중 폐기도 같다. 모두 같은 본문이다(worker_key_rejected).",
+        schema: scheduledRunErrorResponseSchema,
+        headers: { "WWW-Authenticate": "Bearer" },
+      },
+      409: { description: "다른 실행이 임대를 쥐고 있거나(run_busy) 실행 중 임대를 잃었다(run_lost).", schema: scheduledRunErrorResponseSchema },
+      429: { description: "지난 24시간에 여덟 번 시작했다(run_limit).", schema: scheduledRunErrorResponseSchema },
+      503: { description: "설정이 없거나(unconfigured) 저장소를 쓸 수 없다(unavailable).", schema: scheduledRunErrorResponseSchema },
     },
   },
 ];
@@ -281,6 +338,11 @@ export function buildApiDocument() {
           type: "http",
           scheme: "bearer",
           description: "공유 저장 화면에서 만든 추가 전용 키(moti_sk_ 뒤에 base64url 43자). 링크 추가에만 쓰고 세션이 되지 않는다.",
+        },
+        workerKey: {
+          type: "http",
+          scheme: "bearer",
+          description: "자동 확인 화면에서 만든 작업 키(moti_wk_ 뒤에 base64url 43자). 예약 실행에만 쓰고 세션이 되지 않으며 공유 키와 서로 대신하지 않는다.",
         },
       },
     },

@@ -2,6 +2,8 @@
 
 CI 작업 `mockup`은 `app`으로, Supabase 없는 브라우저 검사 `test:e2e`는 `test:ui`로 이름을 바꿨다([변경 기록](changes/naming.md)). 아래 이전 항목의 "브라우저 e2e"는 지금의 `npm run test:ui`다.
 
+정기 수집과 전용 작업 키(5a)의 검증은 [변경 기록](changes/scheduled-runs.md)에 있다. 단위 1,333개, 실제 DB 285개(persistence 233, service 52), 실제 HTTP 44개, 실제 스택 브라우저 48개, `tests/ui` 50개가 통과했다. GitHub의 예약 호출은 실제 HTTP와 브라우저 검사에서 Node `fetch`로, 워크플로 스크립트는 가짜 `curl`로 흉내 냈다. 실제 GitHub 예약 실행, 호스팅의 `maxDuration`·`Authorization` 전달·배포 보호, 운영 Storage, Supabase 로그, 데이터센터 IP를 막는 쇼핑몰은 검증하지 않았다.
+
 iPhone 공유 단축어의 추가 전용 키(4c)의 검증은 [변경 기록](changes/share.md)에 있다. 단위 1,160개, 실제 DB 234개(persistence 185, service 49), 실제 HTTP 38개, 실제 스택 브라우저 42개, `tests/ui` 50개가 통과했다. 단축어의 요청은 실제 HTTP와 브라우저 검사에서 Node `fetch`로 흉내 냈다. 실제 iPhone 공유 메뉴·단축어 앱·한국어 동작 이름, Google OAuth, 호스팅의 `Authorization` 전달과 운영 Supabase 로그는 검증하지 않았다.
 
 보관함 백업과 복원(4b)의 검증은 [변경 기록](changes/backup.md)에 있다. 단위 953개, 실제 DB 190개(persistence 145, service 45), 실제 HTTP 30개, 실제 스택 브라우저 36개, `tests/ui` 50개가 통과했다. 메모·컬렉션이 있는 상품 1,000개 복원은 로컬에서 0.3~0.8초였다. service와 실제 스택 브라우저 검사는 동작을 만든 뒤 작성했다. 실제 Google OAuth·실제 iPhone의 내려받기·Vercel·배포는 검증하지 않았다.

@@ -64,7 +64,7 @@ export default defineConfig([
           message: "화면은 API 계약만 쓰는 HTTP 클라이언트다.",
         },
         { regex: "(^|/)(application|domain|infrastructure)(/|$)", message: "화면은 내부 계층을 가져오지 않는다." },
-        { regex: "/presentation/(?!(library-dto|library-backup|login-error|share-dto)$)", message: "공개 계약만 가져온다." },
+        { regex: "/presentation/(?!(library-dto|library-backup|login-error|share-dto|worker-dto)$)", message: "공개 계약만 가져온다." },
         { regex: "(^@/app/|/_server/)", message: "조립 위치(Route Handler)에 의존하지 않는다." },
         {
           regex: "/wishlist/(?!(link|collection-name|product-fields|CollectionPicker|Dialog)$)",
@@ -82,6 +82,31 @@ export default defineConfig([
           message: "단축어 요청은 쿠키를 읽지도 쓰지도 않는다. 키만 인증이다.",
         },
       ] }],
+    },
+  },
+  {
+    files: ["src/app/_server/worker-context.ts", "src/app/api/scheduled-runs/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [
+        {
+          group: ["next/headers", "@supabase/ssr", "**/_server/context", "./context"],
+          message: "예약 실행 요청은 쿠키를 읽지도 쓰지도 않는다. 작업 키만 인증이다.",
+        },
+        {
+          group: ["**/product-pictures", "**/picture-copy"],
+          message: "작업자는 Storage에 닿지 않는다. 사진은 소유자의 화면이 가져온다.",
+        },
+      ] }],
+    },
+  },
+  {
+    // Layer rules already use no-restricted-imports here, and a later block would replace them, so this one matches syntax.
+    files: ["src/features/worker/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", {
+        selector: "ImportDeclaration[source.value=/(product-pictures|picture-copy)$/]",
+        message: "작업자는 Storage에 닿지 않는다. 사진은 소유자의 화면이 가져온다.",
+      }],
     },
   },
   {

@@ -1,0 +1,227 @@
+# Red: the worker's collection steps (step 4). The tests call moti_worker_next/complete/fail; none exists yet (PGRST202). Vitest prints one error for the tests that share it.
+# Command: npm run test:database -- -t "작업자의 수집" (other persistence/service tests filtered out).
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/share-add.test.ts (20 tests | 20 skipped)
+ ❯ tests/persistence/worker-collect.test.ts (17 tests | 17 failed) 4742ms
+   ❯ 작업자의 수집 집기 (4)
+     × 할 일이 없으면 none이고, 대기 중인 위시 상품을 소유자의 실행기처럼 집어 링크만 돌려준다 335ms
+     × 구매완료 상품, 지금 세대가 아닌 작업, 세 번 시도한 작업, 임대가 남은 작업, 다시 해도 소용없거나 한 시간이 안 된 실패는 집지 않는다 302ms
+     × 대기 작업을 먼저 최신 상품부터 집고, 그다음 임대가 끝난 작업과 한 시간이 지난 재시도 가능한 실패를 최신 상품부터 집는다 291ms
+     × 다른 요청이 잠근 작업은 건너뛴다 275ms
+   ❯ 작업자의 수집 결과 (13)
+     × 이름은 title에만 쓰고 소유자가 고친 이름·revision·화면 이름은 그대로다. 사진 주소가 있으면 사진은 waiting이다 276ms
+     × 사진 주소가 없으면 absent이고 이전 사본은 그대로 보인다 272ms
+     × 다른 통화의 가격은 저장한 가격을 바꾸지 않고, 수집 중에 구매완료로 옮긴 상품은 이름만 쓴다 273ms
+     × 실패는 작업과 상품을 실패로 두고 실행에 이유별로 센다. 시도 소진과 목록에 없는 이유는 M0002다 278ms
+     × 세대가 바뀐 작업의 결과는 stale이고 작업을 superseded로 닫는다. 다른 작업 임대도 stale이며 아무것도 쓰지 않는다 272ms
+     × 빈 이름 결과는 M0002이고 아무것도 쓰지 않는다 272ms
+     × 제어 문자 결과는 M0002이고 아무것도 쓰지 않는다 272ms
+     × 앞뒤 공백 결과는 M0002이고 아무것도 쓰지 않는다 271ms
+     × 통화 없는 가격 결과는 M0002이고 아무것도 쓰지 않는다 275ms
+     × 0원 결과는 M0002이고 아무것도 쓰지 않는다 269ms
+     × 소문자 통화 결과는 M0002이고 아무것도 쓰지 않는다 270ms
+     × 웹 주소가 아닌 사진 결과는 M0002이고 아무것도 쓰지 않는다 269ms
+     × 실행 중에 키를 폐기하면 집기와 쓰기가 M0012이고, 닫힌 실행의 단계는 M0013이다 269ms
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-runs.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (11 tests | 11 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (8 tests | 8 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 집기 > 할 일이 없으면 none이고, 대기 중인 위시 상품을 소유자의 실행기처럼 집어 링크만 돌려준다
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { code: null, data: { kind: 'none' } }
+
+- Expected
++ Received
+
+  {
+-   "code": null,
+-   "data": {
+-     "kind": "none",
+-   },
++   "code": "PGRST202",
++   "data": null,
+  }
+
+ ❯ tests/persistence/worker-collect.test.ts:114:29
+    112|   it("할 일이 없으면 none이고, 대기 중인 위시 상품을 소유자의 실행기처럼 집어 링크만 돌려준다", async () …
+    113|     const run = await start();
+    114|     expect(await next(run)).toEqual({ code: null, data: { kind: "none"…
+       |                             ^
+    115|     const product = await save("lamp");
+    116|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 집기 > 구매완료 상품, 지금 세대가 아닌 작업, 세 번 시도한 작업, 임대가 남은 작업, 다시 해도 소용없거나 한 시간이 안 된 실패는 집지 않는다
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { code: null, data: { kind: 'none' } }
+
+- Expected
++ Received
+
+  {
+-   "code": null,
+-   "data": {
+-     "kind": "none",
+-   },
++   "code": "PGRST202",
++   "data": null,
+  }
+
+ ❯ tests/persistence/worker-collect.test.ts:141:29
+    139|     await failedAgo(recent, "timeout", "50 minutes");
+    140|
+    141|     expect(await next(run)).toEqual({ code: null, data: { kind: "none"…
+       |                             ^
+    142|   });
+    143|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 집기 > 대기 작업을 먼저 최신 상품부터 집고, 그다음 임대가 끝난 작업과 한 시간이 지난 재시도 가능한 실패를 최신 상품부터 집는다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:154:60
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 집기 > 다른 요청이 잠근 작업은 건너뛴다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:170:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 이름은 title에만 쓰고 소유자가 고친 이름·revision·화면 이름은 그대로다. 사진 주소가 있으면 사진은 waiting이다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:185:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 사진 주소가 없으면 absent이고 이전 사본은 그대로 보인다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:207:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 다른 통화의 가격은 저장한 가격을 바꾸지 않고, 수집 중에 구매완료로 옮긴 상품은 이름만 쓴다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:220:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 실패는 작업과 상품을 실패로 두고 실행에 이유별로 센다. 시도 소진과 목록에 없는 이유는 M0002다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:237:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 세대가 바뀐 작업의 결과는 stale이고 작업을 superseded로 닫는다. 다른 작업 임대도 stale이며 아무것도 쓰지 않는다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:254:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 빈 이름 결과는 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 제어 문자 결과는 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 앞뒤 공백 결과는 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 통화 없는 가격 결과는 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 0원 결과는 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 소문자 통화 결과는 M0002이고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 웹 주소가 아닌 사진 결과는 M0002이고 아무것도 쓰지 않는다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:277:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  tests/persistence/worker-collect.test.ts > 작업자의 수집 결과 > 실행 중에 키를 폐기하면 집기와 쓰기가 M0012이고, 닫힌 실행의 단계는 M0013이다
+Error: 수집할 작업이 없습니다: PGRST202
+ ❯ claim tests/persistence/worker-collect.test.ts:36:49
+     34| async function claim(run: Run): Promise<Claimed> {
+     35|   const { data, code } = await next(run);
+     36|   if (code || data.kind !== "collection") throw new Error(`수집할 작업이 없습니…
+       |                                                 ^
+     37|   return data;
+     38| }
+ ❯ tests/persistence/worker-collect.test.ts:285:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+
+ Test Files  1 failed | 18 skipped (19)
+      Tests  17 failed | 257 skipped (274)
+   Start at  00:13:31
+   Duration  7.18s (tests 78%, import 20%, transform 1%, worker 1%)
+
+    Isolate  19 workers spawned · ~55ms startup each (spawn + environment, per file)
+             at least ~990ms faster with isolate: false — reuses workers across files instead of one per file
+

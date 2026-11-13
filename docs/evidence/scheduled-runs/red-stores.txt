@@ -1,0 +1,27 @@
+# Red: the worker's two Supabase adapters (steps 5 and 6, one run). createSupabaseWorkerKeyStore and createSupabaseWorkerRunStore keep their signatures and throw for every call.
+# 7 tests fail: the owner's key adapter (3, tests/persistence/worker-keys.test.ts), the worker's run adapter (2, tests/persistence/worker-collect.test.ts) and the scheduled run service on the real database (2, tests/service/scheduled-run.test.ts).
+# Command: npm run test:database -- -t "작업 키 어댑터|작업 실행 어댑터|실제 저장소를 쓰는 예약 실행" (other persistence/service tests filtered out).
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+     × 시작·집기·쓰기·실패·끝내기를 도메인 값으로 돌려준다 339ms
+     × DB의 거절을 작업 오류 코드로 바꾸고 메시지에 DB 문구를 싣지 않는다 276ms
+     × 만들기·읽기·바꾸기·폐기를 도메인 값으로 돌려주고 DB 오류를 보관함 오류 코드로 바꾼다 296ms
+     × 실행 기록을 상태와 수집·가격 셈, 이유별 실패로 돌려준다 270ms
+     × 소유자가 아닌 세션은 unauthorized다 267ms
+     × 키로 담고 아무도 열지 않은 상품을 작업 키로 수집하면 이름과 가격을 쓰고, 사진은 소유자를 기다리며 Storage에는 아무것도 만들지 않는다 306ms
+     × 쇼핑몰이 막으면 이유를 남기고, 폐기한 키로는 실행하지 못하며 아무것도 쓰지 않는다 270ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/persistence/worker-collect.test.ts > 작업 실행 어댑터 > 시작·집기·쓰기·실패·끝내기를 도메인 값으로 돌려준다
+ FAIL  tests/persistence/worker-collect.test.ts > 작업 실행 어댑터 > DB의 거절을 작업 오류 코드로 바꾸고 메시지에 DB 문구를 싣지 않는다
+AssertionError: expected WorkerError: not implemented { …(1) } to match object { code: 'key_rejected' }
+ FAIL  tests/persistence/worker-keys.test.ts > 작업 키 어댑터 > 만들기·읽기·바꾸기·폐기를 도메인 값으로 돌려주고 DB 오류를 보관함 오류 코드로 바꾼다
+Error: not implemented
+ FAIL  tests/persistence/worker-keys.test.ts > 작업 키 어댑터 > 실행 기록을 상태와 수집·가격 셈, 이유별 실패로 돌려준다
+Error: not implemented
+ FAIL  tests/persistence/worker-keys.test.ts > 작업 키 어댑터 > 소유자가 아닌 세션은 unauthorized다
+AssertionError: expected Error: not implemented to match object { code: 'unauthorized' }
+ FAIL  tests/service/scheduled-run.test.ts > 실제 저장소를 쓰는 예약 실행 > 키로 담고 아무도 열지 않은 상품을 작업 키로 수집하면 이름과 가격을 쓰고, 사진은 소유자를 기다리며 Storage에는 아무것도 만들지 않는다
+Error: not implemented
+ FAIL  tests/service/scheduled-run.test.ts > 실제 저장소를 쓰는 예약 실행 > 쇼핑몰이 막으면 이유를 남기고, 폐기한 키로는 실행하지 못하며 아무것도 쓰지 않는다
+Error: not implemented
+ Test Files  3 failed | 17 skipped (20)
+      Tests  7 failed | 274 skipped (281)

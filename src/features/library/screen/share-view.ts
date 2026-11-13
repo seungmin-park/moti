@@ -1,5 +1,5 @@
 import type { ShareKeyResponse } from "../../share/presentation/share-dto";
-import type { ShareConfirm } from "./share-state";
+import type { KeyConfirm } from "./key-panel-state";
 
 const day = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 const moment = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -25,7 +25,7 @@ export function shareKeyView(key: ShareKeyResponse | null): { title: string; det
   };
 }
 
-export function shareConfirmView(confirm: ShareConfirm, key: ShareKeyResponse): { message: string; action: string } {
+export function shareConfirmView(confirm: KeyConfirm, key: ShareKeyResponse): { message: string; action: string } {
   return confirm === "rotate"
     ? { message: `새 키를 만들면 지금 키(${masked(key.hint)})는 바로 폐기돼요. 단축어에도 새 키를 넣어야 해요.`, action: "새 키로 바꾸기" }
     : { message: "키를 폐기하면 이 키를 넣은 단축어로는 더 이상 담을 수 없어요.", action: "키 폐기" };

@@ -1,0 +1,31 @@
+name: Scheduled run
+
+# Calls moti's scheduled run three times a day. It does nothing until the owner sets the MOTI_WORKER_URL variable and
+# the MOTI_WORKER_TOKEN secret (the worker key made in moti's 자동 확인). GitHub runs schedules late or skips them at
+# times, and only from the default branch. There is no pull_request trigger, so it never becomes a required check.
+on:
+  schedule:
+    - cron: "17 21 * * *" # 06:17 KST (UTC+9, the previous UTC day)
+    - cron: "17 5 * * *" # 14:17 KST
+    - cron: "17 13 * * *" # 22:17 KST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-run
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: scripts/scheduled-run.sh
+        env:
+          MOTI_WORKER_URL: ${{ vars.MOTI_WORKER_URL }}
+          MOTI_WORKER_TOKEN: ${{ secrets.MOTI_WORKER_TOKEN }}

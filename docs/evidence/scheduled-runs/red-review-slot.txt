@@ -1,0 +1,30 @@
+# Red (review): a lane whose `next` throws gives its slot back, so the 60-item cap counts only items picked. With
+# `shared.started -= 1` removed from the `next` catch in scheduled-run.ts (restored afterwards), the new check fails.
+# Command: npx vitest run src/features/worker/application/scheduled-run.test.ts
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/worker/application/scheduled-run.test.ts (16 tests | 1 failed) 58ms
+   ❯ 예약 실행 (16)
+     × Given 다음 일 고르기가 한 번 실패하고 일이 끝없이 있음 When 실행하면 Then 그 자리를 돌려줘 정확히 60개를 시작한다 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 다음 일 고르기가 한 번 실패하고 일이 끝없이 있음 When 실행하면 Then 그 자리를 돌려줘 정확히 60개를 시작한다
+AssertionError: expected "vi.fn()" to be called 60 times, but got 59 times
+ ❯ src/features/worker/application/scheduled-run.test.ts:137:28
+    135|
+    136|     expect(await service.run({ secret })).toMatchObject({ kind: "finis…
+    137|     expect(store.complete).toHaveBeenCalledTimes(RUN_MAX_ITEMS);
+       |                            ^
+    138|   });
+    139|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 15 passed (16)
+   Start at  01:46:09
+   Duration  154ms (tests 66%, transform 23%, import 9%, worker 2%)
+

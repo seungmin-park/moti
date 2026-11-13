@@ -18,9 +18,10 @@ import type {
   ProductChangeResponse,
   ProductResponse,
 } from "../presentation/library-dto";
+import type { WorkerRunResponse } from "../../worker/presentation/worker-dto";
 import type { ApiFailure, ApiOutcome, BackupFile, FieldName, LibraryApi } from "./library-api";
 import { canRetry } from "./product-view";
-import { closeShare, isShareEvent, onShare, openShare, type ShareCall, type ShareEvent, type SharePanel } from "./share-state";
+import { closeKeyPanel, isKeyEvent, onKeyPanel, openKeyPanel, type KeyCall, type KeyEvent, type KeyPanel } from "./key-panel-state";
 
 export type View = "wish" | "purchased" | "share";
 export type LinkDraft = { url: string; option: string; collectionIds: string[] };
@@ -43,7 +44,8 @@ export type ScreenDialog =
   | { kind: "add"; draft: LinkDraft; saving: boolean; creating: string | null; error: FormError | null }
   | { kind: "collection"; renaming: string | null; name: string; saving: boolean; error: FormError | null }
   | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; draft: DetailDraft; notice: DetailNotice | null }
-  | { kind: "backup"; step: BackupStep; notice: BackupNotice | null };
+  | { kind: "backup"; step: BackupStep; notice: BackupNotice | null }
+  | { kind: "worker" };
 export type ProductChange = ProductChangeRequest["change"];
 export type ProductIntent = "retry" | ProductChange["type"];
 // The purchase toast offers undo only while the product still has the revision the purchase gave it.
@@ -61,7 +63,9 @@ export type LibraryScreenState =
     // One product write at a time; every button that would write waits for it.
     writing: { productId: string; intent: ProductIntent } | null;
     toast: Toast | null;
-    share: SharePanel;
+    share: KeyPanel;
+    // The scheduled worker's key and its latest runs, shown in the 자동 확인 dialog.
+    worker: { panel: KeyPanel; runs: WorkerRunResponse[] };
   }
   | { phase: "leaving"; to: string };
 export type ApiCall =
@@ -76,7 +80,7 @@ export type ApiCall =
   | { type: "backup.file"; file: File }
   | { type: "library.restore"; text: string }
   | { type: "metadata.wake" }
-  | ShareCall;
+  | KeyCall;
 export type ScreenEvent =
   | { type: "retry" }
   | { type: "resume" }
@@ -110,6 +114,7 @@ export type ScreenEvent =
   | { type: "poll" }
   | { type: "poll.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "backup.open" }
+  | { type: "worker.open" }
   | { type: "backup.export" }
   | { type: "backup.exported"; outcome: ApiOutcome<BackupFile> }
   | { type: "backup.choose"; file: File }
@@ -119,7 +124,7 @@ export type ScreenEvent =
   | { type: "backup.restore" }
   | { type: "restore.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "wake.settled"; outcome: ApiOutcome<MetadataWakeResponse> }
-  | ShareEvent;
+  | KeyEvent;
 export type Transition = { state: LibraryScreenState; call: ApiCall | null };
 
 export const initialScreen: Transition = { state: { phase: "loading" }, call: { type: "library.read" } };
@@ -141,6 +146,8 @@ function busy(state: Ready): boolean {
   if (dialog === null) return false;
   if (dialog.kind === "detail") return writing !== null && writing.productId === dialog.productId && writing.intent !== "retry";
   if (dialog.kind === "backup") return ["exporting", "reading", "restoring"].includes(dialog.step.name);
+  // The worker key panel may still be writing; closing forgets a secret that arrives later, as the share view does.
+  if (dialog.kind === "worker") return false;
   return dialog.saving || (dialog.kind === "add" && dialog.creating !== null);
 }
 
@@ -199,10 +206,12 @@ function withResponses(products: ProductResponse[], incoming: ProductResponse[])
   return incoming.reduce(withResponse, products);
 }
 
-// Products whose collection never started: a share key's adds, or a restore or save whose run never began. Only the
-// owner's session can collect them, so the screen asks for them once it has the library.
-function hasUnstarted(library: LibraryReadResponse): boolean {
-  return library.products.some(({ metadata }) => metadata.phase === "queued" && metadata.attempts === 0);
+// Products only the owner's session can finish: collections that never started (a share key's adds, or a restore or
+// save whose run never began) and pictures the scheduled worker left waiting. The screen asks for them once it has
+// the library.
+function needsWake(library: LibraryReadResponse): boolean {
+  return library.products.some(({ metadata }) =>
+    (metadata.phase === "queued" && metadata.attempts === 0) || (metadata.phase === "ready" && metadata.image.outcome === "waiting"));
 }
 
 // A retry deliberately resets collection (a resumed job goes back to queued), so its answer replaces the product.
@@ -604,24 +613,33 @@ function onRestored(state: Ready, outcome: ApiOutcome<LibraryReadResponse>): Tra
 
 // A list view. Leaving the share view forgets the secret: the view decides whether it may stay visible.
 function listing(state: Ready, view: Exclude<View, "share">): Ready {
-  return { ...state, view, toast: null, share: closeShare(state.share) };
+  return { ...state, view, toast: null, share: closeKeyPanel(state.share) };
 }
 
 function onView(state: Ready, view: View): Transition {
   if (view === state.view) return stay(state);
   if (view !== "share") return stay(listing(state, view));
-  const { panel, call } = openShare(state.share);
+  const { panel, call } = openKeyPanel(state.share, "share");
   return { state: { ...state, view, toast: null, share: panel }, call };
 }
 
-function onSharePanel(state: Ready, event: ShareEvent): Transition {
-  const { panel, call, leave: to } = onShare(state.share, event, state.view === "share");
-  return to === null ? { state: { ...state, share: panel }, call } : leave(to);
+// Each key's panel sees only its own events, and it is visible only where the owner can see it: the share key in the
+// share view, the worker key in the 자동 확인 dialog.
+function onKey(state: Ready, event: KeyEvent): Transition {
+  if (event.endpoint === "share") {
+    const { panel, call, leave: to } = onKeyPanel(state.share, event, state.view === "share");
+    return to === null ? { state: { ...state, share: panel }, call } : leave(to);
+  }
+  const { panel, call, leave: to } = onKeyPanel(state.worker.panel, event, state.dialog?.kind === "worker");
+  if (to !== null) return leave(to);
+  // A read also brings the latest runs; a failed read keeps the ones already shown.
+  const runs = event.type === "key.read.settled" && event.outcome.ok ? event.outcome.value.runs : state.worker.runs;
+  return { state: { ...state, worker: { panel, runs } }, call };
 }
 
 function onReady(state: Ready, event: ScreenEvent): Transition {
   const { dialog } = state;
-  if (isShareEvent(event)) return onSharePanel(state, event);
+  if (isKeyEvent(event)) return onKey(state, event);
   switch (event.type) {
     case "view":
       return onView(state, event.view);
@@ -653,6 +671,12 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
     case "backup.open":
       if (busy(state)) return stay(state);
       return stay({ ...state, toast: null, dialog: { kind: "backup", step: { name: "menu" }, notice: null } });
+    case "worker.open": {
+      if (busy(state)) return stay(state);
+      // Opening reads the key and runs again, so the record is current.
+      const { panel, call } = openKeyPanel(state.worker.panel, "worker");
+      return { state: { ...state, toast: null, dialog: { kind: "worker" }, worker: { ...state.worker, panel } }, call };
+    }
     case "restore.settled":
       return dialog?.kind === "backup" && dialog.step.name === "restoring" ? onRestored(state, event.outcome) : stay(state);
     case "wake.settled":
@@ -661,7 +685,10 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       }
       return leaveOrStay(state, event.outcome.failure);
     case "dialog.close":
-      return busy(state) ? stay(state) : stay({ ...state, dialog: null });
+      if (busy(state)) return stay(state);
+      // Closing the 자동 확인 dialog forgets the worker key's secret, as leaving the share view forgets the share key's.
+      if (dialog?.kind === "worker") return stay({ ...state, dialog: null, worker: { ...state.worker, panel: closeKeyPanel(state.worker.panel) } });
+      return stay({ ...state, dialog: null });
     case "library.settled":
       if (event.outcome.ok) return stay(settledLibrary(state, event.outcome.value));
       return leaveOrStay({ ...state, refreshing: false }, event.outcome.failure);
@@ -757,8 +784,9 @@ export function transition(state: LibraryScreenState, event: ScreenEvent): Trans
           state: {
             phase: "ready", library: event.outcome.value, view: "wish", collectionId: null,
             dialog: null, refreshing: false, writing: null, toast: null, share: { status: "unread" },
+            worker: { panel: { status: "unread" }, runs: [] },
           },
-          call: hasUnstarted(event.outcome.value) ? { type: "metadata.wake" } : null,
+          call: needsWake(event.outcome.value) ? { type: "metadata.wake" } : null,
         };
       }
       const { failure } = event.outcome;
@@ -804,12 +832,18 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       return { type: "restore.settled", outcome: await api.restore(call.text) };
     case "metadata.wake":
       return { type: "wake.settled", outcome: await api.wake() };
-    case "share.read":
-      return { type: "share.read.settled", outcome: await api.readShareKey() };
-    case "share.issue":
-      return { type: "share.issue.settled", outcome: await api.issueShareKey({ replaces: call.replaces }) };
-    case "share.revoke":
-      return { type: "share.revoke.settled", outcome: await api.revokeShareKey(call.keyId) };
+    case "key.read":
+      return call.endpoint === "share"
+        ? { type: "key.read.settled", endpoint: "share", outcome: await api.readShareKey() }
+        : { type: "key.read.settled", endpoint: "worker", outcome: await api.readWorker() };
+    case "key.issue":
+      return call.endpoint === "share"
+        ? { type: "key.issue.settled", endpoint: "share", outcome: await api.issueShareKey({ replaces: call.replaces }) }
+        : { type: "key.issue.settled", endpoint: "worker", outcome: await api.issueWorkerKey({ replaces: call.replaces }) };
+    case "key.revoke":
+      return call.endpoint === "share"
+        ? { type: "key.revoke.settled", endpoint: "share", outcome: await api.revokeShareKey(call.keyId) }
+        : { type: "key.revoke.settled", endpoint: "worker", outcome: await api.revokeWorkerKey(call.keyId) };
   }
 }
 

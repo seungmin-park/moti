@@ -1,0 +1,75 @@
+# Red (review): a revoke that commits while a worker step waits for the run row must give M0012, not M0013. Before
+# the fix moti.worker_run_owner raised M0013 when the run row it waited for came back closed.
+# Command: npm run test:database -- -t "실행 행을 기다리는 사이 폐기" (other tests filtered out, so the runner exits 1 on skips).
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs -t 실행 행을 기다리는 사이 폐기
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/share-add.test.ts (20 tests | 20 skipped)
+ ↓ tests/persistence/worker-collect.test.ts (19 tests | 19 skipped)
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ❯ tests/persistence/worker-runs.test.ts (13 tests | 1 failed | 12 skipped) 349ms
+   ❯ 작업 실행의 시작과 끝 (10)
+     ↓ 작업 키로 시작하면 90초 임대의 열린 실행 하나를 만들고 키를 마지막으로 쓴 때를 남긴다
+     ↓ 형식이 다르거나 모르거나 폐기했거나 공유 키이거나 소유자 설정이 바뀐 키는 모두 같은 M0012이고 아무것도 쓰지 않는다
+     ↓ 열린 실행이 있으면 다음 시작은 M0014다. 임대가 끝난 실행은 임대가 끝난 때 cut으로 닫고 새 실행을 시작한다
+     ↓ 24시간 안에 8번 시작했으면 9번째는 M0015이고 아무것도 쓰지 않는다. 30일이 지난 기록은 시작할 때 지운다
+     ↓ 끝내면 done이나 deadline으로 닫고 셈을 돌려준다. 다른 임대·닫힌 실행·다른 키는 M0013·M0012이고 다른 끝은 M0002다
+     ↓ 임대가 끝난 실행의 다음 단계는 M0013이다
+     ↓ 실행 중에 키를 폐기하면 다음 단계는 M0012이고 실행은 revoked로 읽는다
+     × 단계가 키를 확인한 뒤 실행 행을 기다리는 사이 폐기가 커밋되면 그 단계도 M0012다 348ms
+     ↓ 로그인 세션은 작업 함수를 실행하지 못하고, PostgREST에 작업 키를 Bearer로 보내면 세션이 아니라서 거절한다
+     ↓ 공유 키 함수에 작업 키를 보내면 M0009다
+   ↓ 작업 역할의 권한 (3)
+     ↓ moti_worker 역할에 직접 준 권한과 정책은 작업에 필요한 것뿐이다
+     ↓ moti_worker 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (11 tests | 11 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/service/scheduled-run.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 단계가 키를 확인한 뒤 실행 행을 기다리는 사이 폐기가 커밋되면 그 단계도 M0012다
+AssertionError: expected 'M0013' to be 'M0012' // Object.is equality
+
+Expected: "M0012"
+Received: "M0013"
+
+ ❯ tests/persistence/worker-runs.test.ts:192:33
+    190|       )).rows[0].waiting, { timeout: 5000 }).toBe(1);
+    191|       await revoking.query("commit");
+    192|       expect((await step).code).toBe("M0012");
+       |                                 ^
+    193|     } finally {
+    194|       await revoking.query("rollback");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 19 skipped (20)
+      Tests  1 failed | 285 skipped (286)
+   Start at  01:47:40
+   Duration  3.10s (import 75%, tests 18%, transform 5%, worker 2%)
+
+    Isolate  20 workers spawned · ~57ms startup each (spawn + environment, per file)
+             at least ~1.07s faster with isolate: false — reuses workers across files instead of one per file
+
+JSON report written to /private/var/folders/tv/r1qdgk8x6972cyp7yrxlxdb80000gn/T/moti-database-PfgYs6/database-results.json

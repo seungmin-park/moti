@@ -1,0 +1,50 @@
+# Red: the scheduled GitHub workflow and its caller script (step 9). Neither .github/workflows/scheduled-run.yml nor scripts/scheduled-run.sh exists yet: the workflow checks read nothing, and bash cannot run the script (exit 127).
+# Command: npx vitest run tests/unit/scheduled-run-workflow.test.ts
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+     × 한국 시간 06:17·14:17·22:17에 예약하고 손으로도 실행할 수 있다 5ms
+     × PR·push로는 실행하지 않고 저장소를 읽기만 하며 몇 분 안에 끝난다 1ms
+     × 키와 주소는 환경 변수로만 스크립트에 넘긴다 1ms
+     × Given 둘 다 없음 When 실행하면 Then 알림만 남기고 성공으로 끝나며 moti를 부르지 않는다 11ms
+     × Given 주소만 있음 When 실행하면 Then 알림만 남기고 성공으로 끝나며 moti를 부르지 않는다 9ms
+     × Given 키만 있음 When 실행하면 Then 알림만 남기고 성공으로 끝나며 moti를 부르지 않는다 9ms
+     × Given http 주소 When 실행하면 Then 오류로 끝나고 moti를 부르지 않는다 10ms
+     × Given 경로가 있는 주소 When 실행하면 Then 오류로 끝나고 moti를 부르지 않는다 10ms
+     × Given 공유 키 When 실행하면 Then 오류로 끝나고 moti를 부르지 않는다 10ms
+     × Given 설정한 주소와 키 When 실행이 끝나면 Then 키는 표준 입력의 헤더로만 보내고 셈만 기록한다 10ms
+     × Given HTTP 409 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다 10ms
+     × Given HTTP 429 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다 10ms
+     × Given HTTP 401 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다 10ms
+     × Given HTTP 503 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다 10ms
+     × Given HTTP 502 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다 10ms
+     × Given 서버가 워크플로 명령을 담아 답함 When 실행하면 Then 그 글자를 그대로 내보내지 않는다 10ms
+     × Given 연결 실패 When 실행하면 Then 오류로 끝나고 키를 남기지 않는다 9ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 워크플로 > 한국 시간 06:17·14:17·22:17에 예약하고 손으로도 실행할 수 있다
+AssertionError: expected [] to deeply equal [ '06:17', '14:17', '22:17' ]
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 워크플로 > PR·push로는 실행하지 않고 저장소를 읽기만 하며 몇 분 안에 끝난다
+AssertionError: expected null to deeply equal [ '  schedule:', …(1) ]
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 워크플로 > 키와 주소는 환경 변수로만 스크립트에 넘긴다
+AssertionError: expected null to deeply equal [ '${{ vars.MOTI_WORKER_URL }}', …(1) ]
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 둘 다 없음 When 실행하면 Then 알림만 남기고 성공으로 끝나며 moti를 부르지 않는다
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 주소만 있음 When 실행하면 Then 알림만 남기고 성공으로 끝나며 moti를 부르지 않는다
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 키만 있음 When 실행하면 Then 알림만 남기고 성공으로 끝나며 moti를 부르지 않는다
+AssertionError: expected 127 to be +0 // Object.is equality
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given http 주소 When 실행하면 Then 오류로 끝나고 moti를 부르지 않는다
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 경로가 있는 주소 When 실행하면 Then 오류로 끝나고 moti를 부르지 않는다
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 공유 키 When 실행하면 Then 오류로 끝나고 moti를 부르지 않는다
+AssertionError: expected 127 to be 1 // Object.is equality
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 설정한 주소와 키 When 실행이 끝나면 Then 키는 표준 입력의 헤더로만 보내고 셈만 기록한다
+AssertionError: expected 127 to be +0 // Object.is equality
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given HTTP 409 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given HTTP 429 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다
+AssertionError: expected 127 to be +0 // Object.is equality
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given HTTP 401 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given HTTP 503 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given HTTP 502 When 실행하면 Then 정해진 문구로 알리고 409·429만 성공으로 끝낸다
+AssertionError: expected 127 to be 1 // Object.is equality
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 서버가 워크플로 명령을 담아 답함 When 실행하면 Then 그 글자를 그대로 내보내지 않는다
+AssertionError: expected 127 to be 1 // Object.is equality
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 연결 실패 When 실행하면 Then 오류로 끝나고 키를 남기지 않는다
+AssertionError: expected 127 to be 1 // Object.is equality
+ Test Files  1 failed (1)
+      Tests  17 failed (17)

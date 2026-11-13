@@ -1,0 +1,240 @@
+# Red: owner worker key (step 2). The tests call moti_worker_key_issue/read/revoke and expect worker_keys and worker_runs tables; the migration defines none of them yet (PGRST202 = no such function).
+# Command: npm run test:database (all persistence and service tests run; the 11 new tests fail, the other 234 pass).
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+stdout | tests/persistence/library-restore.test.ts > 보관함 복원 > 메모와 컬렉션이 있는 상품 1,000개를 한 번에 복원한다
+restore of 1,000 products with memo and 3 collections each: 523 ms
+
+ ✓ tests/persistence/library-restore.test.ts (16 tests) 15919ms
+   ✓ 보관함 복원 (16)
+     ✓ 빈 보관함에 복원하면 파일과 같은 보관함이 되고 상품마다 새 수집이 기다린다 343ms
+     ✓ 같은 보관함에 복원하면 링크가 같은 상품은 id·사진·수집 값을 지키고 소유자 값만 파일로 돌리며 revision을 올린다 375ms
+     ✓ 파일에 없는 상품의 사진 사본은 소유자만 지울 수 있고 남은 상품의 사본은 지울 수 없다 332ms
+     ✓ 다른 연결이 상품을 잠그고 있으면 기다렸다가 복원한다 795ms
+     ✓ 잠금을 5초 넘게 기다리면 저장소를 쓸 수 없다고 끝내고 아무것도 바꾸지 않는다 10346ms
+     ✓ 복원 중에 지워진 상품의 수집 결과는 늦은 결과가 되고 남은 상품의 수집은 그대로 끝난다 303ms
+     ✓ 메모와 컬렉션이 있는 상품 1,000개를 한 번에 복원한다 805ms
+ ✓ tests/persistence/library-organize.test.ts (40 tests) 10882ms
+   ✓ 상품 정리: 이름·메모·컬렉션 (16)
+     ✓ 이름·메모·컬렉션을 한 번에 고치면 revision과 수정 시각이 바뀌고 새로 읽어도 같다 313ms
+ ✓ tests/persistence/picture-storage.test.ts (27 tests) 7697ms
+   ✓ 상품 사진 사본 저장소 (27)
+     ✓ 임대가 살아 있는 작업의 예약된 이름에만 소유자 토큰으로 WebP를 한 번 올린다 322ms
+     ✓ 완료는 이번 사진 결과를 기록하고 새 사본만 보여줄 사진을 바꾼다 330ms
+     ✓ 소유자도 보여주는 사진은 지우지 못하고 바뀐 사진만 지운다 314ms
+     ✓ 임대 중에 받은 서명 업로드 주소로 완료 뒤 사본을 바꾸면 그 사본은 다시 찾지도 서명하지도 않는다 306ms
+     ✓ 작업이 끝난 뒤 서명 업로드 주소로 예약된 이름에 써도 보여줄 사진은 바뀌지 않는다 307ms
+ ✓ tests/persistence/metadata-jobs.test.ts (26 tests) 7151ms
+   ✓ 수집 작업 저장소 (26)
+     ✓ 맡은 작업을 완료하면 이름과 가격을 기록하고 작업에만 이미지 주소를 남긴다 309ms
+ ✓ tests/persistence/share-add.test.ts (20 tests) 5484ms
+   ✓ 저장 키로 링크 담기 (14)
+     ✓ 키로 담으면 소유자가 저장한 것과 같은 상품과 첫 수집 작업을 만들고 결과의 종류만 돌려준다 309ms
+     ✓ 한 키로 한 시간에 30번까지 담고 31번째는 M0010이며 아무것도 쓰지 않는다. 한 시간이 지나면 다시 담는다 312ms
+ ❯ tests/persistence/worker-keys.test.ts (11 tests | 11 failed) 2947ms
+   ❯ 소유자의 작업 키 (11)
+     × 만들면 moti_wk_ 비밀을 한 번 돌려주고 DB에는 SHA-256 해시와 끝 네 글자만 남긴다 297ms
+     × 새 키로 바꾸면 이전 키를 폐기하고 활성 키는 하나다. 화면이 본 키가 아니면 M0008이고 아무것도 바꾸지 않는다 266ms
+     × 동시에 여러 번 만들어도 하나만 커밋하고 나머지는 M0008이다 272ms
+     × 폐기는 멱등이고 폐기한 키를 그대로 보여준다. 소유자에게 없는 키는 M0016이다 263ms
+     × 키가 없으면 키는 null이고 실행 기록은 비어 있다 264ms
+     × 폐기하거나 새 키로 바꾸면 그 키의 열린 실행을 멈춘다. 임대가 남은 실행은 revoked, 이미 끝난 임대는 그때 cut이다 264ms
+     × 실행 기록은 최근 다섯 개를 최신순으로 보이고, 임대가 끝난 열린 실행은 임대가 끝난 때 cut으로 읽는다 264ms
+     × anonymous 요청은 읽기·만들기·폐기를 모두 거절하고 아무것도 쓰지 않는다 265ms
+     × stranger 요청은 읽기·만들기·폐기를 모두 거절하고 아무것도 쓰지 않는다 264ms
+     × RPC 역할은 소유자의 키 해시와 실행 임대 토큰을 읽지 못한다 264ms
+     × 백업은 작업 키와 실행 기록을 담지 않고 복원은 둘을 바꾸지 않는다 263ms
+ ✓ tests/persistence/library-security.test.ts (19 tests) 5073ms
+ ✓ tests/service/collection-runner.test.ts (16 tests) 4398ms
+   ✓ 실제 저장소를 사용하는 수집 실행 (16)
+     ✓ 쇼핑몰 페이지를 읽어 이름과 하나의 가격을 저장하고 원본 링크는 그대로 둔다 317ms
+ ✓ tests/persistence/library-store.test.ts (14 tests) 3833ms
+ ✓ tests/persistence/share-keys.test.ts (12 tests) 3266ms
+   ✓ 소유자의 저장 키 (10)
+     ✓ 만들면 moti_sk_ 비밀을 한 번 돌려주고 DB에는 SHA-256 해시와 끝 네 글자만 남긴다 301ms
+ ✓ tests/service/library-organize.test.ts (10 tests) 2777ms
+   ✓ 실제 저장소를 쓰는 상품 정리 서비스 (10)
+     ✓ 이름·메모·컬렉션을 고친 뒤 구매·되돌리기·다시 구매·구매 기록·위시 복귀를 거쳐도 메모와 컬렉션이 남는다 332ms
+ ✓ tests/service/library-service.test.ts (10 tests) 2687ms
+   ✓ 실제 저장소를 사용하는 서비스 (10)
+     ✓ 생성한 컬렉션과 링크를 서비스 인스턴스를 바꾸어 다시 읽는다 306ms
+ ✓ tests/persistence/metadata-wake.test.ts (8 tests) 2178ms
+   ✓ 기다리는 수집 깨우기 (8)
+     ✓ 지금 세대에서 아직 한 번도 시작하지 않은 대기 작업만 최신 상품부터 한도까지 깨우고 멈춤 표시를 지운다 311ms
+ ✓ tests/service/picture-copy.test.ts (6 tests) 2009ms
+   ✓ 실제 저장소를 쓰는 사진 사본 복사 (6)
+     ✓ 페이지의 사진을 비공개 WebP 사본으로 저장하고 이름·가격과 함께 사본을 보여준다 373ms
+     ✓ 사진 요청이 시간 초과여도 링크·이름·가격은 저장하고 다시 가져오면 사진을 복사한다 332ms
+     ✓ 새 사본이 생기면 이전 사본을 지워 상품마다 사본이 하나만 남는다 380ms
+     ✓ 올린 뒤 새 세대로 바뀐 실행은 결과를 쓰지 않고 자기 사본을 지운다 322ms
+     ✓ 임대가 끝나 저장소가 올리기를 거절해도 링크·이름·가격은 남고 올리기 실패로 기록한다 312ms
+ ✓ tests/service/share-links.test.ts (4 tests) 1136ms
+   ✓ 실제 저장소를 쓰는 공유 담기 서비스 (4)
+     ✓ 키로 담은 링크는 소유자 보관함에서 수집을 기다리는 새 상품이고, 다시 담으면 duplicate만 알린다 308ms
+ ✓ tests/service/library-backup.test.ts (3 tests) 1081ms
+   ✓ 실제 저장소를 쓰는 백업과 복원 (3)
+     ✓ 내려받은 파일로 같은 보관함을 복원한 뒤 다시 내려받으면 내보낸 시각만 다르고 보이는 값이 같다 367ms
+     ✓ 새 프로젝트처럼 빈 보관함에 복원해도 다시 내려받은 파일이 같고 사진은 수집으로 다시 생긴다 363ms
+     ✓ 복원 뒤 정리는 파일에 없는 상품의 사본을 버리고 새 상품을 수집하며 남은 상품의 사본은 지킨다 347ms
+ ✓ tests/persistence/library-backup.test.ts (3 tests) 866ms
+   ✓ 백업 내보내기 (3)
+     ✓ 보이는 값과 소유자가 정한 값을 수집한 이름·소유자 이름을 나눠, 소속은 컬렉션 이름으로 돌려준다 329ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > 만들면 moti_wk_ 비밀을 한 번 돌려주고 DB에는 SHA-256 해시와 끝 네 글자만 남긴다
+Error: moti_worker_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/worker-keys.test.ts:33:19
+     31| async function issue(replaces: string | null = null): Promise<Issued> {
+     32|   const { data, code } = await rpc<Issued>("moti_worker_key_issue", { …
+     33|   if (code) throw new Error(`moti_worker_key_issue 실패: ${code}`);
+       |                   ^
+     34|   return data;
+     35| }
+ ❯ tests/persistence/worker-keys.test.ts:73:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > 새 키로 바꾸면 이전 키를 폐기하고 활성 키는 하나다. 화면이 본 키가 아니면 M0008이고 아무것도 바꾸지 않는다
+Error: moti_worker_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/worker-keys.test.ts:33:19
+     31| async function issue(replaces: string | null = null): Promise<Issued> {
+     32|   const { data, code } = await rpc<Issued>("moti_worker_key_issue", { …
+     33|   if (code) throw new Error(`moti_worker_key_issue 실패: ${code}`);
+       |                   ^
+     34|   return data;
+     35| }
+ ❯ tests/persistence/worker-keys.test.ts:96:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > 동시에 여러 번 만들어도 하나만 커밋하고 나머지는 M0008이다
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/persistence/worker-keys.test.ts:113:62
+    111|   it("동시에 여러 번 만들어도 하나만 커밋하고 나머지는 M0008이다", async () => {
+    112|     const results = await Promise.all(Array.from({ length: 6 }, () => …
+    113|     expect(results.filter((result) => result.code === null)).toHaveLen…
+       |                                                              ^
+    114|     expect(results.filter((result) => result.code === "M0008")).toHave…
+    115|     expect((await stored()).filter((row) => row.revoked_at === null)).…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > 폐기는 멱등이고 폐기한 키를 그대로 보여준다. 소유자에게 없는 키는 M0016이다
+Error: moti_worker_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/worker-keys.test.ts:33:19
+     31| async function issue(replaces: string | null = null): Promise<Issued> {
+     32|   const { data, code } = await rpc<Issued>("moti_worker_key_issue", { …
+     33|   if (code) throw new Error(`moti_worker_key_issue 실패: ${code}`);
+       |                   ^
+     34|   return data;
+     35| }
+ ❯ tests/persistence/worker-keys.test.ts:119:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > 키가 없으면 키는 null이고 실행 기록은 비어 있다
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { code: null, …(1) }
+
+- Expected
++ Received
+
+  {
+-   "code": null,
+-   "data": {
+-     "key": null,
+-     "runs": [],
+-   },
++   "code": "PGRST202",
++   "data": null,
+  }
+
+ ❯ tests/persistence/worker-keys.test.ts:130:43
+    128|
+    129|   it("키가 없으면 키는 null이고 실행 기록은 비어 있다", async () => {
+    130|     expect(await rpc("moti_worker_read")).toEqual({ code: null, data: …
+       |                                           ^
+    131|   });
+    132|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > 폐기하거나 새 키로 바꾸면 그 키의 열린 실행을 멈춘다. 임대가 남은 실행은 revoked, 이미 끝난 임대는 그때 cut이다
+Error: moti_worker_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/worker-keys.test.ts:33:19
+     31| async function issue(replaces: string | null = null): Promise<Issued> {
+     32|   const { data, code } = await rpc<Issued>("moti_worker_key_issue", { …
+     33|   if (code) throw new Error(`moti_worker_key_issue 실패: ${code}`);
+       |                   ^
+     34|   return data;
+     35| }
+ ❯ tests/persistence/worker-keys.test.ts:134:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > 실행 기록은 최근 다섯 개를 최신순으로 보이고, 임대가 끝난 열린 실행은 임대가 끝난 때 cut으로 읽는다
+Error: moti_worker_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/worker-keys.test.ts:33:19
+     31| async function issue(replaces: string | null = null): Promise<Issued> {
+     32|   const { data, code } = await rpc<Issued>("moti_worker_key_issue", { …
+     33|   if (code) throw new Error(`moti_worker_key_issue 실패: ${code}`);
+       |                   ^
+     34|   return data;
+     35| }
+ ❯ tests/persistence/worker-keys.test.ts:146:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > anonymous 요청은 읽기·만들기·폐기를 모두 거절하고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > stranger 요청은 읽기·만들기·폐기를 모두 거절하고 아무것도 쓰지 않는다
+Error: moti_worker_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/worker-keys.test.ts:33:19
+     31| async function issue(replaces: string | null = null): Promise<Issued> {
+     32|   const { data, code } = await rpc<Issued>("moti_worker_key_issue", { …
+     33|   if (code) throw new Error(`moti_worker_key_issue 실패: ${code}`);
+       |                   ^
+     34|   return data;
+     35| }
+ ❯ tests/persistence/worker-keys.test.ts:168:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > RPC 역할은 소유자의 키 해시와 실행 임대 토큰을 읽지 못한다
+Error: moti_worker_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/worker-keys.test.ts:33:19
+     31| async function issue(replaces: string | null = null): Promise<Issued> {
+     32|   const { data, code } = await rpc<Issued>("moti_worker_key_issue", { …
+     33|   if (code) throw new Error(`moti_worker_key_issue 실패: ${code}`);
+       |                   ^
+     34|   return data;
+     35| }
+ ❯ tests/persistence/worker-keys.test.ts:178:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  tests/persistence/worker-keys.test.ts > 소유자의 작업 키 > 백업은 작업 키와 실행 기록을 담지 않고 복원은 둘을 바꾸지 않는다
+Error: moti_worker_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/worker-keys.test.ts:33:19
+     31| async function issue(replaces: string | null = null): Promise<Issued> {
+     32|   const { data, code } = await rpc<Issued>("moti_worker_key_issue", { …
+     33|   if (code) throw new Error(`moti_worker_key_issue 실패: ${code}`);
+       |                   ^
+     34|   return data;
+     35| }
+ ❯ tests/persistence/worker-keys.test.ts:201:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+
+ Test Files  1 failed | 16 passed (17)
+      Tests  11 failed | 234 passed (245)
+   Start at  23:57:16
+   Duration  81.60s (tests 99%, import 1%)
+
