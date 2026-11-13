@@ -50,6 +50,7 @@ const status: Record<ErrorCode, number> = {
   metadata_not_retryable: 409,
   revision_conflict: 409,
   picture_missing: 404,
+  share_key_missing: 404,
   storage_unavailable: 503,
 };
 
@@ -78,6 +79,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: backupFailed,
     revision_conflict: backupFailed,
     picture_missing: backupFailed,
+    share_key_missing: backupFailed,
   },
   "library.restore": {
     ...signedIn,
@@ -93,6 +95,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: restoreUnknown,
     revision_conflict: restoreUnknown,
     picture_missing: restoreUnknown,
+    share_key_missing: restoreUnknown,
   },
   "library.read": {
     ...signedIn,
@@ -108,6 +111,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: readFailed },
     revision_conflict: { kind: "unavailable", message: readFailed },
     picture_missing: { kind: "unavailable", message: readFailed },
+    share_key_missing: { kind: "unavailable", message: readFailed },
   },
   "link.save": {
     ...signedIn,
@@ -123,6 +127,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.create": {
     ...signedIn,
@@ -138,6 +143,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.rename": {
     ...signedIn,
@@ -153,6 +159,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
     revision_conflict: { kind: "stale", message: changedElsewhere },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
   "metadata.retry": {
     ...signedIn,
@@ -168,6 +175,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." },
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
   "product.change": {
     ...signedIn,
@@ -183,6 +191,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
     revision_conflict: { kind: "stale", message: changedElsewhere },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
 };
 

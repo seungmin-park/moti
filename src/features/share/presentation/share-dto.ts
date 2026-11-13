@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { ShareLinkAddResult } from "../application/commands";
+import type { ShareKeyIssueResult, ShareLinkAddResult } from "../application/commands";
+import { SHARE_SECRET_PATTERN, type ShareKey } from "../domain/share-key";
 
 export const SHARE_LINKS_PATH = "/api/share/links";
 // A link is at most 4,096 characters; the rest is room for JSON escapes, not for other fields.
@@ -47,4 +48,45 @@ export const shareLinkMessages: Record<ShareLinkAddResponse["result"] | ShareLin
 
 export function toShareLinkAddResponse(result: ShareLinkAddResult): ShareLinkAddResponse {
   return { result: result.kind, message: shareLinkMessages[result.kind] };
+}
+
+const timestamp = z.iso.datetime();
+
+// The owner's view of a key: its last four characters and times, never the secret or its hash.
+export const shareKeyResponseSchema = z.object({
+  id: z.uuid(),
+  hint: z.string().regex(/^[A-Za-z0-9_-]{4}$/),
+  createdAt: timestamp,
+  lastUsedAt: timestamp.nullable(),
+  revokedAt: timestamp.nullable(),
+}).strict();
+export const shareKeyReadResponseSchema = z.object({ key: shareKeyResponseSchema.nullable() }).strict();
+// `replaces` is the active key the screen showed, or null when it showed none.
+export const shareKeyIssueRequestSchema = z.object({ replaces: z.string().nullable() }).strict();
+export const shareKeyIssueResponseSchema = z.object({
+  key: shareKeyResponseSchema,
+  secret: z.string().regex(SHARE_SECRET_PATTERN),
+}).strict();
+export const shareKeyRevokeResponseSchema = z.object({ key: shareKeyResponseSchema }).strict();
+
+export type ShareKeyResponse = z.infer<typeof shareKeyResponseSchema>;
+export type ShareKeyReadResponse = z.infer<typeof shareKeyReadResponseSchema>;
+export type ShareKeyIssueRequest = z.infer<typeof shareKeyIssueRequestSchema>;
+export type ShareKeyIssueResponse = z.infer<typeof shareKeyIssueResponseSchema>;
+export type ShareKeyRevokeResponse = z.infer<typeof shareKeyRevokeResponseSchema>;
+
+export function toShareKeyResponse(key: ShareKey): ShareKeyResponse {
+  return { id: key.id, hint: key.hint, createdAt: key.createdAt, lastUsedAt: key.lastUsedAt, revokedAt: key.revokedAt };
+}
+
+export function toShareKeyReadResponse(key: ShareKey | null): ShareKeyReadResponse {
+  return { key: key && toShareKeyResponse(key) };
+}
+
+export function toShareKeyIssueResponse(result: ShareKeyIssueResult): ShareKeyIssueResponse {
+  return { key: toShareKeyResponse(result.key), secret: result.secret };
+}
+
+export function toShareKeyRevokeResponse(key: ShareKey): ShareKeyRevokeResponse {
+  return { key: toShareKeyResponse(key) };
 }

@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
+import type { ShareKeyId } from "../../src/features/share/domain/share-key";
+import { createSupabaseShareKeyStore } from "../../src/features/share/infrastructure/supabase-share-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
@@ -151,5 +153,37 @@ describe("소유자의 저장 키", () => {
     await library.restoreLibrary({ backup: { collections: [], products: [] } });
 
     expect(await stored()).toEqual(before);
+  });
+});
+
+describe("저장 키 어댑터", () => {
+  const store = (client: SupabaseClient = fixture.owner.client) => createSupabaseShareKeyStore(client);
+
+  it("만들기·읽기·바꾸기·폐기를 도메인 값으로 돌려주고 DB 오류를 보관함 오류 코드로 바꾼다", async () => {
+    expect(await store().read()).toBeNull();
+
+    const first = await store().issue({ replaces: null });
+
+    expect(first.secret).toMatch(secretFormat);
+    expect(first.key).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      hint: first.secret.slice(-4),
+      createdAt: expect.stringMatching(/Z$/),
+      lastUsedAt: null,
+      revokedAt: null,
+    });
+    expect(await store().read()).toEqual(first.key);
+    await expect(store().issue({ replaces: null })).rejects.toMatchObject({ code: "revision_conflict" });
+
+    const second = await store().issue({ replaces: first.key.id });
+    const revoked = await store().revoke({ keyId: second.key.id });
+    expect(revoked).toEqual({ ...second.key, revokedAt: expect.stringMatching(/Z$/) });
+    expect(await store().read()).toEqual(revoked);
+    await expect(store().revoke({ keyId: randomUUID() as ShareKeyId })).rejects.toMatchObject({ code: "share_key_missing" });
+  });
+
+  it("소유자가 아닌 세션은 unauthorized다", async () => {
+    await expect(store(fixture.stranger.client).read()).rejects.toMatchObject({ code: "unauthorized" });
+    await expect(store(fixture.stranger.client).issue({ replaces: null })).rejects.toMatchObject({ code: "unauthorized" });
   });
 });

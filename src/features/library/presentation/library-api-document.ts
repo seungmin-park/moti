@@ -5,6 +5,10 @@ import {
   SHARE_LINKS_PATH,
   shareLinkAddRequestSchema,
   shareLinkAddResponseSchema,
+  shareKeyIssueRequestSchema,
+  shareKeyIssueResponseSchema,
+  shareKeyReadResponseSchema,
+  shareKeyRevokeResponseSchema,
   shareLinkErrorResponseSchema,
 } from "../../share/presentation/share-dto";
 import { MAX_BACKUP_BYTES, libraryBackupSchema } from "./library-backup";
@@ -24,7 +28,7 @@ import {
 } from "./library-dto";
 
 type Route = {
-  method: "get" | "post" | "patch";
+  method: "get" | "post" | "patch" | "delete";
   path: string;
   summary: string;
   // Routes without it use the owner's cookie session.
@@ -163,6 +167,36 @@ export const libraryRoutes: Route[] = [
       400: { description: "상품 ID가 UUID가 아니다.", schema: errorResponseSchema },
       ...denied,
       404: { description: "상품이 없거나(product_missing) 보여줄 사본이 없다(picture_missing).", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "get",
+    path: "/api/share-keys",
+    summary: "공유 저장 키를 읽는다. 활성 키가 있으면 그것을, 없으면 마지막으로 폐기한 키를, 키를 만든 적이 없으면 null을 돌려준다. 끝 네 글자와 만든·마지막으로 담은·폐기한 시각만 보이고 비밀이나 해시는 보이지 않는다.",
+    responses: { 200: { description: "ShareKeyReadResponse", schema: shareKeyReadResponseSchema }, ...denied },
+  },
+  {
+    method: "post",
+    path: "/api/share-keys",
+    summary: "새 저장 키를 만든다. replaces는 화면이 본 활성 키(없었으면 null)이며, 그 키를 폐기하고 새 키를 한 트랜잭션에서 만든다. 비밀은 이 응답에만 한 번 담긴다.",
+    request: shareKeyIssueRequestSchema,
+    responses: {
+      201: { description: "ShareKeyIssueResponse. secret은 moti_sk_ 뒤에 base64url 43자다.", schema: shareKeyIssueResponseSchema },
+      ...writeFailures,
+      ...denied,
+      409: { description: "화면이 본 뒤 다른 곳에서 키가 바뀌었다(revision_conflict). 아무것도 바꾸지 않는다.", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "delete",
+    path: "/api/share-keys/{keyId}",
+    summary: "저장 키를 폐기한다. 이미 폐기한 키는 처음 폐기한 시각 그대로 돌려준다. 폐기가 끝나면 그 키로는 담을 수 없다.",
+    parameters: [{ name: "keyId", description: "저장 키 ID", schema: z.uuid() }],
+    responses: {
+      200: { description: "ShareKeyRevokeResponse. revokedAt이 있다.", schema: shareKeyRevokeResponseSchema },
+      400: { description: "키 ID가 UUID가 아니다.", schema: errorResponseSchema },
+      ...denied,
+      404: { description: "소유자의 키가 아니다(share_key_missing).", schema: errorResponseSchema },
     },
   },
   // The Shortcut's route: the share key is its only credential, and every answer carries the message the Shortcut shows.

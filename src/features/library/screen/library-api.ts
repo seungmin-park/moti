@@ -96,6 +96,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: readFailed,
     revision_conflict: readFailed,
     picture_missing: readFailed,
+    share_key_missing: readFailed,
   },
   "link.save": {
     ...session,
@@ -111,6 +112,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: retryLater,
     revision_conflict: retryLater,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "collection.create": {
     ...session,
@@ -130,6 +132,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: retryLater,
     revision_conflict: retryLater,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "collection.rename": {
     ...session,
@@ -149,6 +152,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: retryLater,
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "metadata.retry": {
     ...session,
@@ -164,6 +168,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: stale("상품 상태가 바뀌었어요. 목록을 새로 불러왔어요."),
     revision_conflict: retryLater,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "product.change": {
     ...session,
@@ -179,6 +184,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: retryLater,
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "library.backup": {
     ...session,
@@ -194,6 +200,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: backupFailed,
     revision_conflict: backupFailed,
     picture_missing: backupFailed,
+    share_key_missing: backupFailed,
   },
   "library.restore": {
     ...session,
@@ -209,6 +216,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: restoreUnknown,
     revision_conflict: restoreUnknown,
     picture_missing: restoreUnknown,
+    share_key_missing: restoreUnknown,
   },
 };
 

@@ -2,9 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createLibraryService } from "../../src/features/library/application/library-service";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import { toShareLinkAddCommand } from "../../src/features/share/application/commands";
-import { createShareLinkService } from "../../src/features/share/application/share-service";
-import { parseShareSecret, type ShareSecret } from "../../src/features/share/domain/share-key";
-import { createSupabaseShareLinkStore } from "../../src/features/share/infrastructure/supabase-share-store";
+import { createShareKeyService, createShareLinkService } from "../../src/features/share/application/share-service";
+import { createSupabaseShareKeyStore, createSupabaseShareLinkStore } from "../../src/features/share/infrastructure/supabase-share-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
@@ -16,16 +15,11 @@ afterEach(async () => {
 
 const links = () => createShareLinkService(createSupabaseShareLinkStore(fixture.anonymous));
 const owner = () => createLibraryService(createSupabaseLibraryStore(fixture.owner.client));
-
-async function issue(): Promise<{ id: string; secret: ShareSecret }> {
-  const { data, error } = await fixture.owner.client.rpc("moti_share_key_issue", { p_replaces: null });
-  if (error) throw new Error(`키를 만들지 못했습니다: ${error.code}`);
-  return { id: data.key.id, secret: parseShareSecret(data.secret)! };
-}
+const keys = () => createShareKeyService(createSupabaseShareKeyStore(fixture.owner.client));
 
 describe("실제 저장소를 쓰는 공유 담기 서비스", () => {
   it("키로 담은 링크는 소유자 보관함에서 수집을 기다리는 새 상품이고, 다시 담으면 duplicate만 알린다", async () => {
-    const { secret } = await issue();
+    const { secret } = await keys().issue({ replaces: null });
 
     expect(await links().add(toShareLinkAddCommand(secret, " https://www.shop.example/lamp?utm_source=share "))).toEqual({ kind: "added" });
 
@@ -44,11 +38,26 @@ describe("실제 저장소를 쓰는 공유 담기 서비스", () => {
   });
 
   it("폐기한 키는 key_rejected이고 보관함은 그대로다", async () => {
-    const { id, secret } = await issue();
-    await fixture.owner.client.rpc("moti_share_key_revoke", { p_key_id: id });
+    const { key, secret } = await keys().issue({ replaces: null });
+    await keys().revoke({ keyId: key.id });
 
     await expect(links().add(toShareLinkAddCommand(secret, "https://shop.example/lamp"))).rejects.toMatchObject({ code: "key_rejected" });
 
     expect((await owner().snapshot()).products).toEqual([]);
+  });
+
+  it("키를 바꾸면 이전 키로는 담지 못하고 새 키로 담으며, 마지막으로 담은 시각은 담은 키에만 남는다", async () => {
+    const first = await keys().issue({ replaces: null });
+    await links().add(toShareLinkAddCommand(first.secret, "https://shop.example/lamp"));
+    const used = await keys().read();
+    expect(used).toMatchObject({ id: first.key.id, lastUsedAt: expect.any(String), revokedAt: null });
+
+    const second = await keys().issue({ replaces: first.key.id });
+
+    await expect(links().add(toShareLinkAddCommand(first.secret, "https://shop.example/desk"))).rejects.toMatchObject({ code: "key_rejected" });
+    expect(await links().add(toShareLinkAddCommand(second.secret, "https://shop.example/desk"))).toEqual({ kind: "added" });
+    expect(await keys().read()).toMatchObject({ id: second.key.id, lastUsedAt: expect.any(String), revokedAt: null });
+    expect((await owner().snapshot()).products.map((product) => product.sourceUrl).toSorted())
+      .toEqual(["https://shop.example/desk", "https://shop.example/lamp"]);
   });
 });

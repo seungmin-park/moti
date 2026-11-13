@@ -114,7 +114,7 @@ describe("실제 HTTP 단축어 경로", () => {
   });
 
   it("키는 세션이 아니다: 같은 출처 Origin과 키만으로 소유자 경로를 부르면 모두 401 signed_out이고 DB는 그대로다", async () => {
-    const { secret } = await issue();
+    const { key, secret } = await issue();
     const owner = createSupabaseLibraryStore(fixture.owner.client);
     const collection = await owner.createCollection({ name: "책상" });
     const { product } = await owner.saveLink(toLinkSaveCommand({ url: "https://shop.example/desk", option: "", collectionIds: [] }));
@@ -128,6 +128,9 @@ describe("실제 HTTP 단축어 경로", () => {
       ["POST", `/api/products/${product.id}/metadata`, { generation: 1 }],
       ["POST", "/api/collections", { name: "거실" }],
       ["PATCH", `/api/collections/${collection.id}`, { revision: 1, name: "서재" }],
+      ["GET", "/api/share-keys", undefined],
+      ["POST", "/api/share-keys", { replaces: null }],
+      ["DELETE", `/api/share-keys/${key.id}`, undefined],
     ];
 
     for (const [method, path, body] of routes) {

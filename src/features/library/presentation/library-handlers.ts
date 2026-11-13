@@ -2,6 +2,14 @@ import type { Access } from "../../auth/domain/access";
 import type { CollectionRequest } from "../../metadata/application/collection";
 import { toMetadataRetryCommand, type MetadataRetryCommand, type MetadataRetryResult } from "../../metadata/application/commands";
 import { isSameOrigin, readJsonBody } from "../../shared/presentation/http";
+import { toShareKeyIssueCommand, toShareKeyRevokeCommand } from "../../share/application/commands";
+import type { ShareKeyService } from "../../share/application/share-service";
+import {
+  shareKeyIssueRequestSchema,
+  toShareKeyIssueResponse,
+  toShareKeyReadResponse,
+  toShareKeyRevokeResponse,
+} from "../../share/presentation/share-dto";
 import { seoulToday } from "../../wishlist/product-fields";
 import {
   toCollectionCreateCommand,
@@ -45,9 +53,12 @@ export type LibraryRequestContext = {
   retry(command: MetadataRetryCommand): Promise<MetadataRetryResult>;
   // After the response: discards the copies of deleted products and collects the restored ones. Never fails the request.
   settleRestore(result: LibraryRestoreResult): void;
+  // The owner's share key, managed only with the owner's session.
+  shareKeys: ShareKeyService;
 };
 export type ProductRoute = { params: Promise<{ productId: string }> };
 export type CollectionRoute = { params: Promise<{ collectionId: string }> };
+export type ShareKeyRoute = { params: Promise<{ keyId: string }> };
 
 const errorStatus: Record<ErrorCode, number> = {
   signed_out: 401,
@@ -64,6 +75,7 @@ const errorStatus: Record<ErrorCode, number> = {
   metadata_not_retryable: 409,
   revision_conflict: 409,
   picture_missing: 404,
+  share_key_missing: 404,
   storage_unavailable: 503,
 };
 
@@ -82,6 +94,7 @@ const errorMessages: Record<ErrorCode, string> = {
   metadata_not_retryable: "지금은 정보를 다시 가져올 수 없어요.",
   revision_conflict: "다른 곳에서 먼저 바뀌었어요. 최신 내용을 확인해 주세요.",
   picture_missing: "보여줄 사진이 없어요.",
+  share_key_missing: "저장 키를 찾을 수 없어요.",
   storage_unavailable: "잠시 뒤 다시 시도해 주세요.",
 };
 
@@ -94,6 +107,7 @@ const fromLibraryError: Record<LibraryErrorCode, ErrorCode> = {
   product_missing: "product_missing",
   metadata_not_retryable: "metadata_not_retryable",
   revision_conflict: "revision_conflict",
+  share_key_missing: "share_key_missing",
   storage_unavailable: "storage_unavailable",
 };
 
@@ -112,7 +126,7 @@ function failure(code: ErrorCode, message = errorMessages[code], field?: string)
   return json(errorStatus[code], body);
 }
 
-type Allowed = Pick<LibraryRequestContext, "service" | "collect" | "retry" | "settleRestore">;
+type Allowed = Pick<LibraryRequestContext, "service" | "collect" | "retry" | "settleRestore" | "shareKeys">;
 type Action<Route> = (allowed: Allowed, request: Request, route: Route) => Promise<Response>;
 
 export function createLibraryHandlers(context: (request: Request) => Promise<LibraryRequestContext>) {
@@ -218,6 +232,18 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
       const { id, metadata } = result.product;
       collect({ productId: id, generation: metadata.generation });
       return json(202, toMetadataRetryResponse(result));
+    }, { write: true }),
+    getShareKey: handle(async ({ shareKeys }) => json(200, toShareKeyReadResponse(await shareKeys.read())), { write: false }),
+    // The only answer that carries the secret. no-store keeps it out of every cache; nothing stores it to show again.
+    postShareKey: handle(async ({ shareKeys }, request) => {
+      const shareKeyIssueRequest = await readRequest(request, (value) => shareKeyIssueRequestSchema.parse(value));
+      if (shareKeyIssueRequest instanceof Response) return shareKeyIssueRequest;
+      const result = await shareKeys.issue(toShareKeyIssueCommand(shareKeyIssueRequest));
+      return json(201, toShareKeyIssueResponse(result));
+    }, { write: true }),
+    deleteShareKey: handle<ShareKeyRoute>(async ({ shareKeys }, _request, route) => {
+      const { keyId } = await route.params;
+      return json(200, toShareKeyRevokeResponse(await shareKeys.revoke(toShareKeyRevokeCommand(keyId))));
     }, { write: true }),
     // The src of an <img>: same-origin and stable for one copy. Each request signs a fresh short-lived link, and the
     // browser keeps the redirect privately for less than that link lives.

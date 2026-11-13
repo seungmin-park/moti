@@ -19,6 +19,8 @@ import { followUpRestore } from "@/features/library/application/restore-follow-u
 import { createPictureStore } from "@/features/library/infrastructure/product-pictures";
 import { createSupabaseLibraryStore } from "@/features/library/infrastructure/supabase-library-store";
 import type { LibraryRequestContext } from "@/features/library/presentation/library-handlers";
+import { createShareKeyService } from "@/features/share/application/share-service";
+import { createSupabaseShareKeyStore } from "@/features/share/infrastructure/supabase-share-store";
 import { createCollectionRunner, type CollectionRequest } from "@/features/metadata/application/collection";
 import { createPictureCopier } from "@/features/metadata/application/picture-copy";
 import { strictFetchPolicy } from "@/features/metadata/infrastructure/address-policy";
@@ -88,6 +90,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
       collect: () => {},
       retry: unavailable,
       settleRestore: () => {},
+      shareKeys: createShareKeyService({ read: unavailable, issue: unavailable, revoke: unavailable }),
     };
   }
   const { config, client } = connection;
@@ -100,6 +103,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
     collect: (request) => scheduleCollection(config, accessToken, request),
     retry: (command) => createSupabaseCollectionStore(client).retry(command),
     settleRestore: (result) => scheduleRestoreFollowUp(config, accessToken, result),
+    shareKeys: createShareKeyService(createSupabaseShareKeyStore(client)),
   };
 }
 
