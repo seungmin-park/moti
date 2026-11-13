@@ -1,11 +1,9 @@
-export const MAX_TITLE_LENGTH = 120;
+import { MAX_TITLE_LENGTH, normalizeTitle } from "../../wishlist/product-fields";
 
+export { MAX_TITLE_LENGTH };
+
+// A page's name can be longer than a saved title, so collection cuts it where the owner's edit would be refused.
 export function cleanTitle(value: string): string | null {
-  const text = value
-    .normalize("NFC")
-    .replace(/\p{Cc}/gu, " ")
-    .replace(/\s+/gu, " ")
-    .trim();
-  const cleaned = [...text].slice(0, MAX_TITLE_LENGTH).join("").trimEnd();
+  const cleaned = [...normalizeTitle(value)].slice(0, MAX_TITLE_LENGTH).join("").trimEnd();
   return cleaned || null;
 }

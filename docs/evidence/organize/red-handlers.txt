@@ -1,0 +1,1762 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/presentation/api-document.test.ts (4 tests | 1 failed) 20ms
+   ❯ API 문서 (4)
+     × 커밋한 OpenAPI 문서가 실행 계약에서 생성한 문서와 같다 13ms
+ ❯ src/features/library/presentation/library-handlers.test.ts (114 tests | 41 failed) 50ms
+   ❯ PATCH /api/products/{productId} (36)
+     × Given 이름·메모·컬렉션 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다 4ms
+     × Given 이름을 두고 메모만 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다 1ms
+     × Given 구매완료 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다 0ms
+     × Given 구매 기록 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다 0ms
+     × Given 빈 구매 기록 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다 0ms
+     × Given 위시로 되돌리기 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다 0ms
+     × Given 깨진 JSON When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 알 수 없는 필드 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given revision 누락 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 0 revision When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 소수 revision When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 저장할 수 있는 범위를 넘는 revision When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 알 수 없는 변경 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 구매완료에 붙은 값 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 101개 컬렉션 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 공백뿐인 이름 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 121자 이름 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 3001자 메모 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given UUID가 아닌 컬렉션 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 형식이 다른 구매일 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 미래 구매일 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 음수 실구매가 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 소수 실구매가 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 원화가 아닌 실구매가 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given UUID가 아닌 상품 When 고치면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 저장소가 revision_conflict로 거절 When 상품을 고치면 Then 409이다 0ms
+     × Given 저장소가 product_missing로 거절 When 상품을 고치면 Then 404이다 0ms
+     × Given 저장소가 collection_missing로 거절 When 상품을 고치면 Then 422이다 0ms
+     × Given 저장소가 invalid_input로 거절 When 상품을 고치면 Then 400이다 0ms
+     × Given 허용 계정이지만 DB가 소유자를 거절 When 상품을 고치면 Then 403이고 세션을 종료한다 0ms
+     × Given JSON이 아니거나 16KiB를 넘는 본문 When 상품을 고치면 Then 415·413이고 서비스를 부르지 않는다 0ms
+   ❯ PATCH /api/collections/{collectionId} (12)
+     × Given 새 이름 When 컬렉션 이름을 바꾸면 Then 200과 컬렉션을 돌려주고 정리한 이름으로 서비스를 부른다 0ms
+     × Given 빈 이름 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 41자 이름 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given revision 누락 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 알 수 없는 필드 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 문자열이 아닌 이름 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given UUID가 아닌 컬렉션 When 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다 0ms
+     × Given 저장소가 collection_duplicate로 거절 When 이름을 바꾸면 Then 409이다 0ms
+     × Given 저장소가 revision_conflict로 거절 When 이름을 바꾸면 Then 409이다 0ms
+     × Given 저장소가 collection_missing로 거절 When 이름을 바꾸면 Then 422이다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 42 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 커밋한 OpenAPI 문서가 실행 계약에서 생성한 문서와 같다
+AssertionError: npm run api:doc으로 문서를 다시 생성하세요.: expected '{\n  "openapi": "3.1.0",\n  "info": {…' to be '{\n  "openapi": "3.1.0",\n  "info": {…' // Object.is equality
+
+- Expected
++ Received
+
+@@ -2115,1392 +2115,10 @@
+              }
+            }
+          }
+        }
+      },
+-     "/api/collections/{collectionId}": {
+-       "patch": {
+-         "summary": "컬렉션 이름을 바꾼다. 소속 상품은 그대로다. 저장된 이름과 같으면 revision과 관계없이 바꾸지 않는다.",
+-         "parameters": [
+-           {
+-             "name": "collectionId",
+-             "in": "path",
+-             "required": true,
+-             "description": "컬렉션 ID",
+-             "schema": {
+-               "$schema": "https://json-schema.org/draft/2020-12/schema",
+-               "type": "string",
+-               "format": "uuid",
+-               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+-             }
+-           }
+-         ],
+-         "requestBody": {
+-           "required": true,
+-           "content": {
+-             "application/json": {
+-               "schema": {
+-                 "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                 "type": "object",
+-                 "properties": {
+-                   "revision": {
+-                     "type": "integer",
+-                     "minimum": 1,
+-                     "maximum": 2147483647
+-                   },
+-                   "name": {
+-                     "type": "string"
+-                   }
+-                 },
+-                 "required": [
+-                   "revision",
+-                   "name"
+-                 ],
+-                 "additionalProperties": false
+-               }
+-             }
+-           }
+-         },
+-         "responses": {
+-           "200": {
+-             "description": "CollectionRenameResponse. 이름이 바뀌었으면 revision이 1 오른다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "id": {
+-                       "type": "string",
+-                       "format": "uuid",
+-                       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+-                     },
+-                     "name": {
+-                       "type": "string",
+-                       "minLength": 1,
+-                       "maxLength": 40
+-                     },
+-                     "revision": {
+-                       "type": "integer",
+-                       "minimum": 1,
+-                       "maximum": 9007199254740991
+-                     },
+-                     "createdAt": {
+-                       "type": "string",
+-                       "format": "date-time",
+-                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+-                     },
+-                     "updatedAt": {
+-                       "type": "string",
+-                       "format": "date-time",
+-                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+-                     }
+-                   },
+-                   "required": [
+-                     "id",
+-                     "name",
+-                     "revision",
+-                     "createdAt",
+-                     "updatedAt"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "400": {
+-             "description": "입력이 유효하지 않다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "401": {
+-             "description": "로그인 세션이 없다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "403": {
+-             "description": "허용한 Google 계정이 아니면 세션을 종료한다. 다른 출처의 쓰기 요청도 거절한다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "409": {
+-             "description": "대소문자를 무시한 같은 이름의 다른 컬렉션이 있거나(collection_duplicate) 화면이 본 revision 뒤에 바뀌었다(revision_conflict).",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "413": {
+-             "description": "본문이 16384바이트를 넘는다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "415": {
+-             "description": "본문이 application/json이 아니다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "422": {
+-             "description": "컬렉션이 없다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "503": {
+-             "description": "소유자 설정이 없거나 저장소·인증 서버를 사용할 수 없다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           }
+-         }
+-       }
+-     },
+-     "/api/products/{productId}": {
+-       "patch": {
+-         "summary": "소유자가 상품을 정리한다. details는 이름(null이면 그대로)·메모·컬렉션, purchase는 구매완료, purchase.record는 구매일·실구매가(null은 미입력, 0은 0원), wish는 위시로 되돌리기다. 구매와 되돌리기는 메모·컬렉션을 바꾸지 않고, 되돌리면 구매 기록을 지운다. 저장된 값과 같은 변경은 revision과 관계없이 바꾸지 않고 지금 상품을 돌려준다.",
+-         "parameters": [
+-           {
+-             "name": "productId",
+-             "in": "path",
+-             "required": true,
+-             "description": "상품 ID",
+-             "schema": {
+-               "$schema": "https://json-schema.org/draft/2020-12/schema",
+-               "type": "string",
+-               "format": "uuid",
+-               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+-             }
+-           }
+-         ],
+-         "requestBody": {
+-           "required": true,
+-           "content": {
+-             "application/json": {
+-               "schema": {
+-                 "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                 "type": "object",
+-                 "properties": {
+-                   "revision": {
+-                     "type": "integer",
+-                     "minimum": 1,
+-                     "maximum": 2147483647
+-                   },
+-                   "change": {
+-                     "oneOf": [
+-                       {
+-                         "type": "object",
+-                         "properties": {
+-                           "type": {
+-                             "type": "string",
+-                             "const": "details"
+-                           },
+-                           "title": {
+-                             "type": [
+-                               "string",
+-                               "null"
+-                             ]
+-                           },
+-                           "note": {
+-                             "type": "string"
+-                           },
+-                           "collectionIds": {
+-                             "maxItems": 100,
+-                             "type": "array",
+-                             "items": {
+-                               "type": "string"
+-                             }
+-                           }
+-                         },
+-                         "required": [
+-                           "type",
+-                           "title",
+-                           "note",
+-                           "collectionIds"
+-                         ],
+-                         "additionalProperties": false
+-                       },
+-                       {
+-                         "type": "object",
+-                         "properties": {
+-                           "type": {
+-                             "type": "string",
+-                             "const": "purchase"
+-                           }
+-                         },
+-                         "required": [
+-                           "type"
+-                         ],
+-                         "additionalProperties": false
+-                       },
+-                       {
+-                         "type": "object",
+-                         "properties": {
+-                           "type": {
+-                             "type": "string",
+-                             "const": "purchase.record"
+-                           },
+-                           "date": {
+-                             "type": [
+-                               "string",
+-                               "null"
+-                             ]
+-                           },
+-                           "price": {
+-                             "anyOf": [
+-                               {
+-                                 "type": "object",
+-                                 "properties": {
+-                                   "amountMinor": {
+-                                     "type": "number"
+-                                   },
+-                                   "currency": {
+-                                     "type": "string"
+-                                   }
+-                                 },
+-                                 "required": [
+-                                   "amountMinor",
+-                                   "currency"
+-                                 ],
+-                                 "additionalProperties": false
+-                               },
+-                               {
+-                                 "type": "null"
+-                               }
+-                             ]
+-                           }
+-                         },
+-                         "required": [
+-                           "type",
+-                           "date",
+-                           "price"
+-                         ],
+-                         "additionalProperties": false
+-                       },
+-                       {
+-                         "type": "object",
+-                         "properties": {
+-                           "type": {
+-                             "type": "string",
+-                             "const": "wish"
+-                           }
+-                         },
+-                         "required": [
+-                           "type"
+-                         ],
+-                         "additionalProperties": false
+-                       }
+-                     ]
+-                   }
+-                 },
+-                 "required": [
+-                   "revision",
+-                   "change"
+-                 ],
+-                 "additionalProperties": false
+-               }
+-             }
+-           }
+-         },
+-         "responses": {
+-           "200": {
+-             "description": "ProductChangeResponse. 값이 바뀌었으면 revision이 1 오른다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "product": {
+-                       "type": "object",
+-                       "properties": {
+-                         "id": {
+-                           "type": "string",
+-                           "format": "uuid",
+-                           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+-                         },
+-                         "sourceUrl": {
+-                           "type": "string"
+-                         },
+-                         "identityUrl": {
+-                           "type": "string"
+-                         },
+-                         "option": {
+-                           "type": "string"
+-                         },
+-                         "shop": {
+-                           "type": "string"
+-                         },
+-                         "title": {
+-                           "type": "string"
+-                         },
+-                         "note": {
+-                           "type": "string"
+-                         },
+-                         "revision": {
+-                           "type": "integer",
+-                           "minimum": 1,
+-                           "maximum": 9007199254740991
+-                         },
+-                         "collectionIds": {
+-                           "type": "array",
+-                           "items": {
+-                             "type": "string",
+-                             "format": "uuid",
+-                             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+-                           }
+-                         },
+-                         "addedAt": {
+-                           "type": "string",
+-                           "format": "date-time",
+-                           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+-                         },
+-                         "updatedAt": {
+-                           "type": "string",
+-                           "format": "date-time",
+-                           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+-                         },
+-                         "purchase": {
+-                           "oneOf": [
+-                             {
+-                               "type": "object",
+-                               "properties": {
+-                                 "status": {
+-                                   "type": "string",
+-                                   "const": "wish"
+-                                 }
+-                               },
+-                               "required": [
+-                                 "status"
+-                               ],
+-                               "additionalProperties": false
+-                             },
+-                             {
+-                               "type": "object",
+-                               "properties": {
+-                                 "status": {
+-                                   "type": "string",
+-                                   "const": "purchased"
+-                                 },
+-                                 "date": {
+-                                   "anyOf": [
+-                                     {
+-                                       "type": "string",
+-                                       "format": "date",
+-                                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+-                                     },
+-                                     {
+-                                       "type": "null"
+-                                     }
+-                                   ]
+-                                 },
+-                                 "price": {
+-                                   "anyOf": [
+-                                     {
+-                                       "type": "object",
+-                                       "properties": {
+-                                         "amountMinor": {
+-                                           "type": "integer",
+-                                           "minimum": 0,
+-                                           "maximum": 9007199254740991
+-                                         },
+-                                         "currency": {
+-                                           "type": "string",
+-                                           "pattern": "^[A-Z]{3}$"
+-                                         }
+-                                       },
+-                                       "required": [
+-                                         "amountMinor",
+-                                         "currency"
+-                                       ],
+-                                       "additionalProperties": false
+-                                     },
+-                                     {
+-                                       "type": "null"
+-                                     }
+-                                   ]
+-                                 }
+-                               },
+-                               "required": [
+-                                 "status",
+-                                 "date",
+-                                 "price"
+-                               ],
+-                               "additionalProperties": false
+-                             }
+-                           ]
+-                         },
+-                         "metadata": {
+-                           "oneOf": [
+-                             {
+-                               "type": "object",
+-                               "properties": {
+-                                 "phase": {
+-                                   "type": "string",
+-                                   "enum": [
+-                                     "queued",
+-                                     "running"
+-                                   ]
+-                                 },
+-                                 "generation": {
+-                                   "type": "integer",
+-                                   "minimum": -9007199254740991,
+-                                   "maximum": 9007199254740991
+-                                 },
+-                                 "attempts": {
+-                                   "type": "integer",
+-                                   "minimum": -9007199254740991,
+-                                   "maximum": 9007199254740991
+-                                 },
+-                                 "stalled": {
+-                                   "type": "boolean"
+-                                 }
+-                               },
+-                               "required": [
+-                                 "phase",
+-                                 "generation",
+-                                 "attempts",
+-                                 "stalled"
+-                               ],
+-                               "additionalProperties": false
+-                             },
+-                             {
+-                               "type": "object",
+-                               "properties": {
+-                                 "phase": {
+-                                   "type": "string",
+-                                   "const": "ready"
+-                                 },
+-                                 "generation": {
+-                                   "type": "integer",
+-                                   "minimum": -9007199254740991,
+-                                   "maximum": 9007199254740991
+-                                 },
+-                                 "attempts": {
+-                                   "type": "integer",
+-                                   "minimum": -9007199254740991,
+-                                   "maximum": 9007199254740991
+-                                 },
+-                                 "completedAt": {
+-                                   "type": "string",
+-                                   "format": "date-time",
+-                                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+-                                 },
+-                                 "image": {
+-                                   "oneOf": [
+-                                     {
+-                                       "type": "object",
+-                                       "properties": {
+-                                         "outcome": {
+-                                           "type": "string",
+-                                           "enum": [
+-                                             "copied",
+-                                             "absent"
+-                                           ]
+-                                         }
+-                                       },
+-                                       "required": [
+-                                         "outcome"
+-                                       ],
+-                                       "additionalProperties": false
+-                                     },
+-                                     {
+-                                       "type": "object",
+-                                       "properties": {
+-                                         "outcome": {
+-                                           "type": "string",
+-                                           "const": "failed"
+-                                         },
+-                                         "errorCode": {
+-                                           "type": "string",
+-                                           "enum": [
+-                                             "invalid_url",
+-                                             "blocked_address",
+-                                             "dns_failed",
+-                                             "connect_failed",
+-                                             "timeout",
+-                                             "too_many_redirects",
+-                                             "blocked_by_site",
+-                                             "http_status",
+-                                             "unsupported_content",
+-                                             "too_large",
+-                                             "decode_failed",
+-                                             "unreadable_image",
+-                                             "upload_failed",
+-                                             "internal"
+-                                           ]
+-                                         }
+-                                       },
+-                                       "required": [
+-                                         "outcome",
+-                                         "errorCode"
+-                                       ],
+-                                       "additionalProperties": false
+-                                     }
+-                                   ]
+-                                 }
+-                               },
+-                               "required": [
+-                                 "phase",
+-                                 "generation",
+-                                 "attempts",
+-                                 "completedAt",
+-                                 "image"
+-                               ],
+-                               "additionalProperties": false
+-                             },
+-                             {
+-                               "type": "object",
+-                               "properties": {
+-                                 "phase": {
+-                                   "type": "string",
+-                                   "const": "failed"
+-                                 },
+-                                 "generation": {
+-                                   "type": "integer",
+-                                   "minimum": -9007199254740991,
+-                                   "maximum": 9007199254740991
+-                                 },
+-                                 "attempts": {
+-                                   "type": "integer",
+-                                   "minimum": -9007199254740991,
+-                                   "maximum": 9007199254740991
+-                                 },
+-                                 "errorCode": {
+-                                   "type": "string",
+-                                   "enum": [
+-                                     "invalid_url",
+-                                     "blocked_address",
+-                                     "dns_failed",
+-                                     "connect_failed",
+-                                     "timeout",
+-                                     "too_many_redirects",
+-                                     "blocked_by_site",
+-                                     "http_status",
+-                                     "unsupported_content",
+-                                     "too_large",
+-                                     "decode_failed",
+-                                     "no_product_data",
+-                                     "attempts_exhausted",
+-                                     "internal"
+-                                   ]
+-                                 }
+-                               },
+-                               "required": [
+-                                 "phase",
+-                                 "generation",
+-                                 "attempts",
+-                                 "errorCode"
+-                               ],
+-                               "additionalProperties": false
+-                             }
+-                           ]
+-                         },
+-                         "lastSuccessfulPrice": {
+-                           "anyOf": [
+-                             {
+-                               "type": "object",
+-                               "properties": {
+-                                 "amountMinor": {
+-                                   "type": "integer",
+-                                   "minimum": 0,
+-                                   "maximum": 9007199254740991
+-                                 },
+-                                 "currency": {
+-                                   "type": "string",
+-                                   "pattern": "^[A-Z]{3}$"
+-                                 },
+-                                 "checkedAt": {
+-                                   "type": "string",
+-                                   "format": "date-time",
+-                                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+-                                 }
+-                               },
+-                               "required": [
+-                                 "amountMinor",
+-                                 "currency",
+-                                 "checkedAt"
+-                               ],
+-                               "additionalProperties": false
+-                             },
+-                             {
+-                               "type": "null"
+-                             }
+-                           ]
+-                         },
+-                         "picture": {
+-                           "anyOf": [
+-                             {
+-                               "type": "object",
+-                               "properties": {
+-                                 "src": {
+-                                   "type": "string",
+-                                   "pattern": "^\\/api\\/products\\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\/picture\\?v=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+-                                 }
+-                               },
+-                               "required": [
+-                                 "src"
+-                               ],
+-                               "additionalProperties": false
+-                             },
+-                             {
+-                               "type": "null"
+-                             }
+-                           ]
+-                         }
+-                       },
+-                       "required": [
+-                         "id",
+-                         "sourceUrl",
+-                         "identityUrl",
+-                         "option",
+-                         "shop",
+-                         "title",
+-                         "note",
+-                         "revision",
+-                         "collectionIds",
+-                         "addedAt",
+-                         "updatedAt",
+-                         "purchase",
+-                         "metadata",
+-                         "lastSuccessfulPrice",
+-                         "picture"
+-                       ],
+-                       "additionalProperties": false
+-                     }
+-                   },
+-                   "required": [
+-                     "product"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "400": {
+-             "description": "입력이 유효하지 않다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "401": {
+-             "description": "로그인 세션이 없다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "403": {
+-             "description": "허용한 Google 계정이 아니면 세션을 종료한다. 다른 출처의 쓰기 요청도 거절한다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "404": {
+-             "description": "상품이 없다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "409": {
+-             "description": "화면이 본 revision 뒤에 다른 곳에서 상품이 바뀌었다(revision_conflict).",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "413": {
+-             "description": "본문이 16384바이트를 넘는다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "415": {
+-             "description": "본문이 application/json이 아니다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "422": {
+-             "description": "선택한 컬렉션이 없다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           },
+-           "503": {
+-             "description": "소유자 설정이 없거나 저장소·인증 서버를 사용할 수 없다.",
+-             "content": {
+-               "application/json": {
+-                 "schema": {
+-                   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-                   "type": "object",
+-                   "properties": {
+-                     "error": {
+-                       "type": "string",
+-                       "enum": [
+-                         "signed_out",
+-                         "forbidden",
+-                         "unconfigured",
+-                         "cross_origin",
+-                         "unsupported_media_type",
+-                         "payload_too_large",
+-                         "invalid_input",
+-                         "collection_missing",
+-                         "collection_duplicate",
+-                         "identity_conflict",
+-                         "product_missing",
+-                         "metadata_not_retryable",
+-                         "revision_conflict",
+-                         "picture_missing",
+-                         "storage_unavailable"
+-                       ]
+-                     },
+-                     "message": {
+-                       "type": "string",
+-                       "minLength": 1
+-                     },
+-                     "field": {
+-                       "type": "string"
+-                     }
+-                   },
+-                   "required": [
+-                     "error",
+-                     "message"
+-                   ],
+-                   "additionalProperties": false
+-                 }
+-               }
+-             }
+-           }
+-         }
+-       }
+-     },
+      "/api/products/{productId}/metadata": {
+        "post": {
+          "summary": "수집에 실패했거나 멈춘 상품의 정보를 다시 가져온다. 수집은 응답 뒤에 실행한다.",
+          "parameters": [
+            {
+
+ ❯ src/features/library/presentation/api-document.test.ts:12:75
+     10|     const generated = `${JSON.stringify(buildApiDocument(), null, 2)}\…
+     11|     if (process.env.UPDATE_API_DOC === "1") writeFileSync(file, genera…
+     12|     expect(readFileSync(file, "utf8"), "npm run api:doc으로 문서를 다시 생성하세요…
+       |                                                                           ^
+     13|   });
+     14|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 이름·메모·컬렉션 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 이름을 두고 메모만 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 구매완료 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 구매 기록 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 빈 구매 기록 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 위시로 되돌리기 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:446:29
+    444|     const response = await handlers.patchProduct(...patch({ revision: …
+    445|
+    446|     expect(response.status).toBe(200);
+       |                             ^
+    447|     expect(response.headers.get("cache-control")).toBe("no-store");
+    448|     expect(productChangeResponseSchema.parse(await response.json())).t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 깨진 JSON When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 알 수 없는 필드 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given revision 누락 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 0 revision When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 소수 revision When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 저장할 수 있는 범위를 넘는 revision When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 알 수 없는 변경 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 구매완료에 붙은 값 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 101개 컬렉션 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 공백뿐인 이름 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 121자 이름 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 3001자 메모 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given UUID가 아닌 컬렉션 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 형식이 다른 구매일 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 미래 구매일 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 음수 실구매가 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 소수 실구매가 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 원화가 아닌 실구매가 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+AssertionError: expected 503 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:474:29
+    472|     const { handlers, service } = given(allowed);
+    473|     const response = await handlers.patchProduct(...patch(body));
+    474|     expect(response.status).toBe(400);
+       |                             ^
+    475|     const error = await errorOf(response);
+    476|     expect(error.error).toBe("invalid_input");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given UUID가 아닌 상품 When 고치면 Then 400이고 서비스를 부르지 않는다
+AssertionError: expected 503 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:484:29
+    482|     const { handlers, service } = given(allowed);
+    483|     const response = await handlers.patchProduct(...patch({ revision: …
+    484|     expect(response.status).toBe(400);
+       |                             ^
+    485|     expect(service.changeProduct).not.toHaveBeenCalled();
+    486|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 저장소가 revision_conflict로 거절 When 상품을 고치면 Then 409이다
+AssertionError: expected 503 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:498:29
+    496|     service.changeProduct.mockRejectedValueOnce(new LibraryError(code,…
+    497|     const response = await handlers.patchProduct(...patch({ revision: …
+    498|     expect(response.status).toBe(status);
+       |                             ^
+    499|     expect((await errorOf(response)).error).toBe(code);
+    500|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 저장소가 product_missing로 거절 When 상품을 고치면 Then 404이다
+AssertionError: expected 503 to be 404 // Object.is equality
+
+- Expected
++ Received
+
+- 404
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:498:29
+    496|     service.changeProduct.mockRejectedValueOnce(new LibraryError(code,…
+    497|     const response = await handlers.patchProduct(...patch({ revision: …
+    498|     expect(response.status).toBe(status);
+       |                             ^
+    499|     expect((await errorOf(response)).error).toBe(code);
+    500|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 저장소가 collection_missing로 거절 When 상품을 고치면 Then 422이다
+AssertionError: expected 503 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:498:29
+    496|     service.changeProduct.mockRejectedValueOnce(new LibraryError(code,…
+    497|     const response = await handlers.patchProduct(...patch({ revision: …
+    498|     expect(response.status).toBe(status);
+       |                             ^
+    499|     expect((await errorOf(response)).error).toBe(code);
+    500|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 저장소가 invalid_input로 거절 When 상품을 고치면 Then 400이다
+AssertionError: expected 503 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:498:29
+    496|     service.changeProduct.mockRejectedValueOnce(new LibraryError(code,…
+    497|     const response = await handlers.patchProduct(...patch({ revision: …
+    498|     expect(response.status).toBe(status);
+       |                             ^
+    499|     expect((await errorOf(response)).error).toBe(code);
+    500|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 허용 계정이지만 DB가 소유자를 거절 When 상품을 고치면 Then 403이고 세션을 종료한다
+AssertionError: expected 503 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:534:29
+    532|     service.changeProduct.mockRejectedValueOnce(new LibraryError("unau…
+    533|     const response = await handlers.patchProduct(...patch({ revision: …
+    534|     expect(response.status).toBe(403);
+       |                             ^
+    535|     expect(signOut).toHaveBeenCalledOnce();
+    536|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given JSON이 아니거나 16KiB를 넘는 본문 When 상품을 고치면 Then 415·413이고 서비스를 부르지 않는다
+AssertionError: expected 503 to be 415 // Object.is equality
+
+- Expected
++ Received
+
+- 415
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:540:141
+    538|   it("Given JSON이 아니거나 16KiB를 넘는 본문 When 상품을 고치면 Then 415·413이고 서비스를 부…
+    539|     const { handlers, service } = given(allowed);
+    540|     expect((await handlers.patchProduct(...patch({ revision: 1, change…
+       |                                                                                                                                             ^
+    541|     const large = { revision: 1, change: { type: "details", title: nul…
+    542|     expect((await handlers.patchProduct(...patch(large))).status).toBe…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given 새 이름 When 컬렉션 이름을 바꾸면 Then 200과 컬렉션을 돌려주고 정리한 이름으로 서비스를 부른다
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:563:29
+    561|     const response = await handlers.patchCollection(...patch({ revisio…
+    562|
+    563|     expect(response.status).toBe(200);
+       |                             ^
+    564|     expect(response.headers.get("cache-control")).toBe("no-store");
+    565|     expect(collectionRenameResponseSchema.parse(await response.json())…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given 빈 이름 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given 41자 이름 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given revision 누락 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given 알 수 없는 필드 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given 문자열이 아닌 이름 When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다
+AssertionError: expected 503 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:578:29
+    576|     const { handlers, service } = given(allowed);
+    577|     const response = await handlers.patchCollection(...patch(body));
+    578|     expect(response.status).toBe(400);
+       |                             ^
+    579|     expect((await errorOf(response)).field).toBe(field);
+    580|     expect(service.renameCollection).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given UUID가 아닌 컬렉션 When 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다
+AssertionError: expected 503 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:586:29
+    584|     const { handlers, service } = given(allowed);
+    585|     const response = await handlers.patchCollection(...patch({ revisio…
+    586|     expect(response.status).toBe(400);
+       |                             ^
+    587|     expect(service.renameCollection).not.toHaveBeenCalled();
+    588|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given 저장소가 collection_duplicate로 거절 When 이름을 바꾸면 Then 409이다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given 저장소가 revision_conflict로 거절 When 이름을 바꾸면 Then 409이다
+AssertionError: expected 503 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:598:29
+    596|     service.renameCollection.mockRejectedValueOnce(new LibraryError(co…
+    597|     const response = await handlers.patchCollection(...patch({ revisio…
+    598|     expect(response.status).toBe(status);
+       |                             ^
+    599|     expect((await errorOf(response)).error).toBe(code);
+    600|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/42]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/collections/{collectionId} > Given 저장소가 collection_missing로 거절 When 이름을 바꾸면 Then 422이다
+AssertionError: expected 503 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 503
+
+ ❯ src/features/library/presentation/library-handlers.test.ts:598:29
+    596|     service.renameCollection.mockRejectedValueOnce(new LibraryError(co…
+    597|     const response = await handlers.patchCollection(...patch({ revisio…
+    598|     expect(response.status).toBe(status);
+       |                             ^
+    599|     expect((await errorOf(response)).error).toBe(code);
+    600|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/42]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  42 failed | 76 passed (118)
+   Start at  18:33:10
+   Duration  236ms (import 37%, transform 32%, tests 28%, worker 2%)
+

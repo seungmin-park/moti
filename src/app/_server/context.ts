@@ -63,6 +63,8 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
         saveLink: unavailable,
         createCollection: unavailable,
         openPicture: unavailable,
+        changeProduct: unavailable,
+        renameCollection: unavailable,
       }),
       signOut: async () => {},
       collect: () => {},

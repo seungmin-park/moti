@@ -9,8 +9,10 @@ import {
   collectionCreateResponseSchema,
   errorResponseSchema,
   libraryReadResponseSchema,
+  collectionRenameResponseSchema,
   linkSaveResponseSchema,
   metadataRetryResponseSchema,
+  productChangeResponseSchema,
 } from "./library-dto";
 
 const origin = "https://moti.test";
@@ -47,6 +49,8 @@ function given(access: Access) {
     saveLink: vi.fn(async () => ({ kind: "added" as const, product })),
     createCollection: vi.fn(async () => collection),
     openPicture: vi.fn(async (): Promise<PictureViewResult> => ({ kind: "found", url: signedUrl })),
+    changeProduct: vi.fn(async (): Promise<Product> => product),
+    renameCollection: vi.fn(async (): Promise<Collection> => collection),
   };
   const signOut = vi.fn(async () => {});
   // collect is a mock: scheduling the collection is itself the requirement, its work happens after the response.
@@ -404,6 +408,210 @@ describe("POST /api/products/{productId}/metadata", () => {
     const response = await handlers.postMetadataRetry(...retryRequest({ generation: 1 }, { "content-type": "text/plain" }));
     expect(response.status).toBe(415);
     expect(retry).not.toHaveBeenCalled();
+  });
+});
+
+describe("PATCH /api/products/{productId}", () => {
+  const productId = product.id;
+  const desk = collection.id;
+  const patch = (body: unknown, headers: Record<string, string> = {}, id: string = productId) =>
+    [new Request(`${origin}/api/products/${id}`, {
+      method: "PATCH",
+      headers: { origin, "content-type": "application/json", ...headers },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    }), { params: Promise.resolve({ productId: id }) }] as const;
+
+  it.each([
+    [
+      "이름·메모·컬렉션",
+      { type: "details", title: "  책상 조명 ", note: "선물용", collectionIds: [desk.toUpperCase(), desk] },
+      { type: "details", title: "책상 조명", note: "선물용", collectionIds: [desk] },
+    ],
+    ["이름을 두고 메모만", { type: "details", title: null, note: "", collectionIds: [] }, { type: "details", title: null, note: "", collectionIds: [] }],
+    ["구매완료", { type: "purchase" }, { type: "purchase" }],
+    [
+      "구매 기록",
+      { type: "purchase.record", date: "2026-11-01", price: { amountMinor: 0, currency: "KRW" } },
+      { type: "purchase.record", date: "2026-11-01", price: { amountMinor: 0, currency: "KRW" } },
+    ],
+    ["빈 구매 기록", { type: "purchase.record", date: null, price: null }, { type: "purchase.record", date: null, price: null }],
+    ["위시로 되돌리기", { type: "wish" }, { type: "wish" }],
+  ] as const)("Given %s 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다", async (_, change, expected) => {
+    const { handlers, service } = given(allowed);
+    const changed = { ...product, revision: 4, note: "선물용" };
+    service.changeProduct.mockResolvedValueOnce(changed);
+
+    const response = await handlers.patchProduct(...patch({ revision: 3, change }, {}, productId.toUpperCase()));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(productChangeResponseSchema.parse(await response.json())).toEqual({ product: changed });
+    expect(service.changeProduct).toHaveBeenCalledExactlyOnceWith({ productId, revision: 3, change: expected });
+  });
+
+  it.each([
+    ["깨진 JSON", "{", undefined],
+    ["알 수 없는 필드", { revision: 1, change: { type: "purchase" }, force: true }, undefined],
+    ["revision 누락", { change: { type: "purchase" } }, undefined],
+    ["0 revision", { revision: 0, change: { type: "purchase" } }, undefined],
+    ["소수 revision", { revision: 1.5, change: { type: "purchase" } }, undefined],
+    ["저장할 수 있는 범위를 넘는 revision", { revision: 2147483648, change: { type: "purchase" } }, undefined],
+    ["알 수 없는 변경", { revision: 1, change: { type: "delete" } }, undefined],
+    ["구매완료에 붙은 값", { revision: 1, change: { type: "purchase", date: null } }, undefined],
+    ["101개 컬렉션", { revision: 1, change: { type: "details", title: null, note: "", collectionIds: Array(101).fill(collection.id) } }, undefined],
+    ["공백뿐인 이름", { revision: 1, change: { type: "details", title: "  ", note: "", collectionIds: [] } }, "title"],
+    ["121자 이름", { revision: 1, change: { type: "details", title: "가".repeat(121), note: "", collectionIds: [] } }, "title"],
+    ["3001자 메모", { revision: 1, change: { type: "details", title: null, note: "가".repeat(3001), collectionIds: [] } }, "note"],
+    ["UUID가 아닌 컬렉션", { revision: 1, change: { type: "details", title: null, note: "", collectionIds: ["desk"] } }, "collection"],
+    ["형식이 다른 구매일", { revision: 1, change: { type: "purchase.record", date: "2026/11/01", price: null } }, "date"],
+    ["미래 구매일", { revision: 1, change: { type: "purchase.record", date: "2999-01-01", price: null } }, "date"],
+    ["음수 실구매가", { revision: 1, change: { type: "purchase.record", date: null, price: { amountMinor: -1, currency: "KRW" } } }, "price"],
+    ["소수 실구매가", { revision: 1, change: { type: "purchase.record", date: null, price: { amountMinor: 1.5, currency: "KRW" } } }, "price"],
+    ["원화가 아닌 실구매가", { revision: 1, change: { type: "purchase.record", date: null, price: { amountMinor: 1000, currency: "USD" } } }, "price"],
+  ])("Given %s When 상품을 고치면 Then 400이고 서비스를 부르지 않는다", async (_, body, field) => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.patchProduct(...patch(body));
+    expect(response.status).toBe(400);
+    const error = await errorOf(response);
+    expect(error.error).toBe("invalid_input");
+    expect(error.field).toBe(field);
+    expect(service.changeProduct).not.toHaveBeenCalled();
+  });
+
+  it("Given UUID가 아닌 상품 When 고치면 Then 400이고 서비스를 부르지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.patchProduct(...patch({ revision: 1, change: { type: "purchase" } }, {}, "not-a-uuid"));
+    expect(response.status).toBe(400);
+    expect(service.changeProduct).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["revision_conflict", 409],
+    ["product_missing", 404],
+    ["collection_missing", 422],
+    ["invalid_input", 400],
+    ["storage_unavailable", 503],
+  ] as const)("Given 저장소가 %s로 거절 When 상품을 고치면 Then %i이다", async (code, status) => {
+    const { handlers, service } = given(allowed);
+    service.changeProduct.mockRejectedValueOnce(new LibraryError(code, "거절"));
+    const response = await handlers.patchProduct(...patch({ revision: 1, change: { type: "purchase" } }));
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+  });
+
+  it("Given 다른 출처의 요청 When 상품을 고치면 Then 403이고 세션과 서비스를 건드리지 않는다", async () => {
+    const { handlers, service, signOut } = given(allowed);
+    const response = await handlers.patchProduct(...patch({ revision: 1, change: { type: "purchase" } }, { origin: "https://evil.test" }));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(service.changeProduct).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ kind: "signed_out" } as Access, 401, "signed_out"],
+    [{ kind: "unconfigured" } as Access, 503, "unconfigured"],
+  ])("Given 접근 결과 $kind When 상품을 고치면 Then %i이고 서비스를 부르지 않는다", async (access, status, code) => {
+    const { handlers, service } = given(access);
+    const response = await handlers.patchProduct(...patch({ revision: 1, change: { type: "purchase" } }));
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(service.changeProduct).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 Google 계정 When 상품을 고치면 Then 403이고 세션을 한 번 종료한다", async () => {
+    const { handlers, service, signOut } = given({ kind: "forbidden" });
+    const response = await handlers.patchProduct(...patch({ revision: 1, change: { type: "purchase" } }));
+    expect(response.status).toBe(403);
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(service.changeProduct).not.toHaveBeenCalled();
+  });
+
+  it("Given 허용 계정이지만 DB가 소유자를 거절 When 상품을 고치면 Then 403이고 세션을 종료한다", async () => {
+    const { handlers, service, signOut } = given(allowed);
+    service.changeProduct.mockRejectedValueOnce(new LibraryError("unauthorized", "denied"));
+    const response = await handlers.patchProduct(...patch({ revision: 1, change: { type: "purchase" } }));
+    expect(response.status).toBe(403);
+    expect(signOut).toHaveBeenCalledOnce();
+  });
+
+  it("Given JSON이 아니거나 16KiB를 넘는 본문 When 상품을 고치면 Then 415·413이고 서비스를 부르지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    expect((await handlers.patchProduct(...patch({ revision: 1, change: { type: "purchase" } }, { "content-type": "text/plain" }))).status).toBe(415);
+    const large = { revision: 1, change: { type: "details", title: null, note: "가".repeat(6000), collectionIds: [] } };
+    expect((await handlers.patchProduct(...patch(large))).status).toBe(413);
+    expect(service.changeProduct).not.toHaveBeenCalled();
+  });
+});
+
+describe("PATCH /api/collections/{collectionId}", () => {
+  const collectionId = collection.id;
+  const patch = (body: unknown, headers: Record<string, string> = {}, id: string = collectionId) =>
+    [new Request(`${origin}/api/collections/${id}`, {
+      method: "PATCH",
+      headers: { origin, "content-type": "application/json", ...headers },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    }), { params: Promise.resolve({ collectionId: id }) }] as const;
+
+  it("Given 새 이름 When 컬렉션 이름을 바꾸면 Then 200과 컬렉션을 돌려주고 정리한 이름으로 서비스를 부른다", async () => {
+    const { handlers, service } = given(allowed);
+    const renamed = { ...collection, name: "작업 공간", revision: 2 };
+    service.renameCollection.mockResolvedValueOnce(renamed);
+
+    const response = await handlers.patchCollection(...patch({ revision: 1, name: " 작업 공간 " }, {}, collectionId.toUpperCase()));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(collectionRenameResponseSchema.parse(await response.json())).toEqual(renamed);
+    expect(service.renameCollection).toHaveBeenCalledExactlyOnceWith({ collectionId, revision: 1, name: "작업 공간" });
+  });
+
+  it.each([
+    ["빈 이름", { revision: 1, name: " " }, "collection"],
+    ["41자 이름", { revision: 1, name: "가".repeat(41) }, "collection"],
+    ["revision 누락", { name: "책상" }, undefined],
+    ["알 수 없는 필드", { revision: 1, name: "책상", owner: "x" }, undefined],
+    ["문자열이 아닌 이름", { revision: 1, name: 1 }, undefined],
+  ])("Given %s When 컬렉션 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다", async (_, body, field) => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.patchCollection(...patch(body));
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).field).toBe(field);
+    expect(service.renameCollection).not.toHaveBeenCalled();
+  });
+
+  it("Given UUID가 아닌 컬렉션 When 이름을 바꾸면 Then 400이고 서비스를 부르지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.patchCollection(...patch({ revision: 1, name: "책상" }, {}, "desk"));
+    expect(response.status).toBe(400);
+    expect(service.renameCollection).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["collection_duplicate", 409],
+    ["revision_conflict", 409],
+    ["collection_missing", 422],
+  ] as const)("Given 저장소가 %s로 거절 When 이름을 바꾸면 Then %i이다", async (code, status) => {
+    const { handlers, service } = given(allowed);
+    service.renameCollection.mockRejectedValueOnce(new LibraryError(code, "거절"));
+    const response = await handlers.patchCollection(...patch({ revision: 1, name: "책상" }));
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+  });
+
+  it("Given 다른 출처의 요청 When 이름을 바꾸면 Then 403이고 서비스를 부르지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.patchCollection(...patch({ revision: 1, name: "책상" }, { origin: "https://evil.test" }));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(service.renameCollection).not.toHaveBeenCalled();
+  });
+
+  it("Given 세션 없음 When 이름을 바꾸면 Then 401이고 서비스를 부르지 않는다", async () => {
+    const { handlers, service } = given({ kind: "signed_out" });
+    const response = await handlers.patchCollection(...patch({ revision: 1, name: "책상" }));
+    expect(response.status).toBe(401);
+    expect(service.renameCollection).not.toHaveBeenCalled();
   });
 });
 

@@ -1,0 +1,189 @@
+# npm run test:database after npm run build, with patchProduct/patchCollection in library-handlers.ts throwing 'not implemented'
+
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/persistence/library-organize.test.ts (40 tests) 11375ms
+   ✓ 상품 정리: 이름·메모·컬렉션 (16)
+     ✓ 이름·메모·컬렉션을 한 번에 고치면 revision과 수정 시각이 바뀌고 새로 읽어도 같다 354ms
+     ✓ 소유자가 이름을 고친 뒤 수집이 끝나도 고친 이름을 보이고 수집한 이름은 따로 남으며 revision은 그대로다 301ms
+ ✓ tests/persistence/picture-storage.test.ts (27 tests) 8073ms
+   ✓ 상품 사진 사본 저장소 (27)
+     ✓ 사진 버킷은 비공개이고 1 MiB 이하의 WebP만 받는다 304ms
+     ✓ 임대가 살아 있는 작업의 예약된 이름에만 소유자 토큰으로 WebP를 한 번 올린다 368ms
+     ✓ 맡지 않았거나 끝났거나 임대가 지난 작업의 이름에는 올릴 수 없다 317ms
+     ✓ 소유자는 서명한 주소로 같은 바이트를 받고 공개 주소·다른 계정·익명은 읽지 못한다 316ms
+     ✓ 완료는 이번 사진 결과를 기록하고 새 사본만 보여줄 사진을 바꾼다 350ms
+     ✓ 소유자도 보여주는 사진은 지우지 못하고 바뀐 사진만 지운다 323ms
+     ✓ 끝나지 않은 작업이 이번 시도에 올린 사본은 임대가 지나도 소유자가 지우지 못하고 다음 시도가 맡은 뒤에만 지운다 305ms
+     ✓ 완료는 보여줄 사본의 저장 버전을 작업과 함께 기록하고 둘 중 하나만 남길 수 없다 311ms
+     ✓ 임대 중에 받은 서명 업로드 주소로 완료 뒤 사본을 바꾸면 그 사본은 다시 찾지도 서명하지도 않는다 321ms
+     ✓ 작업이 끝난 뒤 서명 업로드 주소로 예약된 이름에 써도 보여줄 사진은 바뀌지 않는다 316ms
+     ✓ 사진을 가져오지 못한 상품은 다시 가져오면 새 세대로 대기하고 사본이 있는 상품은 거절한다 306ms
+     ✓ 보여줄 사진의 이름은 소유자만 찾고 상품 응답에는 이름도 버킷도 없다 317ms
+     ✓ 보관함 저장소는 보여줄 사진을 한 시간짜리 서명 주소로 열고 사본이 없으면 없다고 답한다 304ms
+ ✓ tests/persistence/metadata-jobs.test.ts (26 tests) 7529ms
+   ✓ 수집 작업 저장소 (26)
+     ✓ 맡은 작업을 완료하면 이름과 가격을 기록하고 작업에만 이미지 주소를 남긴다 324ms
+     ✓ 수집 중이거나 막 담았거나 이미 끝났거나 세대가 다르면 다시 가져오기를 거절한다 337ms
+     ✓ 실패한 상품을 다시 가져오면 새 세대로 대기하고 늦게 끝난 이전 세대는 반영하지 않는다 306ms
+     ✓ 다른 임차 토큰의 완료와 실패는 반영하지 않는다 305ms
+     ✓ 다른 통화로 확인한 가격은 마지막 성공 가격을 덮어쓰지 않고 같은 통화는 갱신한다 309ms
+ ✓ tests/persistence/library-security.test.ts (19 tests) 5226ms
+   ✓ 실제 DB 소유자 경계 (19)
+     ✓ anonymous 접근은 조회와 두 쓰기 명령을 모두 거절한다 309ms
+ ✓ tests/service/collection-runner.test.ts (16 tests) 4503ms
+   ✓ 실제 저장소를 사용하는 수집 실행 (16)
+     ✓ 쇼핑몰 페이지를 읽어 이름과 하나의 가격을 저장하고 원본 링크는 그대로 둔다 321ms
+ ✓ tests/persistence/library-store.test.ts (14 tests) 3932ms
+   ✓ 실제 Supabase 저장소 (14)
+     ✓ 새 소유자의 보관함을 빈 도메인 값으로 읽는다 303ms
+ ✓ tests/service/library-organize.test.ts (10 tests) 2838ms
+   ✓ 실제 저장소를 쓰는 상품 정리 서비스 (10)
+     ✓ 이름·메모·컬렉션을 고친 뒤 구매·되돌리기·다시 구매·구매 기록·위시 복귀를 거쳐도 메모와 컬렉션이 남는다 336ms
+ ✓ tests/service/library-service.test.ts (10 tests) 2761ms
+   ✓ 실제 저장소를 사용하는 서비스 (10)
+     ✓ 생성한 컬렉션과 링크를 서비스 인스턴스를 바꾸어 다시 읽는다 313ms
+ ✓ tests/service/picture-copy.test.ts (6 tests) 2102ms
+   ✓ 실제 저장소를 쓰는 사진 사본 복사 (6)
+     ✓ 페이지의 사진을 비공개 WebP 사본으로 저장하고 이름·가격과 함께 사본을 보여준다 379ms
+     ✓ 사진 요청이 시간 초과여도 링크·이름·가격은 저장하고 다시 가져오면 사진을 복사한다 341ms
+     ✓ 새 사본이 생기면 이전 사본을 지워 상품마다 사본이 하나만 남는다 388ms
+     ✓ 올린 뒤 새 세대로 바뀐 실행은 결과를 쓰지 않고 자기 사본을 지운다 380ms
+     ✓ 임대가 끝나 저장소가 올리기를 거절해도 링크·이름·가격은 남고 올리기 실패로 기록한다 321ms
+
+ Test Files  9 passed (9)
+      Tests  168 passed (168)
+   Start at  18:34:04
+   Duration  49.63s (tests 98%, import 1%)
+
+Verified 126 persistence and 42 service tests with no skipped assertions.
+Starting the built app on 127.0.0.1:3180 against the isolated Supabase stack.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/http/library-api.test.ts (10 tests) 3344ms
+   ✓ 실제 HTTP 보관함 API (6)
+     ✓ 허용한 Google 계정은 저장한 컬렉션과 링크를 다시 로그인한 새 세션에서도 읽는다 467ms
+     ✓ 다른 Google 계정의 세션은 403이고 쿠키와 서버 세션을 폐기해 이후 쓰기도 저장하지 않는다 342ms
+     ✓ 다른 출처의 쓰기 요청은 소유자 세션이어도 403이고 저장하지 않는다 331ms
+     ✓ 업무 규칙에 맞지 않는 링크는 필드와 함께 400이고 저장하지 않는다 334ms
+     ✓ 없는 컬렉션을 지정하면 422이고 저장하지 않는다 344ms
+   ✓ 실제 HTTP 로그인 경로 (3)
+     ✓ 같은 출처의 로그아웃은 인증 쿠키를 지운다 336ms
+   ✓ 실제 HTTP 세션 갱신 (1)
+     ✓ 접근 토큰이 만료된 세션의 조회는 Route Handler가 refresh token으로 갱신하고 새 인증 쿠키를 내려준다 350ms
+ ❯ tests/http/library-organize.test.ts (5 tests | 4 failed) 1806ms
+   ❯ 실제 HTTP 상품 정리 (4)
+     × 소유자는 실제 요청으로 이름·메모·컬렉션을 고치고 구매·기록·되돌리기를 하며 새 세션에서도 같은 값을 읽는다 393ms
+     × 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 고치면 계약에 맞는 409 revision_conflict이고 저장은 그대로다 349ms
+     × 업무 규칙에 맞지 않는 구매일은 필드와 함께 400이고 저장하지 않는다 344ms
+     ✓ 다른 출처의 PATCH는 소유자 세션이어도 403이고 상품과 컬렉션을 바꾸지 않는다 362ms
+   ❯ 실제 HTTP 컬렉션 이름 바꾸기 (1)
+     × 이름을 바꾸면 200이고 새 세션에서도 소속 상품과 함께 새 이름을 읽으며, 다른 컬렉션과 대소문자만 다른 이름은 409다 357ms
+ ✓ tests/http/metadata-collection.test.ts (4 tests) 2153ms
+   ✓ 실제 HTTP 정보 수집 (4)
+     ✓ 저장은 바로 대기 상태로 응답하고, 응답 뒤 수집이 막힌 주소를 기록해도 링크는 남는다 377ms
+     ✓ 실패한 상품을 다시 가져오면 202와 다음 세대로 응답하고 다시 수집해 같은 이유로 실패한다 582ms
+     ✓ 막 담겨 대기 중인 상품을 다시 가져오면 409이고 작업을 늘리지 않는다 353ms
+     ✓ 없는 상품, 잘못된 경로·본문과 다른 출처의 다시 가져오기는 계약대로 거절한다 839ms
+ ✓ tests/http/product-pictures.test.ts (4 tests) 1689ms
+   ✓ 실제 HTTP 사진 사본 (4)
+     ✓ 보관함은 같은 출처의 사진 주소만 주고 그 주소는 서명한 비공개 사본으로 보낸다 427ms
+     ✓ 사본이 없거나 상품이 없으면 404로 답하고 사진 주소가 UUID가 아니면 400이다 356ms
+     ✓ 로그인하지 않았거나 허용하지 않은 계정에는 사진을 보내지 않는다 438ms
+     ✓ 사진을 가져오지 못한 상품은 다시 가져오기가 202이고 다시 읽어도 링크·이름·가격은 남는다 464ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/http/library-organize.test.ts > 실제 HTTP 상품 정리 > 소유자는 실제 요청으로 이름·메모·컬렉션을 고치고 구매·기록·되돌리기를 하며 새 세션에서도 같은 값을 읽는다
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ changed tests/http/library-organize.test.ts:57:27
+     55| async function changed(product: ProductResponse, revision: number, cha…
+     56|   const response = await send("PATCH", `/api/products/${product.id}`, …
+     57|   expect(response.status).toBe(200);
+       |                           ^
+     58|   expect(response.headers.get("cache-control")).toContain("no-store");
+     59|   return productChangeResponseSchema.parse(await response.json()).prod…
+ ❯ tests/http/library-organize.test.ts:68:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/http/library-organize.test.ts > 실제 HTTP 상품 정리 > 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 고치면 계약에 맞는 409 revision_conflict이고 저장은 그대로다
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ changed tests/http/library-organize.test.ts:57:27
+     55| async function changed(product: ProductResponse, revision: number, cha…
+     56|   const response = await send("PATCH", `/api/products/${product.id}`, …
+     57|   expect(response.status).toBe(200);
+       |                           ^
+     58|   expect(response.headers.get("cache-control")).toContain("no-store");
+     59|   return productChangeResponseSchema.parse(await response.json()).prod…
+ ❯ tests/http/library-organize.test.ts:84:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/http/library-organize.test.ts > 실제 HTTP 상품 정리 > 업무 규칙에 맞지 않는 구매일은 필드와 함께 400이고 저장하지 않는다
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ changed tests/http/library-organize.test.ts:57:27
+     55| async function changed(product: ProductResponse, revision: number, cha…
+     56|   const response = await send("PATCH", `/api/products/${product.id}`, …
+     57|   expect(response.status).toBe(200);
+       |                           ^
+     58|   expect(response.headers.get("cache-control")).toContain("no-store");
+     59|   return productChangeResponseSchema.parse(await response.json()).prod…
+ ❯ tests/http/library-organize.test.ts:96:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/http/library-organize.test.ts > 실제 HTTP 컬렉션 이름 바꾸기 > 이름을 바꾸면 200이고 새 세션에서도 소속 상품과 함께 새 이름을 읽으며, 다른 컬렉션과 대소문자만 다른 이름은 409다
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ tests/http/library-organize.test.ts:131:28
+    129|
+    130|     const renamed = await send("PATCH", `/api/collections/${desk.id}`,…
+    131|     expect(renamed.status).toBe(200);
+       |                            ^
+    132|     expect(collectionRenameResponseSchema.parse(await renamed.json()))…
+    133|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  4 failed | 19 passed (23)
+   Start at  18:34:54
+   Duration  9.60s (tests 96%, import 3%)
+

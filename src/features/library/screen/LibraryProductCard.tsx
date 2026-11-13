@@ -6,11 +6,15 @@ import { toProductCardView } from "./product-view";
 export function LibraryProductCard({
   product,
   collections,
+  purchasing,
   onOpen,
+  onPurchase,
 }: {
   product: ProductResponse;
   collections: CollectionResponse[];
+  purchasing: boolean;
   onOpen: () => void;
+  onPurchase: () => void;
 }) {
   const view = toProductCardView(product, collections);
   return (
@@ -45,6 +49,17 @@ export function LibraryProductCard({
           </span>
         </div>
       </button>
+      {!view.purchased && (
+        <button
+          className="quick-purchase"
+          aria-label={`${view.title} 구매완료로 이동`}
+          title="구매완료로 이동"
+          disabled={purchasing}
+          onClick={onPurchase}
+        >
+          <Check size={17} aria-hidden="true" />
+        </button>
+      )}
     </article>
   );
 }

@@ -1,0 +1,664 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/screen/product-view.test.ts (37 tests | 1 failed) 37ms
+   ❯ 상품 상세 문구 (6)
+     × Given 막 담은 링크 When 상세로 보이면 Then 정보를 아직 가져오지 않았고 원본 링크는 보관했다고 말한다 15ms
+ ❯ src/features/library/screen/screen-state.test.ts (92 tests | 21 failed) 54ms
+   ❯ 링크 추가 (10)
+     × Given 저장 중 When 새 상품으로 저장되면 Then 맨 앞에 넣고 담았다는 상세를 연다 10ms
+     × Given 저장 중 When 이미 담은 상품이라는 응답이면 Then 같은 상품을 바꿔 넣고 중복 안내 상세를 연다 2ms
+   ❯ 상세 (2)
+     × Given 보관함 When 상품을 열면 Then 도착 안내 없이 상세를 연다 1ms
+   ❯ 다시 가져오기 (9)
+     × Given 상태가 바뀌어 거절 When 결과를 받으면 Then 안내하고 보관함을 새로 읽는다 2ms
+     × Given 일시적 실패 When 결과를 받으면 Then 상세에 안내하고 다시 누를 수 있게 한다 2ms
+   ❯ 상세에서 이름·메모·컬렉션 고치기 (8)
+     × Given 상세 When 고친 칸만 초안에 남기고 Then 나머지 칸은 화면의 상품을 따른다 1ms
+     × Given 고친 이름·메모·컬렉션 When 저장하면 Then 화면이 본 revision으로 정리한 값을 보내고, 이름을 고치지 않았으면 이름은 보내지 않는다 1ms
+     × Given 규칙에 맞지 않는 이름이나 메모 When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다 0ms
+     × Given 정리하면 지금과 같은 값 When 저장하면 Then 요청하지 않고 초안을 비운다 0ms
+     × Given 저장 중 When 고치거나 다시 저장하거나 닫으면 Then 무시한다 2ms
+     × Given 저장 중 When 성공하면 Then 상품을 바꾸고 이 양식의 초안만 비우며 저장했다고 알린다 1ms
+     × Given 다른 곳에서 먼저 바뀜 When 저장이 거절되면 Then 안내하고 다시 읽은 뒤 고친 칸은 지키고 다음 저장은 새 revision으로 보낸다 1ms
+     × Given 고른 컬렉션이 다른 곳에서 지워짐 When 다시 읽으면 Then 초안에서 그 컬렉션만 뺀다 1ms
+   ❯ 상세에서 구매 기록 (6)
+     × Given 구매한 상품 When 빈 구매일과 0원을 저장하면 Then 미입력 날짜와 0원을 보낸다 0ms
+     × Given 저장한 구매 기록 When 상세를 열면 Then 양식이 그 값을 보여주고 0원과 미입력을 구분한다 1ms
+     × Given 서울 기준 내일 When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다 0ms
+     × Given 쉼표가 들어간 금액 When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다 0ms
+     × Given 구매 기록 저장 중 When 성공하면 Then 구매 정보를 저장했다고 알리고 이름·메모 초안은 지킨다 0ms
+   ❯ 상세에서 구매완료와 위시로 되돌리기 (3)
+     × Given 위시 상품의 상세 When 구매완료로 옮기면 Then 성공하면 상세를 닫고 실행 취소 알림을 띄운다 3ms
+     × Given 구매한 상품의 상세 When 위시로 되돌리면 Then 성공하면 상세를 닫고 되돌렸다고 알린다 1ms
+     × Given 상세에서 구매완료로 옮기는 중 When 다른 곳에서 먼저 바뀌어 거절되면 Then 상세에 알리고 다시 읽는다 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 22 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 상세 문구 > Given 막 담은 링크 When 상세로 보이면 Then 정보를 아직 가져오지 않았고 원본 링크는 보관했다고 말한다
+AssertionError: expected { shop: 'shop.example', …(13) } to deeply equal { shop: 'shop.example', …(11) }
+
+- Expected
++ Received
+
+@@ -1,9 +1,14 @@
+  {
+    "addedOn": "2026. 11. 11.",
+    "arrival": null,
+    "canRetry": false,
++   "collectionNames": [
++     "책상",
++     "방",
++   ],
++   "note": null,
+    "openUrl": "https://www.shop.example/item?utm_source=a",
+    "option": "옵션 미입력",
+    "picture": {
+      "icon": "waiting",
+      "kind": "placeholder",
+
+ ❯ src/features/library/screen/product-view.test.ts:104:103
+    102| describe("상품 상세 문구", () => {
+    103|   it("Given 막 담은 링크 When 상세로 보이면 Then 정보를 아직 가져오지 않았고 원본 링크는 보관했다고 말한다…
+    104|     expect(toProductDetailView({ ...queued, collectionIds: [desk.id, r…
+       |                                                                                                       ^
+    105|       shop: "shop.example",
+    106|       title: "새로 담은 상품",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 링크 추가 > Given 저장 중 When 새 상품으로 저장되면 Then 맨 앞에 넣고 담았다는 상세를 연다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -1,12 +1,11 @@
+  {
+    "collectionId": null,
+    "dialog": {
+      "arrival": "added",
+-     "draft": {},
++     "error": null,
+      "kind": "detail",
+-     "notice": null,
+      "productId": "55555555-5555-4555-8555-555555555555",
+    },
+    "library": {
+      "collections": [
+        {
+
+ ❯ src/features/library/screen/screen-state.test.ts:189:19
+    187|       { type: "link.settled", outcome: { ok: true, value: { kind: "add…
+    188|     expect(call).toBeNull();
+    189|     expect(state).toEqual(ready({
+       |                   ^
+    190|       library: { ...library, products: [added, lamp, chair] },
+    191|       dialog: { kind: "detail", productId: added.id, arrival: "added",…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 링크 추가 > Given 저장 중 When 이미 담은 상품이라는 응답이면 Then 같은 상품을 바꿔 넣고 중복 안내 상세를 연다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -1,12 +1,11 @@
+  {
+    "collectionId": null,
+    "dialog": {
+      "arrival": "duplicate",
+-     "draft": {},
++     "error": null,
+      "kind": "detail",
+-     "notice": null,
+      "productId": "22222222-2222-4222-8222-222222222222",
+    },
+    "library": {
+      "collections": [
+        {
+
+ ❯ src/features/library/screen/screen-state.test.ts:199:19
+    197|     const { state } = run(adding({}, { saving: true }),
+    198|       { type: "link.settled", outcome: { ok: true, value: { kind: "dup…
+    199|     expect(state).toEqual(ready({
+       |                   ^
+    200|       library: { ...library, products: [updated, chair] },
+    201|       dialog: { kind: "detail", productId: lamp.id, arrival: "duplicat…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세 > Given 보관함 When 상품을 열면 Then 도착 안내 없이 상세를 연다
+AssertionError: expected { kind: 'detail', …(3) } to deeply equal { kind: 'detail', …(4) }
+
+- Expected
++ Received
+
+  {
+    "arrival": null,
+-   "draft": {},
++   "error": null,
+    "kind": "detail",
+-   "notice": null,
+    "productId": "22222222-2222-4222-8222-222222222222",
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:422:8
+    420|   it("Given 보관함 When 상품을 열면 Then 도착 안내 없이 상세를 연다", () => {
+    421|     expect(dialogOf(run(ready(), { type: "detail.open", productId: lam…
+    422|       .toEqual({ kind: "detail", productId: lamp.id, arrival: null, dr…
+       |        ^
+    423|   });
+    424|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 다시 가져오기 > Given 상태가 바뀌어 거절 When 결과를 받으면 Then 안내하고 보관함을 새로 읽는다
+AssertionError: expected { phase: 'ready', …(7) } to match object { writing: null, …(2) }
+(8 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "dialog": {
+      "arrival": null,
+      "draft": {},
+      "kind": "detail",
+-     "notice": {
+-       "field": null,
+-       "form": "retry",
+-       "kind": "error",
+-       "message": "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요.",
+-     },
++     "notice": null,
+      "productId": "22222222-2222-4222-8222-222222222222",
+    },
+    "refreshing": true,
+    "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:647:19
+    645|     const { state, call } = transition(start, { type: "metadata.settle…
+    646|     expect(call).toEqual({ type: "library.read" });
+    647|     expect(state).toMatchObject({ writing: null, refreshing: true, dia…
+       |                   ^
+    648|   });
+    649|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 다시 가져오기 > Given 일시적 실패 When 결과를 받으면 Then 상세에 안내하고 다시 누를 수 있게 한다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -1,17 +1,13 @@
+  {
+    "collectionId": null,
+    "dialog": {
+      "arrival": null,
+      "draft": {},
++     "error": "잠시 뒤 다시 시도해 주세요.",
+      "kind": "detail",
+-     "notice": {
+-       "field": null,
+-       "form": "retry",
+-       "kind": "error",
+-       "message": "잠시 뒤 다시 시도해 주세요.",
+-     },
++     "notice": null,
+      "productId": "22222222-2222-4222-8222-222222222222",
+    },
+    "library": {
+      "collections": [
+        {
+
+ ❯ src/features/library/screen/screen-state.test.ts:654:19
+    652|     const { state, call } = transition(start, { type: "metadata.settle…
+    653|     expect(call).toBeNull();
+    654|     expect(state).toEqual({ ...start, writing: null, dialog: { ...deta…
+       |                   ^
+    655|     expect(transition(state, { type: "metadata.retry", productId: lamp…
+    656|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 이름·메모·컬렉션 고치기 > Given 상세 When 고친 칸만 초안에 남기고 Then 나머지 칸은 화면의 상품을 따른다
+AssertionError: expected {} to deeply equal { Object (note, collectionIds) }
+
+- Expected
++ Received
+
+- {
+-   "collectionIds": [
+-     "11111111-1111-4111-8111-111111111111",
+-     "33333333-3333-4333-8333-333333333333",
+-   ],
+-   "note": "선물용",
+- }
++ {}
+
+ ❯ src/features/library/screen/screen-state.test.ts:817:35
+    815|     const { state } = run(ready({ dialog: opened() }), { type: "detail…
+    816|       { type: "detail.toggle", collectionId: room.id });
+    817|     expect(detailOf(state).draft).toEqual({ note: "선물용", collectionIds…
+       |                                   ^
+    818|
+    819|     const collected = transition(state, settled([readyLamp, chair])).s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 이름·메모·컬렉션 고치기 > Given 고친 이름·메모·컬렉션 When 저장하면 Then 화면이 본 revision으로 정리한 값을 보내고, 이름을 고치지 않았으면 이름은 보내지 않는다
+AssertionError: expected null to deeply equal { type: 'product.change', …(2) }
+
+- Expected:
+{
+  "body": {
+    "change": {
+      "collectionIds": [
+        "11111111-1111-4111-8111-111111111111",
+      ],
+      "note": "",
+      "title": "책상 조명",
+      "type": "details",
+    },
+    "revision": 1,
+  },
+  "productId": "22222222-2222-4222-8222-222222222222",
+  "type": "product.change",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:828:24
+    826|     const named = run(ready({ dialog: opened() }), { type: "detail.edi…
+    827|       { type: "detail.save", form: "details", today });
+    828|     expect(named.call).toEqual({
+       |                        ^
+    829|       type: "product.change", productId: lamp.id,
+    830|       body: { revision: 1, change: { type: "details", title: "책상 조명", …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 이름·메모·컬렉션 고치기 > Given 규칙에 맞지 않는 이름이나 메모 When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다
+AssertionError: expected null to deeply equal { Object (form, kind, ...) }
+
+- Expected:
+{
+  "field": "title",
+  "form": "details",
+  "kind": "error",
+  "message": "상품 이름은 1~120자로 입력해 주세요.",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:842:42
+    840|     const title = run(ready({ dialog: opened() }), { type: "detail.edi…
+    841|     expect(title.call).toBeNull();
+    842|     expect(detailOf(title.state).notice).toEqual({ form: "details", ki…
+       |                                          ^
+    843|     const note = run(ready({ dialog: opened() }), { type: "detail.edit…
+    844|     expect(note.call).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 이름·메모·컬렉션 고치기 > Given 정리하면 지금과 같은 값 When 저장하면 Then 요청하지 않고 초안을 비운다
+AssertionError: expected {} to deeply equal { price: '1000' }
+
+- Expected
++ Received
+
+- {
+-   "price": "1000",
+- }
++ {}
+
+ ❯ src/features/library/screen/screen-state.test.ts:852:35
+    850|       { type: "detail.edit", field: "price", value: "1000" }, { type: …
+    851|     expect(call).toBeNull();
+    852|     expect(detailOf(state).draft).toEqual({ price: "1000" });
+       |                                   ^
+    853|   });
+    854|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 이름·메모·컬렉션 고치기 > Given 저장 중 When 고치거나 다시 저장하거나 닫으면 Then 무시한다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -1,18 +1,10 @@
+  {
+    "call": null,
+    "state": {
+      "collectionId": null,
+-     "dialog": {
+-       "arrival": null,
+-       "draft": {
+-         "note": "메모",
+-       },
+-       "kind": "detail",
+-       "notice": null,
+-       "productId": "22222222-2222-4222-8222-222222222222",
+-     },
++     "dialog": null,
+      "library": {
+        "collections": [
+          {
+            "createdAt": "2026-11-10T00:00:00.000Z",
+            "id": "11111111-1111-4111-8111-111111111111",
+
+ ❯ src/features/library/screen/screen-state.test.ts:863:41
+    861|       { type: "dialog.close" },
+    862|     ] satisfies ScreenEvent[]) {
+    863|       expect(transition(saving, event)).toEqual({ state: saving, call:…
+       |                                         ^
+    864|     }
+    865|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 이름·메모·컬렉션 고치기 > Given 저장 중 When 성공하면 Then 상품을 바꾸고 이 양식의 초안만 비우며 저장했다고 알린다
+AssertionError: expected { kind: 'detail', …(4) } to deeply equal { kind: 'detail', …(4) }
+
+- Expected
++ Received
+
+  {
+    "arrival": null,
+    "draft": {
+      "date": "2026-11-01",
++     "note": "메모",
+    },
+    "kind": "detail",
+-   "notice": {
+-     "field": null,
+-     "form": "details",
+-     "kind": "saved",
+-     "message": "변경사항을 저장했어요",
+-   },
++   "notice": null,
+    "productId": "22222222-2222-4222-8222-222222222222",
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:873:29
+    871|     expect(productsOf(state)[0]).toEqual(saved);
+    872|     expect(state).toMatchObject({ writing: null });
+    873|     expect(detailOf(state)).toEqual(opened({
+       |                             ^
+    874|       draft: { date: "2026-11-01" }, notice: { form: "details", kind: …
+    875|     }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 이름·메모·컬렉션 고치기 > Given 다른 곳에서 먼저 바뀜 When 저장이 거절되면 Then 안내하고 다시 읽은 뒤 고친 칸은 지키고 다음 저장은 새 revision으로 보낸다
+AssertionError: expected null to deeply equal { Object (form, kind, ...) }
+
+- Expected:
+{
+  "field": null,
+  "form": "details",
+  "kind": "error",
+  "message": "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 저장해 주세요.",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:883:45
+    881|     expect(rejected.call).toEqual({ type: "library.read" });
+    882|     expect(rejected.state).toMatchObject({ refreshing: true, writing: …
+    883|     expect(detailOf(rejected.state).notice).toEqual({ form: "details",…
+       |                                             ^
+    884|
+    885|     const elsewhere = { ...lamp, revision: 2, title: "다른 곳의 이름", note:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 이름·메모·컬렉션 고치기 > Given 고른 컬렉션이 다른 곳에서 지워짐 When 다시 읽으면 Then 초안에서 그 컬렉션만 뺀다
+AssertionError: expected { collectionIds: [ …(2) ] } to deeply equal { Object (collectionIds) }
+
+- Expected
++ Received
+
+  {
+    "collectionIds": [
++     "11111111-1111-4111-8111-111111111111",
+      "33333333-3333-4333-8333-333333333333",
+    ],
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:897:35
+    895|     const start = ready({ dialog: opened({ draft: { collectionIds: [de…
+    896|     const { state } = transition(start, { type: "library.settled", out…
+    897|     expect(detailOf(state).draft).toEqual({ collectionIds: [room.id] }…
+       |                                   ^
+    898|   });
+    899| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 구매 기록 > Given 구매한 상품 When 빈 구매일과 0원을 저장하면 Then 미입력 날짜와 0원을 보낸다
+AssertionError: expected null to deeply equal { type: 'product.change', …(2) }
+
+- Expected:
+{
+  "body": {
+    "change": {
+      "date": null,
+      "price": {
+        "amountMinor": 0,
+        "currency": "KRW",
+      },
+      "type": "purchase.record",
+    },
+    "revision": 2,
+  },
+  "productId": "22222222-2222-4222-8222-222222222222",
+  "type": "product.change",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:908:18
+    906|     const { call } = transition(recording(bought({ status: "purchased"…
+    907|       { type: "detail.save", form: "record", today });
+    908|     expect(call).toEqual({
+       |                  ^
+    909|       type: "product.change", productId: lamp.id,
+    910|       body: { revision: 2, change: { type: "purchase.record", date: nu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 구매 기록 > Given 저장한 구매 기록 When 상세를 열면 Then 양식이 그 값을 보여주고 0원과 미입력을 구분한다
+Error: not implemented
+ ❯ detailForms src/features/library/screen/screen-state.ts:483:9
+    481| export function detailForms(product: ProductResponse, draft: unknown):…
+    482|   void product; void draft;
+    483|   throw new Error("not implemented");
+       |         ^
+    484| }
+    485|
+ ❯ src/features/library/screen/screen-state.test.ts:915:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 구매 기록 > Given 서울 기준 내일 When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다
+AssertionError: expected null to deeply equal { form: 'record', kind: 'error', …(2) }
+
+- Expected:
+{
+  "field": "date",
+  "form": "record",
+  "kind": "error",
+  "message": "구매일은 오늘까지 입력할 수 있어요.",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:927:36
+    925|       { type: "detail.save", form: "record", today });
+    926|     expect(call).toBeNull();
+    927|     expect(detailOf(state).notice).toEqual({ form: "record", kind: "er…
+       |                                    ^
+    928|   });
+    929|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 구매 기록 > Given 쉼표가 들어간 금액 When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다
+AssertionError: expected null to deeply equal { form: 'record', kind: 'error', …(2) }
+
+- Expected:
+{
+  "field": "price",
+  "form": "record",
+  "kind": "error",
+  "message": "실구매가는 0 이상의 정수로 입력해 주세요.",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:927:36
+    925|       { type: "detail.save", form: "record", today });
+    926|     expect(call).toBeNull();
+    927|     expect(detailOf(state).notice).toEqual({ form: "record", kind: "er…
+       |                                    ^
+    928|   });
+    929|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 구매 기록 > Given 구매 기록 저장 중 When 성공하면 Then 구매 정보를 저장했다고 알리고 이름·메모 초안은 지킨다
+AssertionError: expected { kind: 'detail', …(4) } to deeply equal { kind: 'detail', …(4) }
+
+- Expected
++ Received
+
+  {
+    "arrival": null,
+    "draft": {
++     "date": "2026-11-01",
+      "note": "메모",
+    },
+    "kind": "detail",
+-   "notice": {
+-     "field": null,
+-     "form": "record",
+-     "kind": "saved",
+-     "message": "구매 정보를 저장했어요",
+-   },
++   "notice": null,
+    "productId": "22222222-2222-4222-8222-222222222222",
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:941:29
+    939|     });
+    940|     const { state } = transition(start, { type: "change.settled", prod…
+    941|     expect(detailOf(state)).toEqual(opened({
+       |                             ^
+    942|       draft: { note: "메모" }, notice: { form: "record", kind: "saved", …
+    943|     }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 구매완료와 위시로 되돌리기 > Given 위시 상품의 상세 When 구매완료로 옮기면 Then 성공하면 상세를 닫고 실행 취소 알림을 띄운다
+AssertionError: expected { phase: 'ready', …(7) } to be { phase: 'ready', …(7) } // Object.is equality
+
+- Expected
++ Received
+
+@@ -1,14 +1,8 @@
+  {
+    "collectionId": null,
+-   "dialog": {
+-     "arrival": null,
+-     "draft": {},
+-     "kind": "detail",
+-     "notice": null,
+-     "productId": "22222222-2222-4222-8222-222222222222",
+-   },
++   "dialog": null,
+    "library": {
+      "collections": [
+        {
+          "createdAt": "2026-11-10T00:00:00.000Z",
+          "id": "11111111-1111-4111-8111-111111111111",
+
+ ❯ src/features/library/screen/screen-state.test.ts:952:69
+    950|     const asked = transition(start, { type: "product.purchase", produc…
+    951|     expect(asked.call).toMatchObject({ body: { revision: 1, change: { …
+    952|     expect(transition(asked.state, { type: "dialog.close" }).state).to…
+       |                                                                     ^
+    953|     const { state } = transition(asked.state, changed(purchasedLamp));
+    954|     expect(state).toMatchObject({ dialog: null, toast: { kind: "purcha…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 구매완료와 위시로 되돌리기 > Given 구매한 상품의 상세 When 위시로 되돌리면 Then 성공하면 상세를 닫고 되돌렸다고 알린다
+AssertionError: expected null to match object { body: { revision: 2, …(1) } }
+
+- Expected:
+{
+  "body": {
+    "change": {
+      "type": "wish",
+    },
+    "revision": 2,
+  },
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:960:24
+    958|     const start = withProducts([purchasedLamp, chair], { dialog: opene…
+    959|     const asked = transition(start, { type: "product.wish", productId:…
+    960|     expect(asked.call).toMatchObject({ body: { revision: 2, change: { …
+       |                        ^
+    961|     const { state } = transition(asked.state, changed({ ...lamp, revis…
+    962|     expect(state).toMatchObject({ dialog: null, toast: { kind: "notice…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/22]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 구매완료와 위시로 되돌리기 > Given 상세에서 구매완료로 옮기는 중 When 다른 곳에서 먼저 바뀌어 거절되면 Then 상세에 알리고 다시 읽는다
+AssertionError: expected null to deeply equal { form: 'status', kind: 'error', …(2) }
+
+- Expected:
+{
+  "field": null,
+  "form": "status",
+  "kind": "error",
+  "message": "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 저장해 주세요.",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:969:36
+    967|     const { state, call } = transition(start, failedChange(conflict));
+    968|     expect(call).toEqual({ type: "library.read" });
+    969|     expect(detailOf(state).notice).toEqual({ form: "status", kind: "er…
+       |                                    ^
+    970|     expect(state).toMatchObject({ toast: null });
+    971|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/22]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  22 failed | 203 passed (225)
+   Start at  18:40:40
+   Duration  573ms (transform 48%, import 30%, tests 20%, worker 2%)
+

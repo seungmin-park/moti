@@ -539,6 +539,10 @@ h1 {
 .quick-purchase:hover {
   background: var(--active);
 }
+.quick-purchase:disabled,
+.toast button:disabled {
+  opacity: 0.55;
+}
 .product-copy {
   padding: 15px 2px 0;
   overflow-wrap: anywhere;
@@ -1369,7 +1373,8 @@ h1 {
   padding: 12px;
   margin: 0 0 20px;
 }
-.purchase-form {
+.purchase-form,
+.detail-form {
   border-top: 1px solid var(--line);
   margin-top: 23px;
   padding-top: 22px;

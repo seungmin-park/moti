@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MAX_METADATA_GENERATION, type MetadataRetryResult } from "../../metadata/application/commands";
-import type { LinkSaveResult } from "../application/commands";
+import { MAX_REVISION, type LinkSaveResult } from "../application/commands";
 import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
 import type { Collection, Library, Picture, Product, ProductId } from "../domain/library";
 
@@ -90,6 +90,30 @@ export const metadataRetryRequestSchema = z.object({ generation: z.number().int(
 export const metadataRetryResponseSchema = z.object({ product: productResponseSchema }).strict();
 export const collectionCreateResponseSchema = collectionResponseSchema;
 
+const revisionSchema = z.number().int().min(1).max(MAX_REVISION);
+// Shapes only; the field rules (name, memo, date against the server's Seoul day, paid price) are the commands'.
+export const productChangeRequestSchema = z.object({
+  revision: revisionSchema,
+  change: z.discriminatedUnion("type", [
+    z.object({
+      type: z.literal("details"),
+      title: z.string().nullable(),
+      note: z.string(),
+      collectionIds: z.array(z.string()).max(100),
+    }).strict(),
+    z.object({ type: z.literal("purchase") }).strict(),
+    z.object({
+      type: z.literal("purchase.record"),
+      date: z.string().nullable(),
+      price: z.object({ amountMinor: z.number(), currency: z.string() }).strict().nullable(),
+    }).strict(),
+    z.object({ type: z.literal("wish") }).strict(),
+  ]),
+}).strict();
+export const productChangeResponseSchema = z.object({ product: productResponseSchema }).strict();
+export const collectionRenameRequestSchema = z.object({ revision: revisionSchema, name: z.string() }).strict();
+export const collectionRenameResponseSchema = collectionResponseSchema;
+
 export const errorCodes = [
   "signed_out",
   "forbidden",
@@ -103,6 +127,7 @@ export const errorCodes = [
   "identity_conflict",
   "product_missing",
   "metadata_not_retryable",
+  "revision_conflict",
   "picture_missing",
   "storage_unavailable",
 ] as const;
@@ -124,6 +149,10 @@ export type CollectionCreateRequest = z.infer<typeof collectionCreateRequestSche
 export type CollectionCreateResponse = z.infer<typeof collectionCreateResponseSchema>;
 export type MetadataRetryRequest = z.infer<typeof metadataRetryRequestSchema>;
 export type MetadataRetryResponse = z.infer<typeof metadataRetryResponseSchema>;
+export type ProductChangeRequest = z.infer<typeof productChangeRequestSchema>;
+export type ProductChangeResponse = z.infer<typeof productChangeResponseSchema>;
+export type CollectionRenameRequest = z.infer<typeof collectionRenameRequestSchema>;
+export type CollectionRenameResponse = z.infer<typeof collectionRenameResponseSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 export function toCollectionResponse(collection: Collection): CollectionResponse {
@@ -181,4 +210,8 @@ export function toLinkSaveResponse(result: LinkSaveResult): LinkSaveResponse {
 
 export function toMetadataRetryResponse(result: MetadataRetryResult): MetadataRetryResponse {
   return { product: toProductResponse(result.product) };
+}
+
+export function toProductChangeResponse(product: Product): ProductChangeResponse {
+  return { product: toProductResponse(product) };
 }

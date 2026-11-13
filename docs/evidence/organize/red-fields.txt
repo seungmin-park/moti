@@ -1,0 +1,282 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/wishlist/product-fields.test.ts (36 tests | 36 failed) 7ms
+   ❯ 상품 이름 (9)
+     × Given 줄바꿈·제어 문자·겹친 공백이 섞인 이름 When 정리하면 Then 한 칸 공백의 NFC 한 줄 이름이 된다 3ms
+     × Given 120 코드 포인트의 이름 When 고치면 Then 그대로 받고, 121이면 자르지 않고 거절한다 0ms
+     × Given 앞뒤 공백 When 고치면 Then 정리한 이름을 받는다 0ms
+     × Given 비어 있는 이름 "" When 고치면 Then 거절한다 0ms
+     × Given 비어 있는 이름 "   " When 고치면 Then 거절한다 0ms
+     × Given 비어 있는 이름 "\u0000\n" When 고치면 Then 거절한다 0ms
+     × Given 문자열이 아니거나 깨진 이름 null When 고치면 Then 거절한다 0ms
+     × Given 문자열이 아니거나 깨진 이름 1 When 고치면 Then 거절한다 0ms
+     × Given 문자열이 아니거나 깨진 이름 "가\ud800" When 고치면 Then 거절한다 0ms
+   ❯ 메모 (6)
+     × Given 3000 코드 포인트의 메모 When 적으면 Then 적은 그대로 받고, 3001이면 거절한다 0ms
+     × Given 줄바꿈과 앞뒤 공백 When 적으면 Then 바꾸지 않고, 빈 메모도 받는다 0ms
+     × Given 저장할 수 없는 메모 null When 적으면 Then 거절한다 0ms
+     × Given 저장할 수 없는 메모 3 When 적으면 Then 거절한다 0ms
+     × Given 저장할 수 없는 메모 "가\u0000" When 적으면 Then 거절한다 0ms
+     × Given 저장할 수 없는 메모 "가\udc00" When 적으면 Then 거절한다 0ms
+   ❯ 구매일 (11)
+     × Given 빈 칸 When 기록하면 Then 구매일 없음이다 0ms
+     × Given 오늘과 1900-01-01 When 기록하면 Then 받는다 0ms
+     × Given 서울 기준 내일 When 기록하면 Then 오늘까지만 받는다고 거절한다 0ms
+     × Given 달력에 없거나 형식이 다른 날 "2026-02-30" When 기록하면 Then 거절한다 1ms
+     × Given 달력에 없거나 형식이 다른 날 "2026-13-01" When 기록하면 Then 거절한다 0ms
+     × Given 달력에 없거나 형식이 다른 날 "0000-01-01" When 기록하면 Then 거절한다 0ms
+     × Given 달력에 없거나 형식이 다른 날 "1899-12-31" When 기록하면 Then 거절한다 0ms
+     × Given 달력에 없거나 형식이 다른 날 "2026/11/01" When 기록하면 Then 거절한다 0ms
+     × Given 달력에 없거나 형식이 다른 날 "2026-1-1" When 기록하면 Then 거절한다 0ms
+     × Given 달력에 없거나 형식이 다른 날 " 2026-11-01" When 기록하면 Then 거절한다 0ms
+     × Given 달력에 없거나 형식이 다른 날 20261101 When 기록하면 Then 거절한다 0ms
+   ❯ 실구매가 (9)
+     × Given 빈 칸과 0 When 기록하면 Then 미입력과 0원을 구분한다 0ms
+     × Given 원 단위 정수 When 기록하면 Then 원화 최소 단위로 받는다 0ms
+     × Given 정수가 아닌 값 "-1" When 기록하면 Then 거절한다 0ms
+     × Given 정수가 아닌 값 "1.5" When 기록하면 Then 거절한다 0ms
+     × Given 정수가 아닌 값 "1,000" When 기록하면 Then 거절한다 0ms
+     × Given 정수가 아닌 값 "1e3" When 기록하면 Then 거절한다 0ms
+     × Given 정수가 아닌 값 "２" When 기록하면 Then 거절한다 0ms
+     × Given 정수가 아닌 값 "9007199254740992" When 기록하면 Then 거절한다 0ms
+     × Given 정수가 아닌 값 null When 기록하면 Then 거절한다 0ms
+   ❯ 서울 날짜 (1)
+     × Given UTC 시각 When 서울 날짜를 구하면 Then 15시를 넘으면 다음 날이다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 36 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 줄바꿈·제어 문자·겹친 공백이 섞인 이름 When 정리하면 Then 한 칸 공백의 NFC 한 줄 이름이 된다
+Error: not implemented
+ ❯ normalizeTitle src/features/wishlist/product-fields.ts:14:9
+     12| export function normalizeTitle(value: string): string {
+     13|   void value;
+     14|   throw new Error("not implemented");
+       |         ^
+     15| }
+     16|
+ ❯ src/features/wishlist/product-fields.test.ts:17:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 120 코드 포인트의 이름 When 고치면 Then 그대로 받고, 121이면 자르지 않고 거절한다
+Error: not implemented
+ ❯ parseProductTitle src/features/wishlist/product-fields.ts:19:9
+     17| export function parseProductTitle(input: unknown): FieldResult<string>…
+     18|   void input;
+     19|   throw new Error("not implemented");
+       |         ^
+     20| }
+     21|
+ ❯ src/features/wishlist/product-fields.test.ts:22:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 앞뒤 공백 When 고치면 Then 정리한 이름을 받는다
+Error: not implemented
+ ❯ parseProductTitle src/features/wishlist/product-fields.ts:19:9
+     17| export function parseProductTitle(input: unknown): FieldResult<string>…
+     18|   void input;
+     19|   throw new Error("not implemented");
+       |         ^
+     20| }
+     21|
+ ❯ src/features/wishlist/product-fields.test.ts:28:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 비어 있는 이름 "" When 고치면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 비어 있는 이름 "   " When 고치면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 비어 있는 이름 "\u0000\n" When 고치면 Then 거절한다
+Error: not implemented
+ ❯ parseProductTitle src/features/wishlist/product-fields.ts:19:9
+     17| export function parseProductTitle(input: unknown): FieldResult<string>…
+     18|   void input;
+     19|   throw new Error("not implemented");
+       |         ^
+     20| }
+     21|
+ ❯ src/features/wishlist/product-fields.test.ts:32:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 문자열이 아니거나 깨진 이름 null When 고치면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 문자열이 아니거나 깨진 이름 1 When 고치면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 상품 이름 > Given 문자열이 아니거나 깨진 이름 "가\ud800" When 고치면 Then 거절한다
+Error: not implemented
+ ❯ parseProductTitle src/features/wishlist/product-fields.ts:19:9
+     17| export function parseProductTitle(input: unknown): FieldResult<string>…
+     18|   void input;
+     19|   throw new Error("not implemented");
+       |         ^
+     20| }
+     21|
+ ❯ src/features/wishlist/product-fields.test.ts:36:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 메모 > Given 3000 코드 포인트의 메모 When 적으면 Then 적은 그대로 받고, 3001이면 거절한다
+Error: not implemented
+ ❯ parseProductNote src/features/wishlist/product-fields.ts:24:9
+     22| export function parseProductNote(input: unknown): FieldResult<string> {
+     23|   void input;
+     24|   throw new Error("not implemented");
+       |         ^
+     25| }
+     26|
+ ❯ src/features/wishlist/product-fields.test.ts:42:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 메모 > Given 줄바꿈과 앞뒤 공백 When 적으면 Then 바꾸지 않고, 빈 메모도 받는다
+Error: not implemented
+ ❯ parseProductNote src/features/wishlist/product-fields.ts:24:9
+     22| export function parseProductNote(input: unknown): FieldResult<string> {
+     23|   void input;
+     24|   throw new Error("not implemented");
+       |         ^
+     25| }
+     26|
+ ❯ src/features/wishlist/product-fields.test.ts:48:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 메모 > Given 저장할 수 없는 메모 null When 적으면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 메모 > Given 저장할 수 없는 메모 3 When 적으면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 메모 > Given 저장할 수 없는 메모 "가\u0000" When 적으면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 메모 > Given 저장할 수 없는 메모 "가\udc00" When 적으면 Then 거절한다
+Error: not implemented
+ ❯ parseProductNote src/features/wishlist/product-fields.ts:24:9
+     22| export function parseProductNote(input: unknown): FieldResult<string> {
+     23|   void input;
+     24|   throw new Error("not implemented");
+       |         ^
+     25| }
+     26|
+ ❯ src/features/wishlist/product-fields.test.ts:53:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 빈 칸 When 기록하면 Then 구매일 없음이다
+Error: not implemented
+ ❯ parsePurchaseDate src/features/wishlist/product-fields.ts:30:9
+     28|   void input;
+     29|   void today;
+     30|   throw new Error("not implemented");
+       |         ^
+     31| }
+     32|
+ ❯ src/features/wishlist/product-fields.test.ts:59:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 오늘과 1900-01-01 When 기록하면 Then 받는다
+Error: not implemented
+ ❯ parsePurchaseDate src/features/wishlist/product-fields.ts:30:9
+     28|   void input;
+     29|   void today;
+     30|   throw new Error("not implemented");
+       |         ^
+     31| }
+     32|
+ ❯ src/features/wishlist/product-fields.test.ts:64:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 서울 기준 내일 When 기록하면 Then 오늘까지만 받는다고 거절한다
+Error: not implemented
+ ❯ parsePurchaseDate src/features/wishlist/product-fields.ts:30:9
+     28|   void input;
+     29|   void today;
+     30|   throw new Error("not implemented");
+       |         ^
+     31| }
+     32|
+ ❯ src/features/wishlist/product-fields.test.ts:69:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 달력에 없거나 형식이 다른 날 "2026-02-30" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 달력에 없거나 형식이 다른 날 "2026-13-01" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 달력에 없거나 형식이 다른 날 "0000-01-01" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 달력에 없거나 형식이 다른 날 "1899-12-31" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 달력에 없거나 형식이 다른 날 "2026/11/01" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 달력에 없거나 형식이 다른 날 "2026-1-1" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 달력에 없거나 형식이 다른 날 " 2026-11-01" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 구매일 > Given 달력에 없거나 형식이 다른 날 20261101 When 기록하면 Then 거절한다
+Error: not implemented
+ ❯ parsePurchaseDate src/features/wishlist/product-fields.ts:30:9
+     28|   void input;
+     29|   void today;
+     30|   throw new Error("not implemented");
+       |         ^
+     31| }
+     32|
+ ❯ src/features/wishlist/product-fields.test.ts:76:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 빈 칸과 0 When 기록하면 Then 미입력과 0원을 구분한다
+Error: not implemented
+ ❯ parsePaidPrice src/features/wishlist/product-fields.ts:35:9
+     33| export function parsePaidPrice(input: unknown): FieldResult<PaidPrice …
+     34|   void input;
+     35|   throw new Error("not implemented");
+       |         ^
+     36| }
+     37|
+ ❯ src/features/wishlist/product-fields.test.ts:83:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 원 단위 정수 When 기록하면 Then 원화 최소 단위로 받는다
+Error: not implemented
+ ❯ parsePaidPrice src/features/wishlist/product-fields.ts:35:9
+     33| export function parsePaidPrice(input: unknown): FieldResult<PaidPrice …
+     34|   void input;
+     35|   throw new Error("not implemented");
+       |         ^
+     36| }
+     37|
+ ❯ src/features/wishlist/product-fields.test.ts:89:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 정수가 아닌 값 "-1" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 정수가 아닌 값 "1.5" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 정수가 아닌 값 "1,000" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 정수가 아닌 값 "1e3" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 정수가 아닌 값 "２" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 정수가 아닌 값 "9007199254740992" When 기록하면 Then 거절한다
+ FAIL  src/features/wishlist/product-fields.test.ts > 실구매가 > Given 정수가 아닌 값 null When 기록하면 Then 거절한다
+Error: not implemented
+ ❯ parsePaidPrice src/features/wishlist/product-fields.ts:35:9
+     33| export function parsePaidPrice(input: unknown): FieldResult<PaidPrice …
+     34|   void input;
+     35|   throw new Error("not implemented");
+       |         ^
+     36| }
+     37|
+ ❯ src/features/wishlist/product-fields.test.ts:95:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/36]⎯
+
+ FAIL  src/features/wishlist/product-fields.test.ts > 서울 날짜 > Given UTC 시각 When 서울 날짜를 구하면 Then 15시를 넘으면 다음 날이다
+Error: not implemented
+ ❯ seoulToday src/features/wishlist/product-fields.ts:40:9
+     38| export function seoulToday(now: Date): string {
+     39|   void now;
+     40|   throw new Error("not implemented");
+       |         ^
+     41| }
+     42|
+ ❯ src/features/wishlist/product-fields.test.ts:101:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/36]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  36 failed (36)
+   Start at  18:15:11
+   Duration  191ms (transform 57%, import 19%, tests 19%, worker 6%)
+

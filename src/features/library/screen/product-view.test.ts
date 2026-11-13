@@ -77,6 +77,17 @@ describe("상품 카드 문구", () => {
     expect(toProductCardView(queued, []).purchased).toBe(false);
   });
 
+  it("Given 구매한 상품 When 카드로 보이면 Then 마지막 확인 가격 대신 실구매가와 구매일을 보여주고 0원과 미입력을 구분한다", () => {
+    const checked = { amountMinor: 289000, currency: "KRW", checkedAt: "2026-11-10T16:30:00.000Z" };
+    const bought = (date: string | null, price: { amountMinor: number; currency: string } | null): ProductResponse =>
+      ({ ...queued, lastSuccessfulPrice: checked, purchase: { status: "purchased", date, price } });
+    expect(toProductCardView(bought(null, null), []).price).toEqual({ value: "실구매가 미입력", checked: null });
+    expect(toProductCardView(bought(null, { amountMinor: 0, currency: "KRW" }), []).price).toEqual({ value: "₩0", checked: "실구매가" });
+    expect(toProductCardView(bought("2026-11-01", { amountMinor: 259000, currency: "KRW" }), []).price)
+      .toEqual({ value: "₩259,000", checked: "실구매가 · 2026. 11. 01. 구매" });
+    expect(toProductCardView(bought("2026-11-01", null), []).price).toEqual({ value: "실구매가 미입력", checked: "2026. 11. 01. 구매" });
+  });
+
   it("Given 여러 컬렉션 When 카드로 보이면 Then 첫 컬렉션 이름과 나머지 개수를 보여주고 모르는 id는 세지 않는다", () => {
     const product = { ...queued, collectionIds: [room.id, "99999999-9999-4999-8999-999999999999", desk.id, kitchen.id] };
     expect(toProductCardView(product, [desk, room, kitchen]).collection).toEqual({ filed: true, text: "방 +2" });
@@ -90,7 +101,7 @@ describe("상품 카드 문구", () => {
 
 describe("상품 상세 문구", () => {
   it("Given 막 담은 링크 When 상세로 보이면 Then 정보를 아직 가져오지 않았고 원본 링크는 보관했다고 말한다", () => {
-    expect(toProductDetailView({ ...queued, collectionIds: [desk.id, room.id] }, [desk, room], null)).toEqual({
+    expect(toProductDetailView({ ...queued, collectionIds: [desk.id, room.id] }, null)).toEqual({
       shop: "shop.example",
       title: "새로 담은 상품",
       option: "옵션 미입력",
@@ -99,9 +110,7 @@ describe("상품 상세 문구", () => {
       status: { title: "정보 수집 대기", detail: "상품 정보는 아직 가져오지 않았어요. 원본 링크는 보관했어요." },
       sourceUrl: "https://www.shop.example/item?utm_source=a",
       openUrl: "https://www.shop.example/item?utm_source=a",
-      collectionNames: ["책상", "방"],
       addedOn: "2026. 11. 11.",
-      note: null,
       arrival: null,
       canRetry: false,
       picture: { kind: "placeholder", icon: "waiting", text: "사진을 가져오는 중" },
@@ -114,26 +123,22 @@ describe("상품 상세 문구", () => {
     ["ready", "상품 정보를 가져왔어요", "2026. 11. 11.에 확인했어요."],
   ] as const)("Given 수집 단계 %s When 상세로 보이면 Then 그 단계를 설명한다", (phase, title, detail) => {
     const metadata = everyPhase.find((item) => item.phase === phase)!;
-    expect(toProductDetailView({ ...queued, metadata }, [], null).status).toEqual({ title, detail });
+    expect(toProductDetailView({ ...queued, metadata }, null).status).toEqual({ title, detail });
   });
 
   it("Given http(s)가 아닌 원본 주소 When 상세로 보이면 Then 주소는 보여주되 열기 링크는 만들지 않는다", () => {
     for (const sourceUrl of ["javascript:alert(1)", "data:text/html,hi", "not a url"]) {
-      const view = toProductDetailView({ ...queued, sourceUrl }, [], null);
+      const view = toProductDetailView({ ...queued, sourceUrl }, null);
       expect(view.sourceUrl).toBe(sourceUrl);
       expect(view.openUrl).toBeNull();
     }
   });
 
   it("Given 저장 결과 When 상세로 보이면 Then 담았다·이미 담았다 안내를 고른다", () => {
-    expect(toProductDetailView(queued, [], "added").arrival).toBe("위시에 담았어요");
-    expect(toProductDetailView(queued, [], "duplicate").arrival).toBe("이미 담아둔 상품이에요");
+    expect(toProductDetailView(queued, "added").arrival).toBe("위시에 담았어요");
+    expect(toProductDetailView(queued, "duplicate").arrival).toBe("이미 담아둔 상품이에요");
   });
 
-  it("Given 메모가 있는 상품 When 상세로 보이면 Then 메모를 보여주고 공백뿐이면 숨긴다", () => {
-    expect(toProductDetailView({ ...queued, note: "선물용" }, [], null).note).toBe("선물용");
-    expect(toProductDetailView({ ...queued, note: "  " }, [], null).note).toBeNull();
-  });
 });
 
 describe("수집 결과와 다시 가져오기", () => {
@@ -148,7 +153,7 @@ describe("수집 결과와 다시 가져오기", () => {
     ["dns_failed", "쇼핑몰 주소를 찾지 못했어요."],
     ["attempts_exhausted", "여러 번 시도했지만 가져오지 못했어요."],
   ] as const)("Given %s로 실패 When 상세로 보이면 Then 이유와 링크 보관을 함께 말한다", (code, reason) => {
-    expect(toProductDetailView(failed(code), [], null).status)
+    expect(toProductDetailView(failed(code), null).status)
       .toEqual({ title: "정보를 가져오지 못했어요", detail: `${reason} 원본 링크는 그대로 보관했어요.` });
   });
 
@@ -156,7 +161,7 @@ describe("수집 결과와 다시 가져오기", () => {
     const codes = ["invalid_url", "blocked_address", "dns_failed", "connect_failed", "timeout", "too_many_redirects",
       "blocked_by_site", "http_status", "unsupported_content", "too_large", "decode_failed", "no_product_data",
       "attempts_exhausted", "internal"] as const;
-    const details = codes.map((code) => toProductDetailView(failed(code), [], null).status.detail);
+    const details = codes.map((code) => toProductDetailView(failed(code), null).status.detail);
     expect(new Set(details).size).toBe(codes.length);
     expect(details.every((detail) => detail.endsWith(" 원본 링크는 그대로 보관했어요."))).toBe(true);
   });
@@ -164,7 +169,7 @@ describe("수집 결과와 다시 가져오기", () => {
   it("Given 멈춘 작업 When 카드와 상세로 보이면 Then 멈췄다고 말하고 다시 가져올 수 있다", () => {
     const stalled: ProductResponse = { ...queued, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } };
     expect(toProductCardView(stalled, []).status).toBe("정보 수집 멈춤");
-    expect(toProductDetailView(stalled, [], null)).toMatchObject({
+    expect(toProductDetailView(stalled, null)).toMatchObject({
       status: { title: "정보 수집이 멈췄어요", detail: "다시 가져오기를 눌러 주세요. 원본 링크는 그대로 보관했어요." },
       canRetry: true,
     });
@@ -176,7 +181,7 @@ describe("수집 결과와 다시 가져오기", () => {
     for (const metadata of everyPhase.filter((item) => item.phase !== "failed")) {
       expect(canRetry({ ...queued, metadata })).toBe(false);
     }
-    expect(toProductDetailView(failed("timeout"), [], null).canRetry).toBe(true);
+    expect(toProductDetailView(failed("timeout"), null).canRetry).toBe(true);
   });
 
   it("Given 정보를 가져온 상품 When 카드와 상세로 보이면 Then 가져온 이름과 가격을 보여준다", () => {
@@ -187,7 +192,7 @@ describe("수집 결과와 다시 가져오기", () => {
       lastSuccessfulPrice: { amountMinor: 289000, currency: "KRW", checkedAt: "2026-11-11T00:00:00.000Z" },
     };
     expect(toProductCardView(ready, [])).toMatchObject({ title: "무선 헤드폰 블랙", status: null, price: { value: "₩289,000" } });
-    expect(toProductDetailView(ready, [], null)).toMatchObject({ title: "무선 헤드폰 블랙", canRetry: false });
+    expect(toProductDetailView(ready, null)).toMatchObject({ title: "무선 헤드폰 블랙", canRetry: false });
   });
 });
 
@@ -198,7 +203,7 @@ describe("실제 데이터만 말하기", () => {
         for (const purchase of [{ status: "wish" as const }, { status: "purchased" as const, date: null, price: null }]) {
           const product = { ...queued, metadata, lastSuccessfulPrice, purchase, collectionIds: [desk.id] };
           for (const arrival of ["added", "duplicate", null] as const) {
-            const text = JSON.stringify([toProductCardView(product, [desk]), toProductDetailView(product, [desk], arrival)]);
+            const text = JSON.stringify([toProductCardView(product, [desk]), toProductDetailView(product, arrival)]);
             expect(text).not.toContain("예시");
           }
         }
@@ -222,7 +227,7 @@ describe("상품 사진", () => {
   it("Given 사본이 있는 상품 When 카드와 상세로 보이면 Then 같은 출처 주소로 사진을 보이고 상세는 이름을 대체 글로 쓴다", () => {
     const product = ready({ outcome: "copied" }, { src });
     expect(toProductCardView(product, []).picture).toEqual({ kind: "photo", src, alt: "" });
-    expect(toProductDetailView(product, [], null).picture).toEqual({ kind: "photo", src, alt: "무선 헤드폰 사진" });
+    expect(toProductDetailView(product, null).picture).toEqual({ kind: "photo", src, alt: "무선 헤드폰 사진" });
   });
 
   it.each<[string, ProductResponse, string, string]>([
@@ -234,7 +239,7 @@ describe("상품 사진", () => {
     ["멈춘 수집", { ...queued, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } }, "link", "링크를 담아두었어요"],
   ])("Given %s이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다", (_, product, icon, text) => {
     expect(toProductCardView(product, []).picture).toEqual({ kind: "placeholder", icon, text });
-    expect(toProductDetailView(product, [], null).picture).toEqual({ kind: "placeholder", icon, text });
+    expect(toProductDetailView(product, null).picture).toEqual({ kind: "placeholder", icon, text });
   });
 
   it("Given 이전 사본이 있고 이번 사진은 실패 When 보이면 Then 이전 사본을 계속 보인다", () => {
@@ -242,7 +247,7 @@ describe("상품 사진", () => {
   });
 
   it("Given 사진을 가져오지 못한 상품 When 상세로 보이면 Then 이유와 이름·가격은 가져왔다는 말을 하고 다시 가져올 수 있다", () => {
-    const view = toProductDetailView(ready({ outcome: "failed", errorCode: "blocked_by_site" }), [], null);
+    const view = toProductDetailView(ready({ outcome: "failed", errorCode: "blocked_by_site" }), null);
     expect(view.status).toEqual({ title: "사진을 가져오지 못했어요", detail: "쇼핑몰이 사진 요청을 막았어요. 이름과 가격은 가져왔어요." });
     expect(view.canRetry).toBe(true);
     expect(toProductCardView(ready({ outcome: "failed", errorCode: "blocked_by_site" }), []).status).toBeNull();

@@ -1,12 +1,12 @@
 "use client";
 
-import { Bookmark, Folder, LogOut, Plus } from "lucide-react";
+import { Bookmark, Check, Folder, LogOut, Pencil, Plus, ShoppingBag, X } from "lucide-react";
 import type { LibraryReadResponse } from "../presentation/library-dto";
 import { AddLinkDialog } from "./AddLinkDialog";
 import { CollectionDialog } from "./CollectionDialog";
 import { LibraryProductCard } from "./LibraryProductCard";
 import { ProductDetailDialog } from "./ProductDetailDialog";
-import { visibleProducts, type LibraryScreenState, type ScreenEvent } from "./screen-state";
+import { visibleProducts, visibleToast, type LibraryScreenState, type ScreenEvent, type View } from "./screen-state";
 import { useLibraryScreen } from "./useLibraryScreen";
 
 type Ready = Extract<LibraryScreenState, { phase: "ready" }>;
@@ -34,9 +34,69 @@ function SignOut() {
   );
 }
 
-function countIn(library: LibraryReadResponse, collectionId: string | null) {
-  if (collectionId === null) return library.products.length;
-  return library.products.filter((product) => product.collectionIds.includes(collectionId)).length;
+const views = [
+  { id: "wish", label: "위시리스트", icon: Bookmark },
+  { id: "purchased", label: "구매완료", icon: ShoppingBag },
+] as const;
+
+const headings: Record<View, { title: string; lead: string; results: string; hint: string }> = {
+  wish: {
+    title: "나의 위시리스트",
+    lead: "지금은 담아두고, 마음이 정해지면 꺼내보세요.",
+    results: "담아둔 물건",
+    hint: "천천히 골라도 괜찮아요",
+  },
+  purchased: {
+    title: "함께하게 된 물건들",
+    lead: "고민 끝에 내 일상으로 들어온 것들",
+    results: "구매한 물건",
+    hint: "구매일과 실구매가는 나중에 적어도 돼요",
+  },
+};
+
+function countIn(library: LibraryReadResponse, view: View, collectionId: string | null) {
+  return visibleProducts(library, view, collectionId).length;
+}
+
+function ViewNav({ view, send, mobile = false }: { view: View; send: Send; mobile?: boolean }) {
+  return (
+    <nav className={mobile ? "mobile-nav" : "desktop-nav"} aria-label={mobile ? "모바일 보기" : "보기"}>
+      {views.map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          className={view === id ? "active" : ""}
+          aria-current={view === id ? "page" : undefined}
+          onClick={() => send({ type: "view", view: id })}
+        >
+          <Icon size={19} strokeWidth={1.7} aria-hidden="true" />
+          <span>{label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+// The region stays mounted so screen readers announce a toast when it appears.
+function Toast({ state, send }: { state: Ready; send: Send }) {
+  const toast = visibleToast(state);
+  return (
+    <div role="status">
+      {toast && (
+        <div className="toast">
+          <Check size={17} aria-hidden="true" />
+          <span>{toast.message}</span>
+          {toast.undo && (
+            <button disabled={state.writing !== null || state.refreshing} onClick={() => send({ type: "toast.undo" })}>
+              실행 취소
+            </button>
+          )}
+          <button className="toast-close" aria-label="알림 닫기" onClick={() => send({ type: "toast.dismiss" })}>
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
@@ -56,7 +116,14 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
   }
   if (dialog?.kind === "collection") {
     return (
-      <CollectionDialog name={dialog.name} saving={dialog.saving} refreshing={state.refreshing} error={dialog.error} send={send} />
+      <CollectionDialog
+        renaming={dialog.renaming !== null}
+        name={dialog.name}
+        saving={dialog.saving}
+        refreshing={state.refreshing}
+        error={dialog.error}
+        send={send}
+      />
     );
   }
   if (dialog?.kind === "detail") {
@@ -67,10 +134,11 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
         product={product}
         collections={library.collections}
         arrival={dialog.arrival}
-        retrying={state.retrying === product.id}
-        error={dialog.error}
-        onRetry={() => send({ type: "metadata.retry", productId: product.id })}
-        onClose={() => send({ type: "dialog.close" })}
+        draft={dialog.draft}
+        notice={dialog.notice}
+        writing={state.writing?.productId === product.id ? state.writing.intent : null}
+        blocked={state.writing !== null || state.refreshing}
+        send={send}
       />
     ) : null;
   }
@@ -78,9 +146,11 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
 }
 
 function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
-  const { library, collectionId } = state;
+  const { library, collectionId, view } = state;
   const selected = library.collections.find((collection) => collection.id === collectionId) ?? null;
-  const products = visibleProducts(library, collectionId);
+  const products = visibleProducts(library, view, collectionId);
+  const heading = headings[view];
+  const writable = state.writing === null && !state.refreshing;
   const filters = [{ id: null, name: "전체" }, ...library.collections];
   const filter = (id: string | null) => send({ type: "filter", collectionId: id });
   return (
@@ -88,6 +158,7 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
       <aside className="sidebar">
         <Brand size={24} onClick={() => filter(null)} />
         <p className="workspace-label">나만의 취향 보관함</p>
+        <ViewNav view={view} send={send} />
         <nav className="sidebar-collections" aria-label="컬렉션">
           <div className="sidebar-section-heading">
             <span>내 컬렉션</span>
@@ -104,7 +175,7 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
             >
               {item.id === null ? <Bookmark size={16} aria-hidden="true" /> : <Folder size={16} aria-hidden="true" />}
               <span>{item.name}</span>
-              <small className="collection-count">{countIn(library, item.id)}</small>
+              <small className="collection-count">{countIn(library, view, item.id)}</small>
             </button>
           ))}
         </nav>
@@ -117,10 +188,20 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
       <main className="main-content" id="main-content">
         <header className="page-heading">
           <div>
-            <h1>{selected ? selected.name : "나의 위시리스트"}</h1>
-            <p>{selected ? "같은 마음으로 모아둔 물건들" : "지금은 담아두고, 마음이 정해지면 꺼내보세요."}</p>
+            <h1>{selected ? selected.name : heading.title}</h1>
+            <p>{selected ? "같은 마음으로 모아둔 물건들" : heading.lead}</p>
           </div>
           <div className="header-actions">
+            {selected && (
+              <button
+                className="icon-button"
+                aria-label="컬렉션 이름 바꾸기"
+                title="컬렉션 이름 바꾸기"
+                onClick={() => send({ type: "rename.open", collectionId: selected.id })}
+              >
+                <Pencil size={17} aria-hidden="true" />
+              </button>
+            )}
             <button className="button primary add-button" data-focus-fallback onClick={() => send({ type: "add.open" })}>
               <Plus size={18} />
               링크 추가
@@ -135,7 +216,7 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
               aria-pressed={item.id === collectionId}
               onClick={() => filter(item.id)}
             >
-              {item.name} <span>{countIn(library, item.id)}</span>
+              {item.name} <span>{countIn(library, view, item.id)}</span>
             </button>
           ))}
           <button aria-label="컬렉션 만들기" onClick={() => send({ type: "collection.open" })}>
@@ -144,9 +225,9 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
         </div>
         <div className="results-heading">
           <p>
-            담아둔 물건 <strong>{products.length}</strong>
+            {heading.results} <strong>{products.length}</strong>
           </p>
-          <span>천천히 골라도 괜찮아요</span>
+          <span>{heading.hint}</span>
         </div>
         {products.length > 0 ? (
           <div className="product-grid">
@@ -155,7 +236,9 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
                 key={product.id}
                 product={product}
                 collections={library.collections}
+                purchasing={!writable}
                 onOpen={() => send({ type: "detail.open", productId: product.id })}
+                onPurchase={() => send({ type: "product.purchase", productId: product.id })}
               />
             ))}
           </div>
@@ -164,11 +247,20 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
             <div className="empty-mark">
               <Bookmark size={29} aria-hidden="true" />
             </div>
-            <h2>아직 담아둔 물건이 없어요</h2>
-            <p>마음에 드는 물건을 발견하면 이곳에 담아두세요.</p>
-            <button className="button secondary" onClick={() => send({ type: "add.open" })}>
-              첫 물건 담기
-            </button>
+            {view === "wish" ? (
+              <>
+                <h2>아직 담아둔 물건이 없어요</h2>
+                <p>마음에 드는 물건을 발견하면 이곳에 담아두세요.</p>
+                <button className="button secondary" onClick={() => send({ type: "add.open" })}>
+                  첫 물건 담기
+                </button>
+              </>
+            ) : (
+              <>
+                <h2>아직 구매한 물건이 없어요</h2>
+                <p>구매완료로 옮긴 물건이 이곳에 모여요.</p>
+              </>
+            )}
           </div>
         )}
         <footer className="page-footer">
@@ -177,6 +269,8 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
           <span>나만의 취향 보관함</span>
         </footer>
       </main>
+      <ViewNav view={view} send={send} mobile />
+      <Toast state={state} send={send} />
       <ScreenDialogs state={state} send={send} />
     </div>
   );

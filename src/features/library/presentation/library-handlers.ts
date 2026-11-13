@@ -2,17 +2,27 @@ import type { Access } from "../../auth/domain/access";
 import type { CollectionRequest } from "../../metadata/application/collection";
 import { toMetadataRetryCommand, type MetadataRetryCommand, type MetadataRetryResult } from "../../metadata/application/commands";
 import { isSameOrigin, readJsonBody } from "../../shared/presentation/http";
-import { toCollectionCreateCommand, toLinkSaveCommand, toPictureViewCommand } from "../application/commands";
+import { seoulToday } from "../../wishlist/product-fields";
+import {
+  toCollectionCreateCommand,
+  toCollectionRenameCommand,
+  toLinkSaveCommand,
+  toPictureViewCommand,
+  toProductChangeCommand,
+} from "../application/commands";
 import type { LibraryService } from "../application/library-service";
 import { LibraryError, type LibraryErrorCode } from "../domain/library";
 import {
   collectionCreateRequestSchema,
+  collectionRenameRequestSchema,
   linkSaveRequestSchema,
   metadataRetryRequestSchema,
+  productChangeRequestSchema,
   toCollectionResponse,
   toLibraryReadResponse,
   toLinkSaveResponse,
   toMetadataRetryResponse,
+  toProductChangeResponse,
   type ErrorCode,
   type ErrorResponse,
 } from "./library-dto";
@@ -26,6 +36,7 @@ export type LibraryRequestContext = {
   retry(command: MetadataRetryCommand): Promise<MetadataRetryResult>;
 };
 export type ProductRoute = { params: Promise<{ productId: string }> };
+export type CollectionRoute = { params: Promise<{ collectionId: string }> };
 
 const errorStatus: Record<ErrorCode, number> = {
   signed_out: 401,
@@ -40,6 +51,7 @@ const errorStatus: Record<ErrorCode, number> = {
   identity_conflict: 409,
   product_missing: 404,
   metadata_not_retryable: 409,
+  revision_conflict: 409,
   picture_missing: 404,
   storage_unavailable: 503,
 };
@@ -57,6 +69,7 @@ const errorMessages: Record<ErrorCode, string> = {
   identity_conflict: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요.",
   product_missing: "상품을 찾을 수 없어요.",
   metadata_not_retryable: "지금은 정보를 다시 가져올 수 없어요.",
+  revision_conflict: "다른 곳에서 먼저 바뀌었어요. 최신 내용을 확인해 주세요.",
   picture_missing: "보여줄 사진이 없어요.",
   storage_unavailable: "잠시 뒤 다시 시도해 주세요.",
 };
@@ -69,6 +82,7 @@ const fromLibraryError: Record<LibraryErrorCode, ErrorCode> = {
   identity_conflict: "identity_conflict",
   product_missing: "product_missing",
   metadata_not_retryable: "metadata_not_retryable",
+  revision_conflict: "revision_conflict",
   storage_unavailable: "storage_unavailable",
 };
 
@@ -139,6 +153,20 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
       if (collectionCreateRequest instanceof Response) return collectionCreateRequest;
       const collection = await service.createCollection(toCollectionCreateCommand(collectionCreateRequest.name));
       return json(201, toCollectionResponse(collection));
+    }, { write: true }),
+    patchCollection: handle<CollectionRoute>(async ({ service }, request, route) => {
+      const { collectionId } = await route.params;
+      const collectionRenameRequest = await readRequest(request, (value) => collectionRenameRequestSchema.parse(value));
+      if (collectionRenameRequest instanceof Response) return collectionRenameRequest;
+      const collection = await service.renameCollection(toCollectionRenameCommand(collectionId, collectionRenameRequest));
+      return json(200, toCollectionResponse(collection));
+    }, { write: true }),
+    patchProduct: handle<ProductRoute>(async ({ service }, request, route) => {
+      const { productId } = await route.params;
+      const productChangeRequest = await readRequest(request, (value) => productChangeRequestSchema.parse(value));
+      if (productChangeRequest instanceof Response) return productChangeRequest;
+      const command = toProductChangeCommand(productId, productChangeRequest, seoulToday(new Date()));
+      return json(200, toProductChangeResponse(await service.changeProduct(command)));
     }, { write: true }),
     postMetadataRetry: handle<ProductRoute>(async ({ retry, collect }, request, route) => {
       const { productId } = await route.params;

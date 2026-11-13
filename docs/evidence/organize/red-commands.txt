@@ -1,0 +1,327 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/application/commands.test.ts (44 tests | 27 failed) 11ms
+   ❯ 상품 정리 명령 (21)
+     × 이름은 정리하고, 메모는 적은 그대로, 컬렉션은 소문자로 한 번씩만 담는다 2ms
+     × 이름을 보내지 않으면 지금 이름을 그대로 둔다 0ms
+     × 빈 구매일과 0원 실구매가를 서로 다른 값으로 담는다 0ms
+     × purchase 변경은 값 없이 담는다 0ms
+     × wish 변경은 값 없이 담는다 0ms
+     × 규칙에 맞지 않는 {"type":"details","title":" ","note":"","collectionIds":[]}은 title 칸의 입력 오류다 2ms
+     × 규칙에 맞지 않는 {"type":"details","title":"가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가","note":"","collectionIds":[]}은 title 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"details","title":null,"note":"가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가","collectionIds":[]}은 note 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"details","title":null,"note":"","collectionIds":["desk"]}은 collection 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"details","title":null,"note":"","collectionIds":["ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620"]}은 collection 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"purchase.record","date":"2026-11-14","price":null}은 date 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"purchase.record","date":"2026-02-30","price":null}은 date 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":-1,"currency":"KRW"}}은 price 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":0.5,"currency":"KRW"}}은 price 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":9007199254740992,"currency":"KRW"}}은 price 칸의 입력 오류다 0ms
+     × 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":1000,"currency":"USD"}}은 price 칸의 입력 오류다 0ms
+     × 화면이 본 revision 0가 범위를 벗어나면 필드 없는 입력 오류다 0ms
+     × 화면이 본 revision 1.5가 범위를 벗어나면 필드 없는 입력 오류다 0ms
+     × 화면이 본 revision 2147483648가 범위를 벗어나면 필드 없는 입력 오류다 0ms
+     × 화면이 본 revision NaN가 범위를 벗어나면 필드 없는 입력 오류다 0ms
+     × UUID가 아닌 상품은 필드 없는 입력 오류다 1ms
+   ❯ 컬렉션 이름 바꾸기 명령 (6)
+     × 이름 규칙으로 정리하고 컬렉션 ID를 소문자로 담는다 0ms
+     × ca47b10d-e052-4910-bdba-75ae5eb99620의 잘못된 입력 {"revision":1,"name":" "}은 입력 오류다 0ms
+     × ca47b10d-e052-4910-bdba-75ae5eb99620의 잘못된 입력 {"revision":1,"name":"가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"}은 입력 오류다 0ms
+     × ca47b10d-e052-4910-bdba-75ae5eb99620의 잘못된 입력 {"revision":1,"name":null}은 입력 오류다 0ms
+     × desk의 잘못된 입력 {"revision":1,"name":"책상"}은 입력 오류다 0ms
+     × ca47b10d-e052-4910-bdba-75ae5eb99620의 잘못된 입력 {"revision":0,"name":"책상"}은 입력 오류다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 27 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 이름은 정리하고, 메모는 적은 그대로, 컬렉션은 소문자로 한 번씩만 담는다
+Error: not implemented
+ ❯ toProductChangeCommand src/features/library/application/commands.ts:115:9
+    113| export function toProductChangeCommand(productId: unknown, input: Prod…
+    114|   void productId; void input; void today; void toProductChange; void p…
+    115|   throw new Error("not implemented");
+       |         ^
+    116| }
+    117|
+ ❯ src/features/library/application/commands.test.ts:76:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 이름을 보내지 않으면 지금 이름을 그대로 둔다
+Error: not implemented
+ ❯ toProductChangeCommand src/features/library/application/commands.ts:115:9
+    113| export function toProductChangeCommand(productId: unknown, input: Prod…
+    114|   void productId; void input; void today; void toProductChange; void p…
+    115|   throw new Error("not implemented");
+       |         ^
+    116| }
+    117|
+ ❯ src/features/library/application/commands.test.ts:87:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 빈 구매일과 0원 실구매가를 서로 다른 값으로 담는다
+Error: not implemented
+ ❯ toProductChangeCommand src/features/library/application/commands.ts:115:9
+    113| export function toProductChangeCommand(productId: unknown, input: Prod…
+    114|   void productId; void input; void today; void toProductChange; void p…
+    115|   throw new Error("not implemented");
+       |         ^
+    116| }
+    117|
+ ❯ src/features/library/application/commands.test.ts:92:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > purchase 변경은 값 없이 담는다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > wish 변경은 값 없이 담는다
+Error: not implemented
+ ❯ toProductChangeCommand src/features/library/application/commands.ts:115:9
+    113| export function toProductChangeCommand(productId: unknown, input: Prod…
+    114|   void productId; void input; void today; void toProductChange; void p…
+    115|   throw new Error("not implemented");
+       |         ^
+    116| }
+    117|
+ ❯ src/features/library/application/commands.test.ts:101:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"details","title":" ","note":"","collectionIds":[]}은 title 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"details","title":"가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가","note":"","collectionIds":[]}은 title 칸의 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": "title",
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:118:8
+    116|   ] as const)("규칙에 맞지 않는 %j은 %s 칸의 입력 오류다", (change, field) => {
+    117|     expect(() => toProductChangeCommand(productId, { revision: 1, chan…
+    118|       .toThrowError(expect.objectContaining({ code: "invalid_input", f…
+       |        ^
+    119|   });
+    120|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"details","title":null,"note":"가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가","collectionIds":[]}은 note 칸의 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": "note",
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:118:8
+    116|   ] as const)("규칙에 맞지 않는 %j은 %s 칸의 입력 오류다", (change, field) => {
+    117|     expect(() => toProductChangeCommand(productId, { revision: 1, chan…
+    118|       .toThrowError(expect.objectContaining({ code: "invalid_input", f…
+       |        ^
+    119|   });
+    120|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"details","title":null,"note":"","collectionIds":["desk"]}은 collection 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"details","title":null,"note":"","collectionIds":["ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620","ca47b10d-e052-4910-bdba-75ae5eb99620"]}은 collection 칸의 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": "collection",
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:118:8
+    116|   ] as const)("규칙에 맞지 않는 %j은 %s 칸의 입력 오류다", (change, field) => {
+    117|     expect(() => toProductChangeCommand(productId, { revision: 1, chan…
+    118|       .toThrowError(expect.objectContaining({ code: "invalid_input", f…
+       |        ^
+    119|   });
+    120|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"purchase.record","date":"2026-11-14","price":null}은 date 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"purchase.record","date":"2026-02-30","price":null}은 date 칸의 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": "date",
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:118:8
+    116|   ] as const)("규칙에 맞지 않는 %j은 %s 칸의 입력 오류다", (change, field) => {
+    117|     expect(() => toProductChangeCommand(productId, { revision: 1, chan…
+    118|       .toThrowError(expect.objectContaining({ code: "invalid_input", f…
+       |        ^
+    119|   });
+    120|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":-1,"currency":"KRW"}}은 price 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":0.5,"currency":"KRW"}}은 price 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":9007199254740992,"currency":"KRW"}}은 price 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":1000,"currency":"USD"}}은 price 칸의 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": "price",
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:118:8
+    116|   ] as const)("규칙에 맞지 않는 %j은 %s 칸의 입력 오류다", (change, field) => {
+    117|     expect(() => toProductChangeCommand(productId, { revision: 1, chan…
+    118|       .toThrowError(expect.objectContaining({ code: "invalid_input", f…
+       |        ^
+    119|   });
+    120|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 화면이 본 revision 0가 범위를 벗어나면 필드 없는 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 화면이 본 revision 1.5가 범위를 벗어나면 필드 없는 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 화면이 본 revision 2147483648가 범위를 벗어나면 필드 없는 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 화면이 본 revision NaN가 범위를 벗어나면 필드 없는 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": undefined,
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:123:8
+    121|   it.each([0, 1.5, 2147483648, Number.NaN])("화면이 본 revision %s가 범위를 벗어…
+    122|     expect(() => toProductChangeCommand(productId, { revision, change:…
+    123|       .toThrowError(expect.objectContaining({ code: "invalid_input", f…
+       |        ^
+    124|   });
+    125|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > UUID가 아닌 상품은 필드 없는 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": undefined,
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:128:8
+    126|   it("UUID가 아닌 상품은 필드 없는 입력 오류다", () => {
+    127|     expect(() => toProductChangeCommand("lamp", { revision: 1, change:…
+    128|       .toThrowError(expect.objectContaining({ code: "invalid_input", f…
+       |        ^
+    129|   });
+    130| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 컬렉션 이름 바꾸기 명령 > 이름 규칙으로 정리하고 컬렉션 ID를 소문자로 담는다
+Error: not implemented
+ ❯ toCollectionRenameCommand src/features/library/application/commands.ts:120:9
+    118| export function toCollectionRenameCommand(collectionId: unknown, input…
+    119|   void collectionId; void input;
+    120|   throw new Error("not implemented");
+       |         ^
+    121| }
+    122|
+ ❯ src/features/library/application/commands.test.ts:134:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 컬렉션 이름 바꾸기 명령 > ca47b10d-e052-4910-bdba-75ae5eb99620의 잘못된 입력 {"revision":1,"name":" "}은 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 컬렉션 이름 바꾸기 명령 > ca47b10d-e052-4910-bdba-75ae5eb99620의 잘못된 입력 {"revision":1,"name":"가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"}은 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 컬렉션 이름 바꾸기 명령 > ca47b10d-e052-4910-bdba-75ae5eb99620의 잘못된 입력 {"revision":1,"name":null}은 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 컬렉션 이름 바꾸기 명령 > desk의 잘못된 입력 {"revision":1,"name":"책상"}은 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": "collection",
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:145:56
+    143|     [collectionId, { revision: 0, name: "책상" }, undefined],
+    144|   ])("%s의 잘못된 입력 %j은 입력 오류다", (id, input, field) => {
+    145|     expect(() => toCollectionRenameCommand(id, input)).toThrowError(ex…
+       |                                                        ^
+    146|   });
+    147| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/27]⎯
+
+ FAIL  src/features/library/application/commands.test.ts > 컬렉션 이름 바꾸기 명령 > ca47b10d-e052-4910-bdba-75ae5eb99620의 잘못된 입력 {"revision":0,"name":"책상"}은 입력 오류다
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "invalid_input",
+-   "field": undefined,
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ src/features/library/application/commands.test.ts:145:56
+    143|     [collectionId, { revision: 0, name: "책상" }, undefined],
+    144|   ])("%s의 잘못된 입력 %j은 입력 오류다", (id, input, field) => {
+    145|     expect(() => toCollectionRenameCommand(id, input)).toThrowError(ex…
+       |                                                        ^
+    146|   });
+    147| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/27]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  27 failed | 17 passed (44)
+   Start at  18:24:19
+   Duration  183ms (transform 43%, import 34%, tests 20%, worker 3%)
+

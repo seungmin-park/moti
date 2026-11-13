@@ -32,6 +32,7 @@ const connection = "연결을 확인하고 다시 시도해 주세요.";
 const readFailed = "보관함을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 const retryLater = "잠시 뒤 다시 시도해 주세요.";
 const reload = "화면을 새로고침한 뒤 다시 시도해 주세요.";
+const changedElsewhere = "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 저장해 주세요.";
 
 const status: Record<ErrorCode, number> = {
   signed_out: 401,
@@ -46,6 +47,7 @@ const status: Record<ErrorCode, number> = {
   identity_conflict: 409,
   product_missing: 404,
   metadata_not_retryable: 409,
+  revision_conflict: 409,
   picture_missing: 404,
   storage_unavailable: 503,
 };
@@ -69,6 +71,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: readFailed },
     product_missing: { kind: "unavailable", message: readFailed },
     metadata_not_retryable: { kind: "unavailable", message: readFailed },
+    revision_conflict: { kind: "unavailable", message: readFailed },
     picture_missing: { kind: "unavailable", message: readFailed },
   },
   "link.save": {
@@ -83,6 +86,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요." },
     product_missing: { kind: "unavailable", message: retryLater },
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.create": {
@@ -97,6 +101,22 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: retryLater },
     product_missing: { kind: "unavailable", message: retryLater },
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    revision_conflict: { kind: "unavailable", message: retryLater },
+    picture_missing: { kind: "unavailable", message: retryLater },
+  },
+  "collection.rename": {
+    ...signedIn,
+    storage_unavailable: { kind: "unavailable", message: retryLater },
+    cross_origin: { kind: "unavailable", message: reload },
+    unsupported_media_type: { kind: "unavailable", message: retryLater },
+    payload_too_large: { kind: "invalid", field: "collection", message: "컬렉션 이름이 너무 길어요." },
+    invalid_input: { kind: "invalid", field: "collection", message: "컬렉션 이름은 1~40자로 입력해 주세요." },
+    collection_missing: { kind: "stale", message: "컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요." },
+    collection_duplicate: { kind: "stale", message: "같은 이름의 컬렉션이 이미 있어요." },
+    identity_conflict: { kind: "unavailable", message: retryLater },
+    product_missing: { kind: "unavailable", message: retryLater },
+    metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    revision_conflict: { kind: "stale", message: changedElsewhere },
     picture_missing: { kind: "unavailable", message: retryLater },
   },
   "metadata.retry": {
@@ -111,13 +131,30 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: retryLater },
     product_missing: { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." },
     metadata_not_retryable: { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." },
+    revision_conflict: { kind: "unavailable", message: retryLater },
+    picture_missing: { kind: "unavailable", message: retryLater },
+  },
+  "product.change": {
+    ...signedIn,
+    storage_unavailable: { kind: "unavailable", message: retryLater },
+    cross_origin: { kind: "unavailable", message: reload },
+    unsupported_media_type: { kind: "unavailable", message: retryLater },
+    payload_too_large: { kind: "invalid", field: "note", message: "메모가 너무 길어요." },
+    invalid_input: { kind: "invalid", field: "note", message: "메모는 3,000자까지 적을 수 있어요." },
+    collection_missing: { kind: "stale", message: "선택한 컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요." },
+    collection_duplicate: { kind: "unavailable", message: retryLater },
+    identity_conflict: { kind: "unavailable", message: retryLater },
+    product_missing: { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." },
+    metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    revision_conflict: { kind: "stale", message: changedElsewhere },
     picture_missing: { kind: "unavailable", message: retryLater },
   },
 };
 
 function errorBody(endpoint: Endpoint, code: ErrorCode) {
   if (code !== "invalid_input") return { error: code, message: "서버 문구" };
-  return endpoint === "collection.create"
+  if (endpoint === "product.change") return { error: code, message: "메모는 3,000자까지 적을 수 있어요.", field: "note" };
+  return endpoint === "collection.create" || endpoint === "collection.rename"
     ? { error: code, message: "컬렉션 이름은 1~40자로 입력해 주세요.", field: "collection" }
     : { error: code, message: "서버가 거절한 링크예요.", field: "url" };
 }
@@ -153,6 +190,17 @@ describe("API 오류 응답의 화면 결과", () => {
       expect(toApiFailure("link.save", 400, { error: "invalid_input", message: "옵션을 확인해요.", field }))
         .toEqual({ kind: "invalid", field, message: "옵션을 확인해요." });
     }
+  });
+
+  it("Given 상품 정리의 이름·구매일·실구매가 오류 When 결과로 바꾸면 Then 그 칸에 서버 문구를 붙이고, 모르는 필드는 새로고침을 안내한다", () => {
+    for (const field of ["title", "note", "collection", "date", "price"] as const) {
+      expect(toApiFailure("product.change", 400, { error: "invalid_input", message: "서버 문구", field }))
+        .toEqual({ kind: "invalid", field, message: "서버 문구" });
+    }
+    expect(toApiFailure("product.change", 400, { error: "invalid_input", message: "상태가 맞지 않아요." }))
+      .toEqual({ kind: "invalid", field: null, message: reload });
+    expect(toApiFailure("link.save", 400, { error: "invalid_input", message: "서버 문구", field: "title" }))
+      .toEqual({ kind: "invalid", field: null, message: "입력을 확인해 주세요." });
   });
 
   it("Given 계약에 없는 오류 본문 When 결과로 바꾸면 Then 401은 로그인으로, 나머지는 연결 안내로 바꾼다", () => {
@@ -217,6 +265,33 @@ describe("보관함 API 클라이언트", () => {
   it("Given 다시 가져오기에 202가 아닌 성공 코드 When 요청하면 Then 연결 안내로 실패한다", async () => {
     const { api } = respond({ product }, { status: 200 });
     await expect(api.retryMetadata(product.id, { generation: 1 })).resolves.toEqual({ ok: false, failure: { kind: "unavailable", message: connection } });
+  });
+
+  it("Given 상품 정리 When 요청하면 Then 상품 경로에 PATCH로 revision과 변경을 보내고 200 상품을 돌려준다", async () => {
+    const { fetcher, api } = respond({ product }, { status: 200 });
+    const body = { revision: 2, change: { type: "details" as const, title: null, note: "선물용", collectionIds: [collection.id] } };
+    await expect(api.changeProduct(product.id, body)).resolves.toEqual({ ok: true, value: { product } });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe(`/api/products/${product.id}`);
+    expect(init?.method).toBe("PATCH");
+    expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual(body);
+  });
+
+  it("Given 컬렉션 이름 바꾸기 When 요청하면 Then 컬렉션 경로에 PATCH로 revision과 이름을 보내고 200 컬렉션을 돌려준다", async () => {
+    const renamed = { ...collection, name: "작업 공간", revision: 2 };
+    const { fetcher, api } = respond(renamed, { status: 200 });
+    await expect(api.renameCollection(collection.id, { revision: 1, name: "작업 공간" })).resolves.toEqual({ ok: true, value: renamed });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe(`/api/collections/${collection.id}`);
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(String(init?.body))).toEqual({ revision: 1, name: "작업 공간" });
+  });
+
+  it("Given 상품 정리에 200이 아닌 성공 코드 When 요청하면 Then 연결 안내로 실패한다", async () => {
+    const { api } = respond({ product }, { status: 201 });
+    await expect(api.changeProduct(product.id, { revision: 1, change: { type: "purchase" } }))
+      .resolves.toEqual({ ok: false, failure: { kind: "unavailable", message: connection } });
   });
 
   it("Given 경로에 쓸 수 없는 문자가 섞인 id When 다시 가져오면 Then 경로 조각으로 인코딩한다", async () => {

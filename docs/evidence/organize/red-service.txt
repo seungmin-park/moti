@@ -1,0 +1,180 @@
+# npm run test:database with tests/service/library-organize.test.ts while changeProduct/renameCollection in supabase-library-store.ts threw 'not implemented'
+
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/persistence/library-organize.test.ts (40 tests) 11198ms
+   ✓ 상품 정리: 이름·메모·컬렉션 (16)
+     ✓ 이름·메모·컬렉션을 한 번에 고치면 revision과 수정 시각이 바뀌고 새로 읽어도 같다 347ms
+ ✓ tests/persistence/picture-storage.test.ts (27 tests) 7980ms
+   ✓ 상품 사진 사본 저장소 (27)
+     ✓ 사진 버킷은 비공개이고 1 MiB 이하의 WebP만 받는다 306ms
+     ✓ 임대가 살아 있는 작업의 예약된 이름에만 소유자 토큰으로 WebP를 한 번 올린다 358ms
+     ✓ 맡지 않았거나 끝났거나 임대가 지난 작업의 이름에는 올릴 수 없다 324ms
+     ✓ 소유자는 서명한 주소로 같은 바이트를 받고 공개 주소·다른 계정·익명은 읽지 못한다 319ms
+     ✓ 완료는 이번 사진 결과를 기록하고 새 사본만 보여줄 사진을 바꾼다 350ms
+     ✓ 소유자도 보여주는 사진은 지우지 못하고 바뀐 사진만 지운다 318ms
+     ✓ 완료는 보여줄 사본의 저장 버전을 작업과 함께 기록하고 둘 중 하나만 남길 수 없다 304ms
+     ✓ 임대 중에 받은 서명 업로드 주소로 완료 뒤 사본을 바꾸면 그 사본은 다시 찾지도 서명하지도 않는다 313ms
+     ✓ 작업이 끝난 뒤 서명 업로드 주소로 예약된 이름에 써도 보여줄 사진은 바뀌지 않는다 310ms
+     ✓ 사진을 가져오지 못한 상품은 다시 가져오면 새 세대로 대기하고 사본이 있는 상품은 거절한다 302ms
+     ✓ 보여줄 사진의 이름은 소유자만 찾고 상품 응답에는 이름도 버킷도 없다 302ms
+     ✓ 보관함 저장소는 보여줄 사진을 한 시간짜리 서명 주소로 열고 사본이 없으면 없다고 답한다 300ms
+ ✓ tests/persistence/metadata-jobs.test.ts (26 tests) 7464ms
+   ✓ 수집 작업 저장소 (26)
+     ✓ 맡은 작업을 완료하면 이름과 가격을 기록하고 작업에만 이미지 주소를 남긴다 318ms
+     ✓ moti_metadata_complete의 잘못된 입력 {"p_title":"가…(3001자)"}은 DB가 거절한다 314ms
+ ✓ tests/persistence/library-security.test.ts (19 tests) 5286ms
+   ✓ 실제 DB 소유자 경계 (19)
+     ✓ anonymous 접근은 조회와 두 쓰기 명령을 모두 거절한다 322ms
+ ✓ tests/service/collection-runner.test.ts (16 tests) 4633ms
+   ✓ 실제 저장소를 사용하는 수집 실행 (16)
+     ✓ 쇼핑몰 페이지를 읽어 이름과 하나의 가격을 저장하고 원본 링크는 그대로 둔다 321ms
+     ✓ 쇼핑몰 요청이 too_many_redirects로 실패해도 링크를 지키고 실패 코드를 기록한다 341ms
+ ✓ tests/persistence/library-store.test.ts (14 tests) 4002ms
+   ✓ 실제 Supabase 저장소 (14)
+     ✓ 새 소유자의 보관함을 빈 도메인 값으로 읽는다 317ms
+ ✓ tests/service/picture-copy.test.ts (6 tests) 2086ms
+   ✓ 실제 저장소를 쓰는 사진 사본 복사 (6)
+     ✓ 페이지의 사진을 비공개 WebP 사본으로 저장하고 이름·가격과 함께 사본을 보여준다 382ms
+     ✓ 사진 요청이 시간 초과여도 링크·이름·가격은 저장하고 다시 가져오면 사진을 복사한다 345ms
+     ✓ 새 사본이 생기면 이전 사본을 지워 상품마다 사본이 하나만 남는다 400ms
+     ✓ 올린 뒤 새 세대로 바뀐 실행은 결과를 쓰지 않고 자기 사본을 지운다 334ms
+     ✓ 임대가 끝나 저장소가 올리기를 거절해도 링크·이름·가격은 남고 올리기 실패로 기록한다 325ms
+ ❯ tests/service/library-organize.test.ts (10 tests | 10 failed) 2798ms
+   ❯ 실제 저장소를 쓰는 상품 정리 서비스 (10)
+     × 이름·메모·컬렉션을 고친 뒤 구매·되돌리기·다시 구매·구매 기록·위시 복귀를 거쳐도 메모와 컬렉션이 남는다 314ms
+     × 컬렉션 이름을 바꾸면 새로 읽은 보관함에서 같은 상품이 새 이름 아래에 있다 281ms
+     × 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 고치면 revision_conflict이고 저장된 값은 그대로다 275ms
+     × 업무 규칙에 맞지 않는 {"type":"details","title":" ","note":"","collectionIds":[]}은 title 칸의 입력 오류이고 저장하지 않는다 273ms
+     × 업무 규칙에 맞지 않는 {"type":"details","title":null,"note":"가…(3001자)","collectionIds":[]}은 note 칸의 입력 오류이고 저장하지 않는다 273ms
+     × 업무 규칙에 맞지 않는 {"type":"details","title":null,"note":"","collectionIds":["not-a-uuid"]}은 collection 칸의 입력 오류이고 저장하지 않는다 277ms
+     × 업무 규칙에 맞지 않는 {"type":"purchase.record","date":"2999-01-01","price":null}은 date 칸의 입력 오류이고 저장하지 않는다 275ms
+     × 업무 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":1000,"currency":"USD"}}은 price 칸의 입력 오류이고 저장하지 않는다 272ms
+     × 다른 소유자의 컬렉션을 넣으면 collection_missing이고 소속은 그대로다 278ms
+     × 허용하지 않은 사용자는 서비스에서도 상품과 컬렉션을 정리하지 못한다 279ms
+ ✓ tests/service/library-service.test.ts (10 tests) 2774ms
+   ✓ 실제 저장소를 사용하는 서비스 (10)
+     ✓ 생성한 컬렉션과 링크를 서비스 인스턴스를 바꾸어 다시 읽는다 313ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 이름·메모·컬렉션을 고친 뒤 구매·되돌리기·다시 구매·구매 기록·위시 복귀를 거쳐도 메모와 컬렉션이 남는다
+Error: not implemented
+ ❯ Object.changeProduct src/features/library/infrastructure/supabase-library-store.ts:210:13
+    208|     async changeProduct(command) {
+    209|       void command;
+    210|       throw new Error("not implemented");
+       |             ^
+    211|     },
+    212|     async renameCollection(command) {
+ ❯ Object.changeProduct src/features/library/application/library-service.ts:16:61
+ ❯ change tests/service/library-organize.test.ts:24:13
+ ❯ tests/service/library-organize.test.ts:38:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 컬렉션 이름을 바꾸면 새로 읽은 보관함에서 같은 상품이 새 이름 아래에 있다
+Error: not implemented
+ ❯ Object.renameCollection src/features/library/infrastructure/supabase-library-store.ts:214:13
+    212|     async renameCollection(command) {
+    213|       void command;
+    214|       throw new Error("not implemented");
+       |             ^
+    215|     },
+    216|   };
+ ❯ Object.renameCollection src/features/library/application/library-service.ts:17:67
+ ❯ tests/service/library-organize.test.ts:60:37
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 고치면 revision_conflict이고 저장된 값은 그대로다
+Error: not implemented
+ ❯ Object.changeProduct src/features/library/infrastructure/supabase-library-store.ts:210:13
+    208|     async changeProduct(command) {
+    209|       void command;
+    210|       throw new Error("not implemented");
+       |             ^
+    211|     },
+    212|     async renameCollection(command) {
+ ❯ Object.changeProduct src/features/library/application/library-service.ts:16:61
+ ❯ change tests/service/library-organize.test.ts:24:13
+ ❯ tests/service/library-organize.test.ts:70:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 업무 규칙에 맞지 않는 {"type":"details","title":" ","note":"","collectionIds":[]}은 title 칸의 입력 오류이고 저장하지 않는다
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 업무 규칙에 맞지 않는 {"type":"details","title":null,"note":"가…(3001자)","collectionIds":[]}은 note 칸의 입력 오류이고 저장하지 않는다
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 업무 규칙에 맞지 않는 {"type":"details","title":null,"note":"","collectionIds":["not-a-uuid"]}은 collection 칸의 입력 오류이고 저장하지 않는다
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 업무 규칙에 맞지 않는 {"type":"purchase.record","date":"2999-01-01","price":null}은 date 칸의 입력 오류이고 저장하지 않는다
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 업무 규칙에 맞지 않는 {"type":"purchase.record","date":null,"price":{"amountMinor":1000,"currency":"USD"}}은 price 칸의 입력 오류이고 저장하지 않는다
+Error: not implemented
+ ❯ Object.changeProduct src/features/library/infrastructure/supabase-library-store.ts:210:13
+    208|     async changeProduct(command) {
+    209|       void command;
+    210|       throw new Error("not implemented");
+       |             ^
+    211|     },
+    212|     async renameCollection(command) {
+ ❯ Object.changeProduct src/features/library/application/library-service.ts:16:61
+ ❯ change tests/service/library-organize.test.ts:24:13
+ ❯ tests/service/library-organize.test.ts:86:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 다른 소유자의 컬렉션을 넣으면 collection_missing이고 소속은 그대로다
+AssertionError: expected Error: not implemented to match object { code: 'collection_missing' }
+
+- Expected
++ Received
+
+- {
+-   "code": "collection_missing",
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ tests/service/library-organize.test.ts:96:118
+     94|       "insert into moti.collections (owner_id, name) values ($1, '다른 소…
+     95|     );
+     96|     await expect(change(product, 1, { type: "details", title: null, no…
+       |                                                                                                                      ^
+     97|       .rejects.toMatchObject({ code: "collection_missing" });
+     98|     expect(await reread(product)).toEqual(product);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  tests/service/library-organize.test.ts > 실제 저장소를 쓰는 상품 정리 서비스 > 허용하지 않은 사용자는 서비스에서도 상품과 컬렉션을 정리하지 못한다
+AssertionError: expected Error: not implemented to match object { code: 'unauthorized' }
+
+- Expected
++ Received
+
+- {
+-   "code": "unauthorized",
++ Error {
++   "message": "not implemented",
+  }
+
+ ❯ tests/service/library-organize.test.ts:106:129
+    104|     const denied = service(fixture.stranger.client);
+    105|
+    106|     await expect(denied.changeProduct(toProductChangeCommand(product.i…
+       |                                                                                                                                 ^
+    107|       .rejects.toMatchObject({ code: "unauthorized" });
+    108|     await expect(denied.renameCollection(toCollectionRenameCommand(des…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+
+ Test Files  1 failed | 8 passed (9)
+      Tests  10 failed | 158 passed (168)
+   Start at  18:25:59
+   Duration  49.52s (tests 98%, import 1%)
+
