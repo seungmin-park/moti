@@ -116,16 +116,39 @@ describe("예약 실행 스크립트", () => {
     expect(result.output).not.toContain(token);
   });
 
-  it("Given 설정한 주소와 키 When 실행이 끝나면 Then 키는 표준 입력의 헤더로만 보내고 셈만 기록한다", () => {
+  it("Given 설정한 주소와 키 When 실행이 끝나면 Then 키는 표준 입력의 헤더로만 보내고 정해진 문구만 기록한다", () => {
     const result = call(configured, { status: 200, body: finished });
     expect(result.code).toBe(0);
-    expect(result.output.trim()).toBe(`실행을 마쳤어요. ${JSON.stringify(finished)}`);
+    // The repository's Actions logs may be public: the counts stay in moti's 자동 확인.
+    expect(result.output.trim()).toBe("실행을 마쳤어요. 결과는 moti의 자동 확인에서 볼 수 있어요.");
     expect(result.stdin).toBe(`Authorization: Bearer ${token}\n`);
     expect(result.argv).not.toContain(token);
     expect(result.argv?.split("\n")).toEqual(expect.arrayContaining([
       "--proto", "=https", "--max-time", "75", "--request", "POST", "--header", "@-", `${url}/api/scheduled-runs`,
     ]));
     expect(result.argv).not.toMatch(/--location|-L\b/);
+  });
+
+  it("Given 시간이 다 돼 멈춘 실행 When 끝나면 Then 남은 일은 다음 실행에서 이어간다고만 기록한다", () => {
+    const result = call(configured, { status: 200, body: { ...finished, stop: "deadline" } });
+    expect(result.code).toBe(0);
+    expect(result.output.trim()).toBe("실행 시간이 다 돼 멈췄어요. 남은 일은 다음 실행에서 이어가요. 결과는 moti의 자동 확인에서 볼 수 있어요.");
+  });
+
+  it.each([
+    ["끝이 없는 답", { collections: { collected: 2, failed: 0 } }],
+    ["모르는 끝", { ...finished, stop: "x\n::add-mask::y" }],
+    ["JSON이 아닌 답", "<html>ok</html>"],
+  ])("Given %s인 HTTP 200 When 실행하면 Then 서버 글자 없이 오류로 끝낸다", (_name, body) => {
+    const result = call(configured, { status: 200, body });
+    expect(result.code).toBe(1);
+    expect(result.output.trim()).toBe("::error::moti의 답을 읽지 못했어요.");
+  });
+
+  it("Given 끝에 /가 붙은 주소 When 실행하면 Then /를 떼고 같은 경로를 부른다", () => {
+    const result = call({ ...configured, MOTI_WORKER_URL: `${url}/` }, { status: 200, body: finished });
+    expect(result.code).toBe(0);
+    expect(result.argv?.split("\n")).toContain(`${url}/api/scheduled-runs`);
   });
 
   it.each([

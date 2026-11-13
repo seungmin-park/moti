@@ -1,0 +1,94 @@
+# Red (review): the scheduled run log must hold fixed words only (the repository is public, so its Actions logs are),
+# a 200 whose shape is unknown must fail without echoing it, and a trailing / on MOTI_WORKER_URL is accepted. Before
+# the fix the script printed the server's counts and failure codes on 200 and refused the trailing /.
+# Command: npx vitest run tests/unit/scheduled-run-workflow.test.ts
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ tests/unit/scheduled-run-workflow.test.ts (22 tests | 5 failed) 1718ms
+   ❯ 예약 실행 스크립트 (19)
+     × Given 설정한 주소와 키 When 실행이 끝나면 Then 키는 표준 입력의 헤더로만 보내고 정해진 문구만 기록한다 333ms
+     × Given 시간이 다 돼 멈춘 실행 When 끝나면 Then 남은 일은 다음 실행에서 이어간다고만 기록한다 132ms
+     × Given 끝이 없는 답인 HTTP 200 When 실행하면 Then 서버 글자 없이 오류로 끝낸다 124ms
+     × Given 모르는 끝인 HTTP 200 When 실행하면 Then 서버 글자 없이 오류로 끝낸다 118ms
+     × Given 끝에 /가 붙은 주소 When 실행하면 Then /를 떼고 같은 경로를 부른다 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 설정한 주소와 키 When 실행이 끝나면 Then 키는 표준 입력의 헤더로만 보내고 정해진 문구만 기록한다
+AssertionError: expected '실행을 마쳤어요. {"stop":"done","collections…' to be '실행을 마쳤어요. 결과는 moti의 자동 확인에서 볼 수 있어요.' // Object.is equality
+
+Expected: "실행을 마쳤어요. 결과는 moti의 자동 확인에서 볼 수 있어요."
+Received: "실행을 마쳤어요. {"stop":"done","collections":{"collected":2,"failed":1},"prices":{"confirmed":0,"kept":0},"failures":{"timeout":1}}"
+
+ ❯ tests/unit/scheduled-run-workflow.test.ts:123:34
+    121|     expect(result.code).toBe(0);
+    122|     // The repository's Actions logs may be public: the counts stay in…
+    123|     expect(result.output.trim()).toBe("실행을 마쳤어요. 결과는 moti의 자동 확인에서 볼 수…
+       |                                  ^
+    124|     expect(result.stdin).toBe(`Authorization: Bearer ${token}\n`);
+    125|     expect(result.argv).not.toContain(token);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 시간이 다 돼 멈춘 실행 When 끝나면 Then 남은 일은 다음 실행에서 이어간다고만 기록한다
+AssertionError: expected '실행을 마쳤어요. {"stop":"deadline","collect…' to be '실행 시간이 다 돼 멈췄어요. 남은 일은 다음 실행에서 이어가요. …' // Object.is equality
+
+Expected: "실행 시간이 다 돼 멈췄어요. 남은 일은 다음 실행에서 이어가요. 결과는 moti의 자동 확인에서 볼 수 있어요."
+Received: "실행을 마쳤어요. {"stop":"deadline","collections":{"collected":2,"failed":1},"prices":{"confirmed":0,"kept":0},"failures":{"timeout":1}}"
+
+ ❯ tests/unit/scheduled-run-workflow.test.ts:135:34
+    133|     const result = call(configured, { status: 200, body: { ...finished…
+    134|     expect(result.code).toBe(0);
+    135|     expect(result.output.trim()).toBe("실행 시간이 다 돼 멈췄어요. 남은 일은 다음 실행에서 …
+       |                                  ^
+    136|   });
+    137|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 끝이 없는 답인 HTTP 200 When 실행하면 Then 서버 글자 없이 오류로 끝낸다
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 모르는 끝인 HTTP 200 When 실행하면 Then 서버 글자 없이 오류로 끝낸다
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/unit/scheduled-run-workflow.test.ts:144:25
+    142|   ])("Given %s인 HTTP 200 When 실행하면 Then 서버 글자 없이 오류로 끝낸다", (_name, bod…
+    143|     const result = call(configured, { status: 200, body });
+    144|     expect(result.code).toBe(1);
+       |                         ^
+    145|     expect(result.output.trim()).toBe("::error::moti의 답을 읽지 못했어요.");
+    146|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/unit/scheduled-run-workflow.test.ts > 예약 실행 스크립트 > Given 끝에 /가 붙은 주소 When 실행하면 Then /를 떼고 같은 경로를 부른다
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ tests/unit/scheduled-run-workflow.test.ts:150:25
+    148|   it("Given 끝에 /가 붙은 주소 When 실행하면 Then /를 떼고 같은 경로를 부른다", () => {
+    149|     const result = call({ ...configured, MOTI_WORKER_URL: `${url}/` },…
+    150|     expect(result.code).toBe(0);
+       |                         ^
+    151|     expect(result.argv?.split("\n")).toContain(`${url}/api/scheduled-r…
+    152|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 17 passed (22)
+   Start at  01:49:45
+   Duration  1.81s (tests 99%, transform 1%)
+
