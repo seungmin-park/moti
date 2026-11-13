@@ -1,0 +1,219 @@
+# Red: owner share key (step 2). The tests call moti_share_key_issue/read/revoke and expect a share_keys table; the migration defines neither yet (PGRST202 = no such function).
+# Command: npm run test:database -- -t "소유자의 저장 키|비우회 역할" (other persistence/service tests filtered out).
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ❯ tests/persistence/library-security.test.ts (19 tests | 1 failed | 18 skipped) 316ms
+   ❯ 실제 DB 소유자 경계 (19)
+     ↓ anonymous 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ stranger 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ missing_config 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ missing_google 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ wrong_subject 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ 공개 REST에서 테이블을 노출하지 않는다
+     × 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다 316ms
+     ↓ RPC 역할로 직접 읽거나 써도 다른 소유자의 행에는 RLS가 적용된다
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":""}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"javascript:alert(1)"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"https://name:secret@example.com/item"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"https://example.com/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_identity_url":""}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_option":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_collection_ids":null}
+     ↓ failed 수집 상태는 오류 코드가 없으면 DB가 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름  를 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름 가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가를 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름 null를 거절한다
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ❯ tests/persistence/share-keys.test.ts (10 tests | 10 failed) 2708ms
+   ❯ 소유자의 저장 키 (10)
+     × 만들면 moti_sk_ 비밀을 한 번 돌려주고 DB에는 SHA-256 해시와 끝 네 글자만 남긴다 305ms
+     × 두 번 만든 비밀은 서로 다르다 268ms
+     × 새 키로 바꾸면 이전 키를 폐기하고 활성 키는 하나다. 화면이 본 키가 아니면 M0008이고 아무것도 바꾸지 않는다 266ms
+     × 동시에 여러 번 만들어도 하나만 커밋하고 나머지는 M0008이다 273ms
+     × 폐기는 멱등이고 폐기한 키를 그대로 보여준다. 소유자에게 없는 키는 M0011이다 266ms
+     × 키가 없으면 읽기는 null이다 268ms
+     × anonymous 요청은 읽기·만들기·폐기를 모두 거절하고 아무것도 쓰지 않는다 265ms
+     × stranger 요청은 읽기·만들기·폐기를 모두 거절하고 아무것도 쓰지 않는다 264ms
+     × RPC 역할은 소유자의 키 행도 해시는 읽지 못한다 268ms
+     × 백업은 저장 키를 담지 않고 복원은 저장 키를 바꾸지 않는다 265ms
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/library-security.test.ts > 실제 DB 소유자 경계 > 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다
+AssertionError: expected [ Array(5) ] to deeply equal [ Array(6) ]
+
+- Expected
++ Received
+
+@@ -2,7 +2,6 @@
+    "collections",
+    "metadata_jobs",
+    "owner_config",
+    "product_collections",
+    "products",
+-   "share_keys",
+  ]
+
+ ❯ tests/persistence/library-security.test.ts:65:62
+     63|        join pg_roles r on r.oid = c.relowner where n.nspname = 'moti' …
+     64|     );
+     65|     expect(tables.rows.map((row) => row.relname).toSorted()).toEqual([
+       |                                                              ^
+     66|       "collections", "metadata_jobs", "owner_config", "product_collect…
+     67|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > 만들면 moti_sk_ 비밀을 한 번 돌려주고 DB에는 SHA-256 해시와 끝 네 글자만 남긴다
+Error: moti_share_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/share-keys.test.ts:28:19
+     26| async function issue(replaces: string | null = null): Promise<Issued> {
+     27|   const { data, code } = await rpc<Issued>("moti_share_key_issue", { p…
+     28|   if (code) throw new Error(`moti_share_key_issue 실패: ${code}`);
+       |                   ^
+     29|   return data;
+     30| }
+ ❯ tests/persistence/share-keys.test.ts:43:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > 두 번 만든 비밀은 서로 다르다
+Error: moti_share_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/share-keys.test.ts:28:19
+     26| async function issue(replaces: string | null = null): Promise<Issued> {
+     27|   const { data, code } = await rpc<Issued>("moti_share_key_issue", { p…
+     28|   if (code) throw new Error(`moti_share_key_issue 실패: ${code}`);
+       |                   ^
+     29|   return data;
+     30| }
+ ❯ tests/persistence/share-keys.test.ts:65:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > 새 키로 바꾸면 이전 키를 폐기하고 활성 키는 하나다. 화면이 본 키가 아니면 M0008이고 아무것도 바꾸지 않는다
+Error: moti_share_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/share-keys.test.ts:28:19
+     26| async function issue(replaces: string | null = null): Promise<Issued> {
+     27|   const { data, code } = await rpc<Issued>("moti_share_key_issue", { p…
+     28|   if (code) throw new Error(`moti_share_key_issue 실패: ${code}`);
+       |                   ^
+     29|   return data;
+     30| }
+ ❯ tests/persistence/share-keys.test.ts:72:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > 동시에 여러 번 만들어도 하나만 커밋하고 나머지는 M0008이다
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/persistence/share-keys.test.ts:90:62
+     88|   it("동시에 여러 번 만들어도 하나만 커밋하고 나머지는 M0008이다", async () => {
+     89|     const results = await Promise.all(Array.from({ length: 6 }, () => …
+     90|     expect(results.filter((result) => result.code === null)).toHaveLen…
+       |                                                              ^
+     91|     expect(results.filter((result) => result.code === "M0008")).toHave…
+     92|     expect((await stored()).filter((row) => row.revoked_at === null)).…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > 폐기는 멱등이고 폐기한 키를 그대로 보여준다. 소유자에게 없는 키는 M0011이다
+Error: moti_share_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/share-keys.test.ts:28:19
+     26| async function issue(replaces: string | null = null): Promise<Issued> {
+     27|   const { data, code } = await rpc<Issued>("moti_share_key_issue", { p…
+     28|   if (code) throw new Error(`moti_share_key_issue 실패: ${code}`);
+       |                   ^
+     29|   return data;
+     30| }
+ ❯ tests/persistence/share-keys.test.ts:96:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > 키가 없으면 읽기는 null이다
+AssertionError: expected { data: null, code: 'PGRST202', …(1) } to match object { code: null, data: null }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "code": null,
++   "code": "PGRST202",
+    "data": null,
+  }
+
+ ❯ tests/persistence/share-keys.test.ts:109:46
+    107|
+    108|   it("키가 없으면 읽기는 null이다", async () => {
+    109|     expect(await rpc("moti_share_key_read")).toMatchObject({ code: nul…
+       |                                              ^
+    110|   });
+    111|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > anonymous 요청은 읽기·만들기·폐기를 모두 거절하고 아무것도 쓰지 않는다
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > stranger 요청은 읽기·만들기·폐기를 모두 거절하고 아무것도 쓰지 않는다
+Error: moti_share_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/share-keys.test.ts:28:19
+     26| async function issue(replaces: string | null = null): Promise<Issued> {
+     27|   const { data, code } = await rpc<Issued>("moti_share_key_issue", { p…
+     28|   if (code) throw new Error(`moti_share_key_issue 실패: ${code}`);
+       |                   ^
+     29|   return data;
+     30| }
+ ❯ tests/persistence/share-keys.test.ts:113:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > RPC 역할은 소유자의 키 행도 해시는 읽지 못한다
+Error: moti_share_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/share-keys.test.ts:28:19
+     26| async function issue(replaces: string | null = null): Promise<Issued> {
+     27|   const { data, code } = await rpc<Issued>("moti_share_key_issue", { p…
+     28|   if (code) throw new Error(`moti_share_key_issue 실패: ${code}`);
+       |                   ^
+     29|   return data;
+     30| }
+ ❯ tests/persistence/share-keys.test.ts:125:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  tests/persistence/share-keys.test.ts > 소유자의 저장 키 > 백업은 저장 키를 담지 않고 복원은 저장 키를 바꾸지 않는다
+Error: moti_share_key_issue 실패: PGRST202
+ ❯ issue tests/persistence/share-keys.test.ts:28:19
+     26| async function issue(replaces: string | null = null): Promise<Issued> {
+     27|   const { data, code } = await rpc<Issued>("moti_share_key_issue", { p…
+     28|   if (code) throw new Error(`moti_share_key_issue 실패: ${code}`);
+       |                   ^
+     29|   return data;
+     30| }
+ ❯ tests/persistence/share-keys.test.ts:143:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+
+ Test Files  2 failed | 11 skipped (13)
+      Tests  11 failed | 189 skipped (200)
+   Start at  21:32:22
+   Duration  4.82s (tests 75%, import 23%, transform 1%, worker 1%)
+
+    Isolate  13 workers spawned · ~56ms startup each (spawn + environment, per file)
+             at least ~670ms faster with isolate: false — reuses workers across files instead of one per file
+
