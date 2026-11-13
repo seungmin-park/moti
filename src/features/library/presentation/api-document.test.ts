@@ -34,4 +34,18 @@ describe("API 문서", () => {
     expect(Object.keys(operation.responses["302"].headers ?? {})).toEqual(["Location", "Cache-Control"]);
     expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["302", "400", "401", "403", "404", "503"]));
   });
+
+  it("상품 정리와 컬렉션 이름 바꾸기는 UUID 경로 변수의 PATCH로 200·400·404/422·409 응답을 문서에 남긴다", () => {
+    const document = buildApiDocument();
+    for (const [path, name] of [["/api/products/{productId}", "productId"], ["/api/collections/{collectionId}", "collectionId"]]) {
+      const operation = document.paths[path]?.patch as {
+        parameters: { name: string; in: string; required: boolean; schema: { format?: string } }[];
+        requestBody: unknown;
+        responses: Record<string, unknown>;
+      };
+      expect(operation.parameters).toEqual([expect.objectContaining({ name, in: "path", required: true, schema: expect.objectContaining({ format: "uuid" }) })]);
+      expect(operation.requestBody).toBeDefined();
+      expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "409", "413", "415", "422", "503"]));
+    }
+  });
 });

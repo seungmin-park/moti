@@ -3,16 +3,20 @@ import { MAX_JSON_BYTES } from "../../shared/presentation/http";
 import {
   collectionCreateRequestSchema,
   collectionCreateResponseSchema,
+  collectionRenameRequestSchema,
+  collectionRenameResponseSchema,
   errorResponseSchema,
   libraryReadResponseSchema,
   linkSaveRequestSchema,
   linkSaveResponseSchema,
   metadataRetryRequestSchema,
   metadataRetryResponseSchema,
+  productChangeRequestSchema,
+  productChangeResponseSchema,
 } from "./library-dto";
 
 type Route = {
-  method: "get" | "post";
+  method: "get" | "post" | "patch";
   path: string;
   summary: string;
   parameters?: { name: string; in?: "path" | "query"; description: string; schema: z.ZodType }[];
@@ -62,6 +66,35 @@ export const libraryRoutes: Route[] = [
       ...writeFailures,
       ...denied,
       409: { description: "대소문자를 무시한 같은 이름이 있다.", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "patch",
+    path: "/api/collections/{collectionId}",
+    summary: "컬렉션 이름을 바꾼다. 소속 상품은 그대로다. 저장된 이름과 같으면 revision과 관계없이 바꾸지 않는다.",
+    parameters: [{ name: "collectionId", description: "컬렉션 ID", schema: z.uuid() }],
+    request: collectionRenameRequestSchema,
+    responses: {
+      200: { description: "CollectionRenameResponse. 이름이 바뀌었으면 revision이 1 오른다.", schema: collectionRenameResponseSchema },
+      ...writeFailures,
+      ...denied,
+      409: { description: "대소문자를 무시한 같은 이름의 다른 컬렉션이 있거나(collection_duplicate) 화면이 본 revision 뒤에 바뀌었다(revision_conflict).", schema: errorResponseSchema },
+      422: { description: "컬렉션이 없다.", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "patch",
+    path: "/api/products/{productId}",
+    summary: "소유자가 상품을 정리한다. details는 이름(null이면 그대로)·메모·컬렉션, purchase는 구매완료, purchase.record는 구매일·실구매가(null은 미입력, 0은 0원), wish는 위시로 되돌리기다. 구매와 되돌리기는 메모·컬렉션을 바꾸지 않고, 되돌리면 구매 기록을 지운다. 저장된 값과 같은 변경은 revision과 관계없이 바꾸지 않고 지금 상품을 돌려준다.",
+    parameters: [{ name: "productId", description: "상품 ID", schema: z.uuid() }],
+    request: productChangeRequestSchema,
+    responses: {
+      200: { description: "ProductChangeResponse. 값이 바뀌었으면 revision이 1 오른다.", schema: productChangeResponseSchema },
+      ...writeFailures,
+      ...denied,
+      404: { description: "상품이 없다.", schema: errorResponseSchema },
+      409: { description: "화면이 본 revision 뒤에 다른 곳에서 상품이 바뀌었다(revision_conflict).", schema: errorResponseSchema },
+      422: { description: "선택한 컬렉션이 없다.", schema: errorResponseSchema },
     },
   },
   {
