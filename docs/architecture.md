@@ -49,7 +49,7 @@ design-taste-frontend의 Editorial greeting, seed 1304296013을 사용했다. �
 
 한 요청은 `LinkSaveRequest → LinkSaveCommand → Product ↔ ProductRow → LinkSaveResult → LinkSaveResponse` 순서로 이름이 바뀐다. 어간(`LinkSave`)을 계층 사이에서 유지해 한 유스케이스의 객체를 이름으로 찾는다. Presentation은 사용자가 정한 `<대상><동작>Request/Response` 형식을 따른다. Infrastructure는 Supabase RPC가 돌려주는 JSON 행이라 `Row`를 쓴다. `Entity`는 도메인 엔티티와 혼동되므로 쓰지 않는다.
 
-계층과 무관한 순수 규칙(`src/features/wishlist/link.ts`, `collection-name.ts`)은 목업, 서버 명령과 실제 화면이 함께 쓴다. 규칙을 화면에 복사하지 않는다. 의존 객체를 조립하는 위치는 `src/app`의 Route Handler다. 같은 이름의 응답 객체가 도메인 객체와 모양이 같아도 직접 반환하지 않고 변환 함수를 거친다. 도메인 변경이 공개 API로 새지 않게 하기 위해서다.
+계층과 무관한 순수 규칙(`src/features/wishlist/link.ts`, `collection-name.ts`, `product-fields.ts`)은 목업, 서버 명령과 실제 화면이 함께 쓴다. 규칙을 화면에 복사하지 않는다. 의존 객체를 조립하는 위치는 `src/app`의 Route Handler다. 같은 이름의 응답 객체가 도메인 객체와 모양이 같아도 직접 반환하지 않고 변환 함수를 거친다. 도메인 변경이 공개 API로 새지 않게 하기 위해서다.
 
 ## 실제 보관함 화면
 
@@ -94,3 +94,14 @@ claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트
 ```
 
 객체 이름은 SQL(`moti.picture_object`)만 만들고 claim으로 돌려준다. 공개 계약과 화면에는 같은 출처 경로만 있다. Storage 정책은 `moti_storage`의 보안 정의자 함수가 `moti_rpc`로 실행해 기존 RLS로 소유자의 행만 본다. 설계 비교와 검증은 [changes/pictures.md](changes/pictures.md)에 있다.
+
+## 상품 정리
+
+소유자 변경의 전환 규칙은 SQL에 있다. 의도마다 RPC(`moti_edit_product`, `moti_purchase_product`, `moti_record_purchase`, `moti_return_to_wish`, `moti_rename_collection`)가 상품 행(이름 바꾸기는 컬렉션 행) 하나만 잠그고 같은 값이면 그대로 돌려주며, 아니면 화면이 본 `revision`을 확인한 뒤 쓴다. 구매 전환은 메모·컬렉션 열을 건드리지 않는다. HTTP는 자원마다 PATCH 하나이고 `change.type`이 의도를 고른다. 저장소 어댑터는 의도별 RPC를 표 하나로 고른다. 이름·메모·구매일·실구매가 규칙은 순수 모듈 `wishlist/product-fields.ts`를 화면과 서버 명령이 함께 쓴다.
+
+```text
+상세·카드·알림 → transition(손댄 칸 초안) → PATCH /api/products/{id} { revision, change } → 명령(서울 날짜) → RPC → product_json
+응답·전체 읽기 → mergeProduct(높은 revision 우선, 같으면 수집 진행만) / poll → 수집 진행만
+```
+
+소유자가 고친 이름은 `owner_title`에 두고 `product_json`이 `coalesce(owner_title, title)`로 보인다. 수집은 `title`만 쓰고 `revision`을 올리지 않는다. 설계 비교와 검증은 [changes/organize.md](changes/organize.md)에 있다.
