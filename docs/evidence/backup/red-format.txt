@@ -1,0 +1,219 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/presentation/library-backup.test.ts (52 tests | 52 failed) 7ms
+   ❯ 백업 파일 만들기 (2)
+     × 보이는 값과 소유자가 정한 값을 id·revision·수집 상태 없이 담는다 2ms
+     × 파일 이름은 서울 시각의 날짜와 분이다 0ms
+   ❯ 백업 파일 읽기 (50)
+     × 자기가 만든 파일을 글자로 바꿨다가 읽으면 같은 내용과 개수를 돌려준다 0ms
+     × 빈 보관함의 파일도 읽는다 0ms
+     × 상품·컬렉션 한도까지는 읽는다 0ms
+     × JSON 객체가 아님이면 moti 백업이 아니다 0ms
+     × null이면 moti 백업이 아니다 0ms
+     × 글자이면 moti 백업이 아니다 0ms
+     × 다른 형식이면 moti 백업이 아니다 0ms
+     × 형식 없음이면 moti 백업이 아니다 0ms
+     × 더 새로운 버전은 따로 알린다 0ms
+     × 알 수 없는 버전이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 문자열 버전이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 맨 위의 모르는 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 상품의 모르는 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 컬렉션의 모르는 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 구매의 모르는 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 빠진 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 잘못된 형식이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 내보낸 시각 형식이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 밀리초 없는 담은 시각이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 앞에 공백이 있는 링크이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 웹 주소가 아닌 링크이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 정리되지 않은 옵션이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × NFC가 아닌 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 앞뒤 공백이 있는 소유자 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 빈 소유자 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 121자 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 3,001자 메모이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × NUL이 있는 메모이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 앞뒤 공백이 있는 컬렉션 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 41자 컬렉션 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 같은 컬렉션 이름 두 번이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 대소문자만 다른 컬렉션 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 없는 컬렉션 소속이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 대소문자가 다른 소속 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 같은 소속 두 번이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 101개 소속이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 추적 값만 다른 같은 링크이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 위시 상품의 구매 기록이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 모르는 구매 상태이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 원화가 아닌 실구매가이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 음수 실구매가이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 2^53 실구매가이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 소수 실구매가이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 없는 날짜이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 1900년 전 구매일이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 0원인 마지막 확인 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 통화 형식이 아닌 마지막 확인 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 확인 시각 없는 마지막 확인 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 5,001개 상품이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+     × 501개 컬렉션이면 손상된 파일로 보고 처음 문제의 위치를 알린다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 52 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 만들기 > 보이는 값과 소유자가 정한 값을 id·revision·수집 상태 없이 담는다
+Error: not implemented
+ ❯ toLibraryBackupDocument src/features/library/presentation/library-backup.ts:45:9
+     43|   void backup;
+     44|   void exportedAt;
+     45|   throw new Error("not implemented");
+       |         ^
+     46| }
+     47|
+ ❯ src/features/library/presentation/library-backup.test.ts:77:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/52]⎯
+
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 만들기 > 파일 이름은 서울 시각의 날짜와 분이다
+Error: not implemented
+ ❯ backupFileName src/features/library/presentation/library-backup.ts:50:9
+     48| export function backupFileName(exportedAt: Date): string {
+     49|   void exportedAt;
+     50|   throw new Error("not implemented");
+       |         ^
+     51| }
+     52|
+ ❯ src/features/library/presentation/library-backup.test.ts:124:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/52]⎯
+
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 자기가 만든 파일을 글자로 바꿨다가 읽으면 같은 내용과 개수를 돌려준다
+Error: not implemented
+ ❯ toLibraryBackupDocument src/features/library/presentation/library-backup.ts:45:9
+     43|   void backup;
+     44|   void exportedAt;
+     45|   throw new Error("not implemented");
+       |         ^
+     46| }
+     47|
+ ❯ src/features/library/presentation/library-backup.test.ts:131:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/52]⎯
+
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 빈 보관함의 파일도 읽는다
+Error: not implemented
+ ❯ toLibraryBackupDocument src/features/library/presentation/library-backup.ts:45:9
+     43|   void backup;
+     44|   void exportedAt;
+     45|   throw new Error("not implemented");
+       |         ^
+     46| }
+     47|
+ ❯ src/features/library/presentation/library-backup.test.ts:141:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/52]⎯
+
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 상품·컬렉션 한도까지는 읽는다
+Error: not implemented
+ ❯ toLibraryBackupDocument src/features/library/presentation/library-backup.ts:45:9
+     43|   void backup;
+     44|   void exportedAt;
+     45|   throw new Error("not implemented");
+       |         ^
+     46| }
+     47|
+ ❯ document src/features/library/presentation/library-backup.test.ts:55:73
+ ❯ tampered src/features/library/presentation/library-backup.test.ts:61:16
+ ❯ src/features/library/presentation/library-backup.test.ts:146:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/52]⎯
+
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > JSON 객체가 아님이면 moti 백업이 아니다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > null이면 moti 백업이 아니다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 글자이면 moti 백업이 아니다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 다른 형식이면 moti 백업이 아니다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 형식 없음이면 moti 백업이 아니다
+Error: not implemented
+ ❯ readLibraryBackup src/features/library/presentation/library-backup.ts:39:9
+     37| export function readLibraryBackup(value: unknown): BackupReading {
+     38|   void value;
+     39|   throw new Error("not implemented");
+       |         ^
+     40| }
+     41|
+ ❯ src/features/library/presentation/library-backup.test.ts:164:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/52]⎯
+
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 더 새로운 버전은 따로 알린다
+Error: not implemented
+ ❯ readLibraryBackup src/features/library/presentation/library-backup.ts:39:9
+     37| export function readLibraryBackup(value: unknown): BackupReading {
+     38|   void value;
+     39|   throw new Error("not implemented");
+       |         ^
+     40| }
+     41|
+ ❯ src/features/library/presentation/library-backup.test.ts:168:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/52]⎯
+
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 알 수 없는 버전이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 문자열 버전이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 맨 위의 모르는 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 상품의 모르는 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 컬렉션의 모르는 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 구매의 모르는 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 빠진 칸이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 잘못된 형식이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 내보낸 시각 형식이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 밀리초 없는 담은 시각이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 앞에 공백이 있는 링크이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 웹 주소가 아닌 링크이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 정리되지 않은 옵션이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > NFC가 아닌 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 앞뒤 공백이 있는 소유자 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 빈 소유자 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 121자 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 3,001자 메모이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > NUL이 있는 메모이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 앞뒤 공백이 있는 컬렉션 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 41자 컬렉션 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 같은 컬렉션 이름 두 번이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 대소문자만 다른 컬렉션 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 없는 컬렉션 소속이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 대소문자가 다른 소속 이름이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 같은 소속 두 번이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 101개 소속이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 추적 값만 다른 같은 링크이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 위시 상품의 구매 기록이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 모르는 구매 상태이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 원화가 아닌 실구매가이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 음수 실구매가이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 2^53 실구매가이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 소수 실구매가이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 없는 날짜이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 1900년 전 구매일이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 0원인 마지막 확인 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 통화 형식이 아닌 마지막 확인 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 확인 시각 없는 마지막 확인 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 5,001개 상품이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 501개 컬렉션이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+Error: not implemented
+ ❯ toLibraryBackupDocument src/features/library/presentation/library-backup.ts:45:9
+     43|   void backup;
+     44|   void exportedAt;
+     45|   throw new Error("not implemented");
+       |         ^
+     46| }
+     47|
+ ❯ document src/features/library/presentation/library-backup.test.ts:55:73
+ ❯ tampered src/features/library/presentation/library-backup.test.ts:61:16
+ ❯ src/features/library/presentation/library-backup.test.ts:219:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/52]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  52 failed (52)
+   Start at  19:49:40
+   Duration  209ms (import 68%, tests 18%, transform 9%, worker 4%)
+
