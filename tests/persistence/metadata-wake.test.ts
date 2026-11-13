@@ -182,6 +182,14 @@ describe("사진을 기다리는 상품 깨우기", () => {
     expect(await product(older)).toMatchObject({ metadata_generation: 2, metadata_phase: "queued" });
   });
 
+  // Deliberate: a purchased product still wants its picture, and only the owner's runner can copy it. That runner writes
+  // the page's price as it has since 3a; the scheduled worker never picks a purchased product.
+  it("작업자가 수집한 뒤 구매완료로 옮긴 상품도 사진을 가져오도록 깨운다", async () => {
+    const purchased = await collectedByWorker("purchased", 10);
+    await fixture.admin.query("update moti.products set purchase_status = 'purchased' where id = $1", [purchased]);
+    expect((await rpc("moti_metadata_wake", { p_limit: 8 })).data?.map(({ id }) => id)).toEqual([purchased]);
+  });
+
   it("사진을 복사했거나 사진이 없거나 사진만 실패한 상품은 깨우지 않는다", async () => {
     for (const image of ["copied", "absent", "failed"]) await collectedByWorker(image, 10, image);
     expect(await rpc("moti_metadata_wake", { p_limit: 8 })).toEqual({ data: [], code: null });
