@@ -244,6 +244,11 @@ begin
   where r.id = p_run and r.key_id = v_key and r.finished_at is null and r.lease_token = p_lease and r.lease_until > now()
   for update;
   if not found then
+    -- A revoke that committed while this step waited for the run row closed the run as well: the key is the reason.
+    perform 1 from moti.worker_keys k where k.id = v_key and k.revoked_at is null;
+    if not found then
+      raise exception using errcode = 'M0012', message = 'worker key rejected';
+    end if;
     raise exception using errcode = 'M0013', message = 'worker run lost';
   end if;
   return v_owner;

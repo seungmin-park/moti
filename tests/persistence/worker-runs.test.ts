@@ -170,6 +170,32 @@ describe("작업 실행의 시작과 끝", () => {
     expect(shown.data.runs.map(({ state }) => state)).toEqual(["revoked"]);
   });
 
+  it("단계가 키를 확인한 뒤 실행 행을 기다리는 사이 폐기가 커밋되면 그 단계도 M0012다", async () => {
+    const { key, secret } = await issue();
+    const begun = await begin(secret);
+    // A revoke that closed the run but has not committed yet, the way moti_worker_key_revoke does it in one transaction.
+    const revoking = await fixture.admin.connect();
+    try {
+      await revoking.query("begin");
+      const { rows: [{ pid }] } = await revoking.query<{ pid: number }>("select pg_backend_pid() as pid");
+      await revoking.query("update moti.worker_keys set revoked_at = now() where id = $1", [key.id]);
+      await revoking.query(
+        "update moti.worker_runs set finished_at = now(), stop_reason = 'revoked', lease_token = null, lease_until = null where id = $1",
+        [begun.run],
+      );
+      const step = finish(secret, begun);
+      // The step still sees the key as active, then waits on the run row this transaction holds.
+      await expect.poll(async () => (await fixture.admin.query(
+        "select count(*)::int as waiting from pg_stat_activity where $1 = any(pg_blocking_pids(pid))", [pid],
+      )).rows[0].waiting, { timeout: 5000 }).toBe(1);
+      await revoking.query("commit");
+      expect((await step).code).toBe("M0012");
+    } finally {
+      await revoking.query("rollback");
+      revoking.release();
+    }
+  });
+
   it("로그인 세션은 작업 함수를 실행하지 못하고, PostgREST에 작업 키를 Bearer로 보내면 세션이 아니라서 거절한다", async () => {
     const { secret } = await issue();
     expect((await rpc("moti_worker_begin", { p_key: secret }, fixture.owner.client)).code).toBe("42501");
