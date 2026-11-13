@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import sharp from "sharp";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { toProductChangeCommand } from "../../src/features/library/application/commands";
 import { createLibraryService } from "../../src/features/library/application/library-service";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import { createPictureStore } from "../../src/features/library/infrastructure/product-pictures";
@@ -30,7 +31,8 @@ afterEach(async () => {
   try { await fixture.cleanup(); } finally { await fixture.close(); }
 });
 
-const offerPage = readFileSync(resolve(import.meta.dirname, "../fixtures/pages/offer.html"), "utf8");
+const page = (name: string) => readFileSync(resolve(import.meta.dirname, `../fixtures/pages/${name}.html`), "utf8");
+const offerPage = page("offer");
 const served = (html: string): PageRead => ({ ok: true, page: { html, url: "https://shop.example/headphones", status: 200 } });
 
 // Stands in for the shop's server; the worker's store, the reader and the database are the real ones.
@@ -47,9 +49,9 @@ const worker = (source: PageSource) => createScheduledRunService({
   now: Date.now,
 });
 
-async function sharedLink(url: string) {
+async function sharedLink(...urls: string[]) {
   const { secret } = await createShareKeyService(createSupabaseShareKeyStore(fixture.owner.client)).issue({ replaces: null });
-  await createShareLinkService(createSupabaseShareLinkStore(fixture.anonymous)).add(toShareLinkAddCommand(secret, url));
+  for (const url of urls) await createShareLinkService(createSupabaseShareLinkStore(fixture.anonymous)).add(toShareLinkAddCommand(secret, url));
 }
 
 async function objects() {
@@ -127,5 +129,73 @@ describe("실제 저장소를 쓰는 예약 실행", () => {
     expect(after).toMatchObject({ metadata: { phase: "ready", generation: 2, image: { outcome: "copied" } }, picture: { version: expect.any(String) } });
     expect(await objects()).toBe(1);
     expect((await jobs.wake({ limit: WAKE_LIMIT })).products).toEqual([]);
+  });
+});
+
+describe("실제 저장소를 쓰는 매일 가격 확인", () => {
+  // Moves every stored check, price and collection a day back, as if the run happened yesterday in Seoul.
+  const dayPasses = () => fixture.admin.query(
+    `update moti.products set price_checked_at = price_checked_at - interval '1 day', last_success_at = last_success_at - interval '1 day',
+       metadata_completed_at = metadata_completed_at - interval '1 day' where owner_id = $1`,
+    [fixture.owner.id],
+  );
+  const runs = async () => (await workerKeys().read()).runs;
+
+  async function collectedYesterday(urls: string[]) {
+    await sharedLink(...urls);
+    const { secret } = await workerKeys().issue({ replaces: null });
+    expect(await worker(shop(() => served(offerPage))).run({ secret })).toMatchObject({ collections: { collected: urls.length } });
+    await dayPasses();
+    return secret;
+  }
+
+  it("수집이 끝난 위시 상품을 다음 날 확인하면 같은 통화의 새 가격으로 바꾸고 이름·사진은 그대로다. 같은 날 다음 실행은 다시 읽지 않는다", async () => {
+    const secret = await collectedYesterday(["https://shop.example/headphones"]);
+    const [before] = (await owner().snapshot()).products;
+    const source = shop(() => served(page("meta-only")));
+
+    expect(await worker(source).run({ secret })).toEqual({
+      kind: "finished", stop: "done", collections: { collected: 0, failed: 0 }, prices: { confirmed: 1, kept: 0 }, failures: {},
+    });
+
+    expect(source.read).toHaveBeenCalledExactlyOnceWith("https://shop.example/headphones");
+    const [after] = (await owner().snapshot()).products;
+    expect(after).toEqual({ ...before, lastSuccessfulPrice: { amountMinor: 129000, currency: "KRW", checkedAt: expect.any(String) } });
+    expect(Date.parse(after.lastSuccessfulPrice!.checkedAt)).toBeGreaterThan(Date.parse(before.lastSuccessfulPrice!.checkedAt));
+    expect(after).toMatchObject({ title: "무선 헤드폰 블랙", metadata: { image: { outcome: "waiting" } }, picture: null });
+    expect(await objects()).toBe(0);
+
+    const again = shop(() => served(page("meta-only")));
+    expect(await worker(again).run({ secret })).toMatchObject({ stop: "done", prices: { confirmed: 0, kept: 0 } });
+    expect(again.read).not.toHaveBeenCalled();
+  });
+
+  it("가격이 여럿인 페이지, 다른 통화, 막힌 쇼핑몰은 이전 가격과 그 시각을 지키고 이유를 실행 기록에 남긴다", async () => {
+    const urls = ["https://shop.example/camera", "https://shop.example/speaker", "https://shop.example/blocked"];
+    const secret = await collectedYesterday(urls);
+    const before = (await owner().snapshot()).products;
+    const pages: Record<string, PageRead> = {
+      [urls[0]]: served(page("conflict")),
+      [urls[1]]: served(page("graph")),
+      [urls[2]]: { ok: false, code: "blocked_by_site", status: 403 },
+    };
+
+    const result = await worker({ read: async (url) => pages[url] }).run({ secret });
+
+    const counts = { prices: { confirmed: 0, kept: 3 }, failures: { no_single_price: 1, other_currency: 1, blocked_by_site: 1 } };
+    expect(result).toEqual({ kind: "finished", stop: "done", collections: { collected: 0, failed: 0 }, ...counts });
+    expect((await owner().snapshot()).products.map((product) => product.lastSuccessfulPrice))
+      .toEqual(before.map((product) => product.lastSuccessfulPrice));
+    expect((await runs())[0]).toMatchObject({ state: "done", ...counts });
+  });
+
+  it("구매완료로 옮긴 상품은 다음 날에도 확인하지 않는다", async () => {
+    const secret = await collectedYesterday(["https://shop.example/bought"]);
+    const [product] = (await owner().snapshot()).products;
+    await owner().changeProduct(toProductChangeCommand(product.id, { revision: product.revision, change: { type: "purchase" } }, "2026-11-14"));
+    const source = shop(() => served(page("meta-only")));
+
+    expect(await worker(source).run({ secret })).toMatchObject({ stop: "done", prices: { confirmed: 0, kept: 0 } });
+    expect(source.read).not.toHaveBeenCalled();
   });
 });
