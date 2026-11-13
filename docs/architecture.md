@@ -89,8 +89,8 @@ POST /api/links → 저장 → 응답 → after(): claim → 안전한 가져오
 사진 사본은 수집 실행의 한 단계다. `metadata/application/picture-copy.ts`의 복사기가 `ImageSource`(쇼핑몰 사진 서버), `PictureNormalizer`(sharp), `PictureStore`(비공개 버킷) 포트를 쓰고, 결과를 `complete` 한 번에 넘긴다. 사진 문제로 예외를 던지지 않는다. 형식 판별(`domain/picture.ts`)과 오류 목록(`domain/collection-error.ts`의 가져오기 코드 11개에서 수집·사진 목록을 만든다)은 도메인이다. 버킷 이름·업로드·서명은 `library/infrastructure/product-pictures.ts`와 `supabase-library-store.ts`의 `openPicture`에만 있다.
 
 ```text
-claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트 판별 → sharp → 소유자 토큰으로 업로드 → complete(이름·가격·사진 결과)
-화면: <img src="/api/products/{id}/picture?v={작업}"> → 접근 확인·위치 찾기·1시간 서명 → 302 → Storage
+claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트 판별 → sharp → 소유자 토큰으로 업로드 → complete(이름·가격·사진 결과·객체 버전)
+화면: <img src="/api/products/{id}/picture?v={작업}"> → 접근 확인·위치 찾기(기록한 객체 버전일 때만)·1시간 서명 → 302 → Storage
 ```
 
 객체 이름은 SQL(`moti.picture_object`)만 만들고 claim으로 돌려준다. 공개 계약과 화면에는 같은 출처 경로만 있다. Storage 정책은 `moti_storage`의 보안 정의자 함수가 `moti_rpc`로 실행해 기존 RLS로 소유자의 행만 본다. 설계 비교와 검증은 [changes/pictures.md](changes/pictures.md)에 있다.
