@@ -7,7 +7,17 @@ import {
   parsePurchaseDate,
   type FieldResult,
 } from "../../wishlist/product-fields";
-import { LibraryError, type CollectionId, type Money, type Product, type ProductId } from "../domain/library";
+import type { PictureObject } from "../../metadata/application/picture-copy";
+import {
+  LibraryError,
+  type BackupProduct,
+  type CollectionId,
+  type Library,
+  type LibraryBackup,
+  type Money,
+  type Product,
+  type ProductId,
+} from "../domain/library";
 
 export type LinkSaveCommand = SavedLink & { collectionIds: CollectionId[] };
 export type LinkSaveResult = { kind: "added" | "duplicate"; product: Product };
@@ -32,6 +42,25 @@ export type ProductChangeInput = {
     | { type: "wish" };
 };
 export type CollectionRenameCommand = { collectionId: CollectionId; revision: number; name: string };
+export type LibraryRestoreInput = {
+  collections: { name: string; createdAt: string }[];
+  products: {
+    sourceUrl: string;
+    option: string;
+    collectedTitle: string;
+    ownerTitle: string | null;
+    note: string;
+    collections: string[];
+    addedAt: string;
+    purchase:
+      | { status: "wish" }
+      | { status: "purchased"; date: string | null; price: { amountMinor: number; currency: string } | null };
+    lastSuccessfulPrice: { amountMinor: number; currency: string; checkedAt: string } | null;
+  }[];
+};
+export type LibraryRestoreCommand = { backup: LibraryBackup };
+// The copies the replaced products showed. Their names come from SQL; nothing here builds one.
+export type LibraryRestoreResult = { library: Library; replacedPictures: PictureObject[] };
 
 // The revision columns are PostgreSQL integers; a larger value would reach the database and fail as an outage.
 export const MAX_REVISION = 2147483647;
@@ -123,4 +152,33 @@ export function toCollectionRenameCommand(collectionId: unknown, input: { revisi
   const revision = parseRevision(input.revision);
   const { name } = toCollectionCreateCommand(input.name);
   return { collectionId: collectionId.toLowerCase() as CollectionId, revision, name };
+}
+
+// The file already passed the backup reader. Identity and shop come from the link the way a save derives them, so a
+// file never carries an identity that disagrees with its link; purchase dates are checked against the server's day.
+export function toLibraryRestoreCommand(input: LibraryRestoreInput, today: string): LibraryRestoreCommand {
+  const products = input.products.map((product, index): BackupProduct => {
+    const parsed = parseLink(product.sourceUrl, product.option);
+    if (!parsed.ok) throw new LibraryError("invalid_input", parsed.message, `products.${index}.sourceUrl`);
+    const { purchase } = product;
+    let date: string | null = null;
+    if (purchase.status === "purchased") {
+      const checked = parsePurchaseDate(purchase.date, today);
+      if (!checked.ok) throw new LibraryError("invalid_input", checked.message, `products.${index}.purchase.date`);
+      date = checked.value;
+    }
+    return {
+      ...parsed.link,
+      collectedTitle: product.collectedTitle,
+      ownerTitle: product.ownerTitle,
+      note: product.note,
+      collectionNames: [...product.collections],
+      addedAt: product.addedAt,
+      purchase: purchase.status === "wish"
+        ? { status: "wish" }
+        : { status: "purchased", date, price: purchase.price && { ...purchase.price } },
+      lastSuccessfulPrice: product.lastSuccessfulPrice && { ...product.lastSuccessfulPrice },
+    };
+  });
+  return { backup: { collections: input.collections.map(({ name, createdAt }) => ({ name, createdAt })), products } };
 }

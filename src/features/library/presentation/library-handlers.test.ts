@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Access } from "../../auth/domain/access";
-import { toLinkSaveCommand, type PictureViewResult } from "../application/commands";
+import { toLinkSaveCommand, type LibraryRestoreResult, type PictureViewResult } from "../application/commands";
 import {
   LibraryError,
   type Collection,
@@ -77,6 +77,7 @@ function given(access: Access) {
     changeProduct: vi.fn(async (): Promise<Product> => product),
     renameCollection: vi.fn(async (): Promise<Collection> => collection),
     exportLibrary: vi.fn(async (): Promise<LibraryBackup> => backup),
+    restoreLibrary: vi.fn(async (): Promise<LibraryRestoreResult> => ({ library: { products: [product], collections: [collection] }, replacedPictures: [] })),
   };
   const signOut = vi.fn(async () => {});
   // collect is a mock: scheduling the collection is itself the requirement, its work happens after the response.

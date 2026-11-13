@@ -2,6 +2,8 @@ import type { Collection, Library, LibraryBackup, Product } from "../domain/libr
 import type {
   CollectionCreateCommand,
   CollectionRenameCommand,
+  LibraryRestoreCommand,
+  LibraryRestoreResult,
   LinkSaveCommand,
   LinkSaveResult,
   PictureViewCommand,
@@ -17,4 +19,6 @@ export interface LibraryStore {
   changeProduct(command: ProductChangeCommand): Promise<Product>;
   renameCollection(command: CollectionRenameCommand): Promise<Collection>;
   exportLibrary(): Promise<LibraryBackup>;
+  // Replaces the owner's library with the backup in one transaction, or changes nothing.
+  restoreLibrary(command: LibraryRestoreCommand): Promise<LibraryRestoreResult>;
 }

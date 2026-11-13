@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
-import type { ProductChange } from "../application/commands";
+import type { LibraryRestoreCommand, ProductChange } from "../application/commands";
 import type { LibraryStore } from "../application/library-store";
 import { PICTURE_BUCKET, PICTURE_LINK_SECONDS, pictureObjectSchema } from "./product-pictures";
 import {
@@ -10,6 +10,7 @@ import {
   type Collection,
   type CollectionId,
   type ImageOutcome,
+  type Library,
   type LibraryErrorCode,
   type MetadataState,
   type Money,
@@ -90,6 +91,11 @@ export const productRowSchema = z.object({
   return hasConsistentPurchase(row) && hasConsistentLastSuccess(row) && metadataConsistent && imageConsistent;
 });
 
+const libraryRowSchema = z.object({
+  products: z.array(productRowSchema),
+  collections: z.array(collectionRowSchema),
+});
+
 // What moti_backup returns: the collected and the owner's names apart, and membership as collection names.
 const backupCollectionRowSchema = z.object({ name: z.string().min(1), created_at: timestamp });
 const backupProductRowSchema = z.object({
@@ -111,6 +117,7 @@ const backupRowSchema = z.object({
 });
 
 type CollectionRow = z.infer<typeof collectionRowSchema>;
+type LibraryRow = z.infer<typeof libraryRowSchema>;
 export type ProductRow = z.infer<typeof productRowSchema>;
 type BackupProductRow = z.infer<typeof backupProductRowSchema>;
 
@@ -171,6 +178,10 @@ export function toProduct(row: ProductRow): Product {
     lastSuccessfulPrice: toLastSuccessfulPrice(row),
     picture: row.picture_version === null ? null : { version: row.picture_version },
   };
+}
+
+function toLibrary(row: LibraryRow): Library {
+  return { products: row.products.map(toProduct), collections: row.collections.map(toCollection) };
 }
 
 function toBackupProduct(row: BackupProductRow): BackupProduct {
@@ -234,6 +245,33 @@ function productChangeCall(change: ProductChange): RpcCall {
   return (productChanges[change.type] as (change: ProductChange) => RpcCall)(change);
 }
 
+function toRestoreParameters({ backup }: LibraryRestoreCommand) {
+  return {
+    p_collections: backup.collections.map(({ name, createdAt }) => ({ name, created_at: createdAt })),
+    p_products: backup.products.map((product) => {
+      const paid = product.purchase.status === "purchased" ? product.purchase : null;
+      return {
+        source_url: product.sourceUrl,
+        identity_url: product.identityUrl,
+        option: product.option,
+        shop: product.shop,
+        title: product.collectedTitle,
+        owner_title: product.ownerTitle,
+        note: product.note,
+        collection_names: product.collectionNames,
+        created_at: product.addedAt,
+        purchase_status: product.purchase.status,
+        purchased_on: paid?.date ?? null,
+        purchased_amount_minor: paid?.price?.amountMinor ?? null,
+        purchased_currency: paid?.price?.currency ?? null,
+        last_success_amount_minor: product.lastSuccessfulPrice?.amountMinor ?? null,
+        last_success_currency: product.lastSuccessfulPrice?.currency ?? null,
+        last_success_at: product.lastSuccessfulPrice?.checkedAt ?? null,
+      };
+    }),
+  };
+}
+
 export async function callRpc(client: SupabaseClient, name: string, parameters?: Record<string, unknown>): Promise<unknown> {
   const { data, error } = await client.rpc(name, parameters);
   if (error) {
@@ -250,14 +288,7 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
 
   return {
     async snapshot() {
-      const response = readResponse(z.object({
-        products: z.array(productRowSchema),
-        collections: z.array(collectionRowSchema),
-      }), await rpc("moti_snapshot"));
-      return {
-        products: response.products.map(toProduct),
-        collections: response.collections.map(toCollection),
-      };
+      return toLibrary(readResponse(libraryRowSchema, await rpc("moti_snapshot")));
     },
     async saveLink(command) {
       const response = readResponse(z.object({
@@ -308,6 +339,13 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
         collections: response.collections.map((row) => ({ name: row.name, createdAt: row.created_at })),
         products: response.products.map(toBackupProduct),
       };
+    },
+    async restoreLibrary(command) {
+      const response = readResponse(z.object({
+        library: libraryRowSchema,
+        replaced_pictures: z.array(pictureObjectSchema),
+      }), await rpc("moti_restore_library", toRestoreParameters(command)));
+      return { library: toLibrary(response.library), replacedPictures: response.replaced_pictures };
     },
   };
 }

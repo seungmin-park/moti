@@ -1,6 +1,7 @@
 import type {
   CollectionCreateCommand,
   CollectionRenameCommand,
+  LibraryRestoreCommand,
   LinkSaveCommand,
   PictureViewCommand,
   ProductChangeCommand,
@@ -16,6 +17,7 @@ export function createLibraryService(store: LibraryStore) {
     changeProduct: (command: ProductChangeCommand) => store.changeProduct(command),
     renameCollection: (command: CollectionRenameCommand) => store.renameCollection(command),
     exportLibrary: () => store.exportLibrary(),
+    restoreLibrary: (command: LibraryRestoreCommand) => store.restoreLibrary(command),
   };
 }
 
