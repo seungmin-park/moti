@@ -259,7 +259,10 @@ describe("저장 키 역할의 권한", () => {
     expect(rows).toEqual([
       keyOnly("moti_share_add", "moti_share"),
       keyOnly("moti_worker_begin", "moti_worker"),
+      keyOnly("moti_worker_complete", "moti_worker"),
+      keyOnly("moti_worker_fail", "moti_worker"),
       keyOnly("moti_worker_finish", "moti_worker"),
+      keyOnly("moti_worker_next", "moti_worker"),
     ]);
     const role = await fixture.admin.query(
       `select rolsuper, rolbypassrls, rolinherit, rolcanlogin, rolcreaterole, rolcreatedb,

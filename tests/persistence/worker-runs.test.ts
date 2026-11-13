@@ -239,12 +239,12 @@ describe("작업 역할의 권한", () => {
          from pg_proc p, aclexplode(p.proacl) a, worker where a.grantee = worker.oid and p.proowner <> worker.oid
        ) g order by g.grant`,
     );
-    expect(rows.map((row) => row.grant)).toEqual(WORKER_GRANTS);
+    expect(rows.map((row) => row.grant).toSorted()).toEqual(WORKER_GRANTS.toSorted());
     const policies = await fixture.admin.query<{ policy: string }>(
       `select format('%s %s %s', tablename, policyname, cmd) as policy from pg_policies
        where schemaname = 'moti' and 'moti_worker' = any(roles) order by 1`,
     );
-    expect(policies.rows.map((row) => row.policy)).toEqual(WORKER_POLICIES);
+    expect(policies.rows.map((row) => row.policy).toSorted()).toEqual(WORKER_POLICIES.toSorted());
   });
 
   it("moti_worker 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다", async () => {
@@ -303,10 +303,56 @@ describe("작업 역할의 권한", () => {
 
 const WORKER_FUNCTIONS = [
   "moti_worker_begin(text)",
+  "moti_worker_complete(text,uuid,uuid,uuid,uuid,text,bigint,text,text)",
+  "moti_worker_fail(text,uuid,uuid,uuid,uuid,text)",
   "moti_worker_finish(text,uuid,uuid,text)",
+  "moti_worker_next(text,uuid,uuid)",
 ];
 
 const WORKER_GRANTS = [
+  // Collecting: claim and settle jobs, read a product's link and stored currency, write only collection columns.
+  "column moti.metadata_jobs.attempts SELECT",
+  "column moti.metadata_jobs.error_code SELECT",
+  "column moti.metadata_jobs.finished_at SELECT",
+  "column moti.metadata_jobs.generation SELECT",
+  "column moti.metadata_jobs.id SELECT",
+  "column moti.metadata_jobs.lease_token SELECT",
+  "column moti.metadata_jobs.lease_until SELECT",
+  "column moti.metadata_jobs.owner_id SELECT",
+  "column moti.metadata_jobs.product_id SELECT",
+  "column moti.metadata_jobs.status SELECT",
+  "column moti.metadata_jobs.attempts UPDATE",
+  "column moti.metadata_jobs.error_code UPDATE",
+  "column moti.metadata_jobs.finished_at UPDATE",
+  "column moti.metadata_jobs.image_source_url UPDATE",
+  "column moti.metadata_jobs.lease_token UPDATE",
+  "column moti.metadata_jobs.lease_until UPDATE",
+  "column moti.metadata_jobs.started_at UPDATE",
+  "column moti.metadata_jobs.status UPDATE",
+  "column moti.metadata_jobs.updated_at UPDATE",
+  "column moti.products.created_at SELECT",
+  "column moti.products.id SELECT",
+  "column moti.products.last_success_currency SELECT",
+  "column moti.products.metadata_generation SELECT",
+  "column moti.products.owner_id SELECT",
+  "column moti.products.purchase_status SELECT",
+  "column moti.products.source_url SELECT",
+  "column moti.products.last_success_amount_minor UPDATE",
+  "column moti.products.last_success_at UPDATE",
+  "column moti.products.last_success_currency UPDATE",
+  "column moti.products.metadata_attempts UPDATE",
+  "column moti.products.metadata_completed_at UPDATE",
+  "column moti.products.metadata_error_code UPDATE",
+  "column moti.products.metadata_image UPDATE",
+  "column moti.products.metadata_image_error_code UPDATE",
+  "column moti.products.metadata_phase UPDATE",
+  "column moti.products.title UPDATE",
+  "function moti.is_clean_title(text) EXECUTE",
+  "function moti.is_collection_error(text) EXECUTE",
+  "function moti.is_image_error(text) EXECUTE",
+  "function moti.is_web_url(text,integer) EXECUTE",
+  "function moti.worker_settling_product(uuid,uuid,uuid) EXECUTE",
+  // Its key and its runs.
   "column moti.owner_config.google_subject SELECT",
   "column moti.owner_config.owner_id SELECT",
   "column moti.worker_keys.id SELECT",
@@ -334,6 +380,10 @@ const WORKER_GRANTS = [
 ];
 
 const WORKER_POLICIES = [
+  "metadata_jobs worker_reads_jobs SELECT",
+  "metadata_jobs worker_settles_jobs UPDATE",
+  "products worker_reads_products SELECT",
+  "products worker_settles_products UPDATE",
   "owner_config worker_reads_owner SELECT",
   "worker_keys worker_finds_active_key SELECT",
   "worker_keys worker_marks_use UPDATE",

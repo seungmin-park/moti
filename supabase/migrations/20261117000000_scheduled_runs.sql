@@ -327,3 +327,200 @@ revoke all on function public.moti_worker_begin(text) from public, anon, authent
 revoke all on function public.moti_worker_finish(text, uuid, uuid, text) from public, anon, authenticated, service_role;
 grant execute on function public.moti_worker_begin(text) to anon;
 grant execute on function public.moti_worker_finish(text, uuid, uuid, text) to anon;
+
+-- The worker cannot reach Storage: Storage authorises only the owner's JWT, and minting one needs the project secret.
+-- A worker collection stores the name and price and marks the picture as waiting; the owner's screen copies it.
+alter table moti.products
+  drop constraint products_metadata_image_check,
+  add constraint products_metadata_image_check check (metadata_image in ('copied', 'absent', 'failed', 'waiting'));
+
+-- What the worker may read and write to collect. It reads the link, the purchase status and the stored price's currency,
+-- and writes only collection columns: never owner_title, note, option, revision, purchases or picture copies.
+grant select (id, owner_id, product_id, generation, status, attempts, lease_token, lease_until, finished_at, error_code),
+  update (status, attempts, lease_token, lease_until, started_at, finished_at, updated_at, error_code, image_source_url)
+  on moti.metadata_jobs to moti_worker;
+grant select (id, owner_id, source_url, created_at, purchase_status, metadata_generation, last_success_currency),
+  update (title, metadata_phase, metadata_attempts, metadata_error_code, metadata_completed_at, metadata_image,
+    metadata_image_error_code, last_success_amount_minor, last_success_currency, last_success_at)
+  on moti.products to moti_worker;
+-- The predicates the products and jobs check constraints call: a constraint runs its functions with the writing role's
+-- privileges.
+grant execute on function moti.is_web_url(text, integer), moti.is_clean_title(text), moti.is_collection_error(text),
+  moti.is_image_error(text) to moti_worker;
+
+create policy worker_reads_jobs on moti.metadata_jobs for select to moti_worker
+  using (owner_id = (select c.owner_id from moti.owner_config c));
+create policy worker_settles_jobs on moti.metadata_jobs for update to moti_worker
+  using (owner_id = (select c.owner_id from moti.owner_config c))
+  with check (owner_id = (select c.owner_id from moti.owner_config c));
+create policy worker_reads_products on moti.products for select to moti_worker
+  using (owner_id = (select c.owner_id from moti.owner_config c));
+create policy worker_settles_products on moti.products for update to moti_worker
+  using (owner_id = (select c.owner_id from moti.owner_config c))
+  with check (owner_id = (select c.owner_id from moti.owner_config c));
+
+-- settling_product for the worker: it names its columns, since the worker cannot read whole rows. It locks the job,
+-- then its product, checks the job's lease and closes a superseded job. Returns the product only when the result may
+-- still be written.
+create function moti.worker_settling_product(p_owner uuid, p_job uuid, p_job_lease uuid) returns uuid
+language plpgsql set search_path = '' as $$
+declare
+  v_product uuid;
+  v_generation integer;
+  v_status text;
+  v_lease uuid;
+  v_current integer;
+begin
+  select j.product_id, j.generation, j.status, j.lease_token into v_product, v_generation, v_status, v_lease
+  from moti.metadata_jobs j where j.id = p_job and j.owner_id = p_owner for update;
+  if v_product is null or v_status <> 'running' or v_lease is distinct from p_job_lease then
+    return null;
+  end if;
+  select p.metadata_generation into v_current from moti.products p where p.id = v_product for update;
+  if v_current <> v_generation then
+    update moti.metadata_jobs j
+    set status = 'failed', error_code = 'superseded', lease_token = null, lease_until = null,
+        finished_at = now(), updated_at = now()
+    where j.id = p_job;
+    return null;
+  end if;
+  return v_product;
+end
+$$;
+
+revoke all on function moti.worker_settling_product(uuid, uuid, uuid) from public;
+grant execute on function moti.worker_settling_product(uuid, uuid, uuid) to moti_worker;
+
+-- Picks one due collection and claims it like metadata_claim: a current-generation job of a wish product with fewer
+-- than 3 attempts that is queued, running past its lease, or failed more than an hour ago for a reason a later attempt
+-- may fix. Queued jobs come first, then the newest product. A job another request holds is skipped, and the claim
+-- shares the owner's 3 attempts. The answer carries the link only, never the picture name.
+create function public.moti_worker_next(p_key text, p_run uuid, p_lease uuid) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_owner uuid := moti.worker_run_owner(p_key, p_run, p_lease);
+  v_job uuid;
+  v_product uuid;
+  v_source text;
+  v_attempts integer;
+  v_job_lease uuid := gen_random_uuid();
+begin
+  select j.id, j.product_id, p.source_url into v_job, v_product, v_source
+  from moti.metadata_jobs j
+  join moti.products p on p.id = j.product_id and p.metadata_generation = j.generation
+  where j.owner_id = v_owner and p.purchase_status = 'wish' and j.attempts < 3
+    and (
+      j.status = 'queued'
+      or (j.status = 'running' and j.lease_until < now())
+      or (j.status = 'failed' and j.finished_at < now() - interval '1 hour'
+        and j.error_code in ('dns_failed', 'connect_failed', 'timeout', 'blocked_by_site', 'http_status', 'internal'))
+    )
+  order by j.status = 'queued' desc, p.created_at desc, p.id
+  limit 1
+  for update of j skip locked;
+  if v_job is null then
+    return jsonb_build_object('kind', 'none');
+  end if;
+
+  update moti.metadata_jobs j
+  set status = 'running', attempts = j.attempts + 1, lease_token = v_job_lease, lease_until = now() + interval '60 seconds',
+      started_at = now(), updated_at = now(), finished_at = null, error_code = null
+  where j.id = v_job
+  returning j.attempts into v_attempts;
+  update moti.products p
+  set metadata_phase = 'running', metadata_attempts = v_attempts, metadata_error_code = null, metadata_completed_at = null
+  where p.id = v_product;
+  return jsonb_build_object('kind', 'collection', 'job', v_job, 'job_lease', v_job_lease, 'source_url', v_source);
+end
+$$;
+
+-- Settles a claimed job with the page's name and price. The collected name goes to title, never owner_title, so the
+-- owner's own name stays on screen. The price is written only for a wish whose stored price has the same currency or
+-- none. The picture is marked waiting when the page had one: only the owner's session can copy it.
+create function public.moti_worker_complete(
+  p_key text, p_run uuid, p_lease uuid, p_job uuid, p_job_lease uuid,
+  p_title text, p_amount_minor bigint, p_currency text, p_image_source_url text
+) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_owner uuid := moti.worker_run_owner(p_key, p_run, p_lease);
+  v_product uuid;
+begin
+  if p_job is null or p_job_lease is null or not moti.is_clean_title(p_title)
+    or (p_amount_minor is null) <> (p_currency is null)
+    or (p_amount_minor is not null and (p_amount_minor not between 1 and 9007199254740991 or p_currency !~ '^[A-Z]{3}$'))
+    or (p_image_source_url is not null and not moti.is_web_url(p_image_source_url, 4096))
+  then
+    raise exception using errcode = 'M0002', message = 'invalid collection result';
+  end if;
+
+  v_product := moti.worker_settling_product(v_owner, p_job, p_job_lease);
+  if v_product is null then
+    return jsonb_build_object('kind', 'stale');
+  end if;
+
+  update moti.metadata_jobs j
+  set status = 'succeeded', lease_token = null, lease_until = null, finished_at = now(), updated_at = now(),
+      image_source_url = p_image_source_url
+  where j.id = p_job;
+  update moti.products p
+  set title = p_title, metadata_phase = 'ready', metadata_error_code = null, metadata_completed_at = now(),
+      metadata_image = case when p_image_source_url is null then 'absent' else 'waiting' end,
+      metadata_image_error_code = null
+  where p.id = v_product;
+  -- A price in another currency is not comparable with the stored one, and a purchased product keeps what it had.
+  update moti.products p
+  set last_success_amount_minor = p_amount_minor, last_success_currency = p_currency, last_success_at = now()
+  where p.id = v_product and p_amount_minor is not null and p.purchase_status = 'wish'
+    and (p.last_success_currency is null or p.last_success_currency = p_currency);
+  update moti.worker_runs r set collected = r.collected + 1 where r.id = p_run;
+  return jsonb_build_object('kind', 'applied');
+end
+$$;
+
+-- Settles a claimed job as failed with a reason from the closed list. The run counts the reason, never the link.
+create function public.moti_worker_fail(p_key text, p_run uuid, p_lease uuid, p_job uuid, p_job_lease uuid, p_error_code text)
+returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_owner uuid := moti.worker_run_owner(p_key, p_run, p_lease);
+  v_product uuid;
+begin
+  if p_job is null or p_job_lease is null or p_error_code is null or p_error_code = 'attempts_exhausted'
+    or not moti.is_collection_error(p_error_code) then
+    raise exception using errcode = 'M0002', message = 'invalid collection error';
+  end if;
+
+  v_product := moti.worker_settling_product(v_owner, p_job, p_job_lease);
+  if v_product is null then
+    return jsonb_build_object('kind', 'stale');
+  end if;
+
+  update moti.metadata_jobs j
+  set status = 'failed', error_code = p_error_code, lease_token = null, lease_until = null,
+      finished_at = now(), updated_at = now()
+  where j.id = p_job;
+  update moti.products p
+  set metadata_phase = 'failed', metadata_error_code = p_error_code, metadata_completed_at = null
+  where p.id = v_product;
+  update moti.worker_runs r
+  set collect_failed = r.collect_failed + 1,
+      failures = r.failures || jsonb_build_object(p_error_code, coalesce((r.failures ->> p_error_code)::integer, 0) + 1)
+  where r.id = p_run;
+  return jsonb_build_object('kind', 'applied');
+end
+$$;
+
+grant usage, create on schema public to moti_worker;
+alter function public.moti_worker_next(text, uuid, uuid) owner to moti_worker;
+alter function public.moti_worker_complete(text, uuid, uuid, uuid, uuid, text, bigint, text, text) owner to moti_worker;
+alter function public.moti_worker_fail(text, uuid, uuid, uuid, uuid, text) owner to moti_worker;
+revoke usage, create on schema public from moti_worker;
+
+revoke all on function public.moti_worker_next(text, uuid, uuid) from public, anon, authenticated, service_role;
+revoke all on function public.moti_worker_complete(text, uuid, uuid, uuid, uuid, text, bigint, text, text)
+  from public, anon, authenticated, service_role;
+revoke all on function public.moti_worker_fail(text, uuid, uuid, uuid, uuid, text) from public, anon, authenticated, service_role;
+grant execute on function public.moti_worker_next(text, uuid, uuid) to anon;
+grant execute on function public.moti_worker_complete(text, uuid, uuid, uuid, uuid, text, bigint, text, text) to anon;
+grant execute on function public.moti_worker_fail(text, uuid, uuid, uuid, uuid, text) to anon;
