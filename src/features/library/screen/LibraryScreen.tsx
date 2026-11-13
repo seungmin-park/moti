@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Check, Folder, LogOut, Plus, ShoppingBag, X } from "lucide-react";
+import { Bookmark, Check, Folder, LogOut, Pencil, Plus, ShoppingBag, X } from "lucide-react";
 import type { LibraryReadResponse } from "../presentation/library-dto";
 import { AddLinkDialog } from "./AddLinkDialog";
 import { CollectionDialog } from "./CollectionDialog";
@@ -116,7 +116,14 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
   }
   if (dialog?.kind === "collection") {
     return (
-      <CollectionDialog name={dialog.name} saving={dialog.saving} refreshing={state.refreshing} error={dialog.error} send={send} />
+      <CollectionDialog
+        renaming={dialog.renaming !== null}
+        name={dialog.name}
+        saving={dialog.saving}
+        refreshing={state.refreshing}
+        error={dialog.error}
+        send={send}
+      />
     );
   }
   if (dialog?.kind === "detail") {
@@ -185,6 +192,16 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
             <p>{selected ? "같은 마음으로 모아둔 물건들" : heading.lead}</p>
           </div>
           <div className="header-actions">
+            {selected && (
+              <button
+                className="icon-button"
+                aria-label="컬렉션 이름 바꾸기"
+                title="컬렉션 이름 바꾸기"
+                onClick={() => send({ type: "rename.open", collectionId: selected.id })}
+              >
+                <Pencil size={17} aria-hidden="true" />
+              </button>
+            )}
             <button className="button primary add-button" data-focus-fallback onClick={() => send({ type: "add.open" })}>
               <Plus size={18} />
               링크 추가

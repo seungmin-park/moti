@@ -4,6 +4,8 @@ import { parsePaidPrice, parseProductNote, parseProductTitle, parsePurchaseDate 
 import type {
   CollectionCreateRequest,
   CollectionCreateResponse,
+  CollectionRenameRequest,
+  CollectionRenameResponse,
   CollectionResponse,
   LibraryReadResponse,
   LinkSaveRequest,
@@ -27,7 +29,7 @@ export type DetailForm = "retry" | "details" | "record" | "status";
 export type DetailNotice = { form: DetailForm; kind: "error" | "saved"; field: FieldName | null; message: string };
 export type ScreenDialog =
   | { kind: "add"; draft: LinkDraft; saving: boolean; creating: string | null; error: FormError | null }
-  | { kind: "collection"; name: string; saving: boolean; error: FormError | null }
+  | { kind: "collection"; renaming: string | null; name: string; saving: boolean; error: FormError | null }
   | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; draft: DetailDraft; notice: DetailNotice | null };
 export type ProductChange = ProductChangeRequest["change"];
 export type ProductIntent = "retry" | ProductChange["type"];
@@ -52,6 +54,7 @@ export type ApiCall =
   | { type: "library.read" }
   | { type: "link.save"; body: LinkSaveRequest }
   | { type: "collection.create"; body: CollectionCreateRequest; from: "picker" | "dialog" }
+  | { type: "collection.rename"; collectionId: string; body: CollectionRenameRequest }
   | { type: "metadata.retry"; productId: string; body: MetadataRetryRequest }
   | { type: "product.change"; productId: string; body: ProductChangeRequest }
   | { type: "library.poll" };
@@ -66,6 +69,7 @@ export type ScreenEvent =
   | { type: "add.createCollection"; name: string }
   | { type: "add.submit" }
   | { type: "collection.open" }
+  | { type: "rename.open"; collectionId: string }
   | { type: "collection.edit"; name: string }
   | { type: "collection.submit" }
   | { type: "detail.open"; productId: string }
@@ -80,6 +84,7 @@ export type ScreenEvent =
   | { type: "library.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "link.settled"; outcome: ApiOutcome<LinkSaveResponse> }
   | { type: "collection.settled"; from: "picker" | "dialog"; outcome: ApiOutcome<CollectionCreateResponse> }
+  | { type: "rename.settled"; outcome: ApiOutcome<CollectionRenameResponse> }
   | { type: "metadata.retry"; productId: string }
   | { type: "metadata.settled"; productId: string; outcome: ApiOutcome<MetadataRetryResponse> }
   | { type: "change.settled"; productId: string; intent: ProductChange["type"]; outcome: ApiOutcome<ProductChangeResponse> }
@@ -353,7 +358,9 @@ function onChanged(state: Ready, productId: string, intent: ProductChange["type"
 }
 
 function withCollection(library: LibraryReadResponse, collection: CollectionResponse): LibraryReadResponse {
-  if (library.collections.some((item) => item.id === collection.id)) return library;
+  if (library.collections.some((item) => item.id === collection.id)) {
+    return { ...library, collections: library.collections.map((item) => (item.id === collection.id ? collection : item)) };
+  }
   return { ...library, collections: [...library.collections, collection] };
 }
 
@@ -445,10 +452,23 @@ function onCollection(state: Ready, dialog: CollectionDialog, event: ScreenEvent
   const reject = (message: string) => stay({ ...state, dialog: { ...dialog, error: { field: "collection", message } } });
   const result = parseCollectionName(dialog.name);
   if (!result.ok) return reject(result.message);
-  if (sameName(state.library.collections, result.name)) return reject("같은 이름의 컬렉션이 이미 있어요.");
+  const { collections } = state.library;
+  if (dialog.renaming === null) {
+    if (sameName(collections, result.name)) return reject("같은 이름의 컬렉션이 이미 있어요.");
+    return {
+      state: { ...state, dialog: { ...dialog, saving: true, error: null } },
+      call: { type: "collection.create", body: { name: result.name }, from: "dialog" },
+    };
+  }
+  const target = collections.find((collection) => collection.id === dialog.renaming);
+  if (!target) return reject("컬렉션을 찾을 수 없어요.");
+  if (result.name === target.name) return stay({ ...state, dialog: null });
+  if (sameName(collections.filter((collection) => collection.id !== target.id), result.name)) {
+    return reject("같은 이름의 컬렉션이 이미 있어요.");
+  }
   return {
     state: { ...state, dialog: { ...dialog, saving: true, error: null } },
-    call: { type: "collection.create", body: { name: result.name }, from: "dialog" },
+    call: { type: "collection.rename", collectionId: target.id, body: { revision: target.revision, name: result.name } },
   };
 }
 
@@ -470,7 +490,12 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       } });
     case "collection.open":
       if (busy(state)) return stay(state);
-      return stay({ ...state, toast: null, dialog: { kind: "collection", name: "", saving: false, error: null } });
+      return stay({ ...state, toast: null, dialog: { kind: "collection", renaming: null, name: "", saving: false, error: null } });
+    case "rename.open": {
+      const target = state.library.collections.find((collection) => collection.id === event.collectionId);
+      if (busy(state) || !target) return stay(state);
+      return stay({ ...state, toast: null, dialog: { kind: "collection", renaming: target.id, name: target.name, saving: false, error: null } });
+    }
     case "detail.open":
       if (busy(state)) return stay(state);
       return stay({ ...state, toast: null, dialog: { kind: "detail", productId: event.productId, arrival: null, draft: {}, notice: null } });
@@ -537,6 +562,19 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       }
       return leaveOrStay(state, event.outcome.failure);
     }
+    case "rename.settled": {
+      const renaming = dialog?.kind === "collection" && dialog.renaming !== null ? dialog : null;
+      if (event.outcome.ok) {
+        return stay({
+          ...state,
+          library: withCollection(state.library, event.outcome.value),
+          dialog: renaming ? null : dialog,
+          toast: { kind: "notice", message: "컬렉션 이름을 바꿨어요" },
+        });
+      }
+      if (!renaming) return leaveOrStay(state, event.outcome.failure);
+      return failForm(state, event.outcome.failure, null, (error) => ({ ...renaming, saving: false, error }));
+    }
     default:
       if (state.refreshing && writes.has(event.type)) return stay(state);
       if (dialog?.kind === "add") return onAdd(state, dialog, event);
@@ -576,6 +614,8 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       return { type: "link.settled", outcome: await api.saveLink(call.body) };
     case "collection.create":
       return { type: "collection.settled", from: call.from, outcome: await api.createCollection(call.body) };
+    case "collection.rename":
+      return { type: "rename.settled", outcome: await api.renameCollection(call.collectionId, call.body) };
     case "metadata.retry":
       return { type: "metadata.settled", productId: call.productId, outcome: await api.retryMetadata(call.productId, call.body) };
     case "product.change":

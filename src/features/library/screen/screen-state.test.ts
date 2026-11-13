@@ -277,7 +277,7 @@ describe("오래된 화면 다시 맞추기", () => {
     }).state).toEqual({ phase: "leaving", to: "/login" });
   });
 
-  const staleCollection = () => run(ready({ dialog: { kind: "collection", name: "주방", saving: true, error: null } }), {
+  const staleCollection = () => run(ready({ dialog: { kind: "collection", renaming: null, name: "주방", saving: true, error: null } }), {
     type: "collection.settled", from: "dialog", outcome: { ok: false, failure: { kind: "stale", message: "같은 이름의 컬렉션이 이미 있어요." } },
   });
 
@@ -377,7 +377,7 @@ describe("컬렉션 대화상자", () => {
     const { state, call } = run(ready(), { type: "collection.open" }, { type: "collection.edit", name: " 주방 " },
       { type: "collection.submit" });
     expect(call).toEqual({ type: "collection.create", body: { name: "주방" }, from: "dialog" });
-    expect(dialogOf(state)).toEqual({ kind: "collection", name: " 주방 ", saving: true, error: null });
+    expect(dialogOf(state)).toEqual({ kind: "collection", renaming: null, name: " 주방 ", saving: true, error: null });
   });
 
   it("Given 이미 있는 이름이나 빈 이름 When 만들면 Then 요청하지 않고 오류를 보여준다", () => {
@@ -390,28 +390,28 @@ describe("컬렉션 대화상자", () => {
   });
 
   it("Given 저장 중 When 다시 만들거나 닫으면 Then 무시한다", () => {
-    const saving = ready({ dialog: { kind: "collection", name: "주방", saving: true, error: null } });
+    const saving = ready({ dialog: { kind: "collection", renaming: null, name: "주방", saving: true, error: null } });
     expect(run(saving, { type: "collection.submit" })).toEqual({ state: saving, call: null });
     expect(run(saving, { type: "dialog.close" })).toEqual({ state: saving, call: null });
   });
 
   it("Given 저장 중 When 만들어지면 Then 대화상자를 닫고 새 컬렉션으로 거른다", () => {
     const created = { ...desk, id: "77777777-7777-4777-8777-777777777777", name: "주방" };
-    const { state } = run(ready({ dialog: { kind: "collection", name: "주방", saving: true, error: null } }),
+    const { state } = run(ready({ dialog: { kind: "collection", renaming: null, name: "주방", saving: true, error: null } }),
       { type: "collection.settled", from: "dialog", outcome: { ok: true, value: created } });
     expect(state).toEqual(ready({ library: { ...library, collections: [desk, room, created] }, collectionId: created.id }));
   });
 
   it("Given 저장 중 When 실패하면 Then 이름을 지키고 오류를 보여주며, 중복이면 보관함을 다시 읽는다", () => {
-    const saving = ready({ dialog: { kind: "collection", name: "주방", saving: true, error: null } });
+    const saving = ready({ dialog: { kind: "collection", renaming: null, name: "주방", saving: true, error: null } });
     const failed = run(saving, { type: "collection.settled", from: "dialog", outcome: { ok: false, failure: unavailable } });
-    expect(dialogOf(failed.state)).toEqual({ kind: "collection", name: "주방", saving: false, error: { field: null, message: unavailable.message } });
+    expect(dialogOf(failed.state)).toEqual({ kind: "collection", renaming: null, name: "주방", saving: false, error: { field: null, message: unavailable.message } });
     const stale = run(saving, {
       type: "collection.settled", from: "dialog", outcome: { ok: false, failure: { kind: "stale", message: "같은 이름의 컬렉션이 이미 있어요." } },
     });
     expect(stale.call).toEqual({ type: "library.read" });
     expect(dialogOf(stale.state)).toEqual({
-      kind: "collection", name: "주방", saving: false, error: { field: "collection", message: "같은 이름의 컬렉션이 이미 있어요." },
+      kind: "collection", renaming: null, name: "주방", saving: false, error: { field: "collection", message: "같은 이름의 컬렉션이 이미 있어요." },
     });
   });
 });
@@ -436,7 +436,7 @@ describe("로그인으로 떠나기", () => {
       ready({ refreshing: true }),
       adding({}, { saving: true }),
       adding({}, { creating: "책상" }),
-      ready({ dialog: { kind: "collection", name: "주방", saving: true, error: null } }),
+      ready({ dialog: { kind: "collection", renaming: null, name: "주방", saving: true, error: null } }),
       ready(),
     ];
     for (const state of states) {
@@ -481,6 +481,7 @@ describe("요청 실행", () => {
       createCollection: vi.fn(async () => ({ ok: true as const, value: created })),
       retryMetadata: vi.fn(async () => ({ ok: true as const, value: { product: lamp } })),
       changeProduct: vi.fn(async () => ({ ok: true as const, value: { product: lamp } })),
+      renameCollection: vi.fn(async () => ({ ok: true as const, value: { ...desk, name: "작업 공간", revision: 2 } })),
     };
     await expect(perform(api, { type: "library.read" })).resolves.toEqual({ type: "library.settled", outcome: { ok: true, value: library } });
     const body = { url: "https://a.example", option: "", collectionIds: [] };
@@ -497,6 +498,9 @@ describe("요청 실행", () => {
     await expect(perform(api, { type: "product.change", productId: lamp.id, body: change }))
       .resolves.toEqual({ type: "change.settled", productId: lamp.id, intent: "purchase", outcome: { ok: true, value: { product: lamp } } });
     expect(api.changeProduct).toHaveBeenCalledWith(lamp.id, change);
+    await expect(perform(api, { type: "collection.rename", collectionId: desk.id, body: { revision: 1, name: "작업 공간" } }))
+      .resolves.toEqual({ type: "rename.settled", outcome: { ok: true, value: { ...desk, name: "작업 공간", revision: 2 } } });
+    expect(api.renameCollection).toHaveBeenCalledWith(desk.id, { revision: 1, name: "작업 공간" });
     await expect(perform(api, { type: "library.poll" })).resolves.toEqual({ type: "poll.settled", outcome: { ok: true, value: library } });
     expect(api.read).toHaveBeenCalledTimes(2);
   });
@@ -968,5 +972,60 @@ describe("상세에서 구매완료와 위시로 되돌리기", () => {
     expect(call).toEqual({ type: "library.read" });
     expect(detailOf(state).notice).toEqual({ form: "status", kind: "error", field: null, message: conflict.message });
     expect(state).toMatchObject({ toast: null });
+  });
+});
+
+describe("컬렉션 이름 바꾸기", () => {
+  const renaming = (name: string, overrides: Partial<Extract<ScreenDialog, { kind: "collection" }>> = {}): ScreenDialog =>
+    ({ kind: "collection", renaming: desk.id, name, saving: false, error: null, ...overrides });
+
+  it("Given 고른 컬렉션 When 이름 바꾸기를 열면 Then 지금 이름을 채운 대화상자를 열고 알림을 닫는다", () => {
+    const start = ready({ collectionId: desk.id, toast: { kind: "notice", message: "위시리스트로 되돌렸어요" } });
+    expect(transition(start, { type: "rename.open", collectionId: desk.id }).state)
+      .toEqual(ready({ collectionId: desk.id, dialog: renaming("Desk") }));
+    const missing = ready();
+    expect(transition(missing, { type: "rename.open", collectionId: "99999999-9999-4999-8999-999999999999" })).toEqual({ state: missing, call: null });
+  });
+
+  it("Given 새 이름 When 저장하면 Then 정리한 이름을 컬렉션의 revision으로 보내고 저장 중에는 다시 보내지 않는다", () => {
+    const { state, call } = run(ready({ dialog: renaming("Desk") }), { type: "collection.edit", name: " 작업 공간 " }, { type: "collection.submit" });
+    expect(call).toEqual({ type: "collection.rename", collectionId: desk.id, body: { revision: 1, name: "작업 공간" } });
+    expect(dialogOf(state)).toEqual(renaming(" 작업 공간 ", { saving: true }));
+    expect(transition(state, { type: "collection.submit" })).toEqual({ state, call: null });
+    expect(transition(state, { type: "dialog.close" })).toEqual({ state, call: null });
+  });
+
+  it("Given 이름을 그대로 둠 When 저장하면 Then 요청하지 않고 닫는다", () => {
+    expect(run(ready({ dialog: renaming("Desk") }), { type: "collection.submit" })).toEqual({ state: ready(), call: null });
+  });
+
+  it("Given 자기 이름의 대소문자만 바꿈 When 저장하면 Then 요청하고, 다른 컬렉션과 같은 이름이면 요청하지 않고 거절한다", () => {
+    expect(run(ready({ dialog: renaming("desk") }), { type: "collection.submit" }).call)
+      .toEqual({ type: "collection.rename", collectionId: desk.id, body: { revision: 1, name: "desk" } });
+    const duplicate = run(ready({ dialog: renaming(" 방 ") }), { type: "collection.submit" });
+    expect(duplicate.call).toBeNull();
+    expect(dialogOf(duplicate.state)).toEqual(renaming(" 방 ", { error: { field: "collection", message: "같은 이름의 컬렉션이 이미 있어요." } }));
+    const empty = run(ready({ dialog: renaming(" ") }), { type: "collection.submit" });
+    expect(dialogOf(empty.state)).toMatchObject({ error: { field: "collection", message: "컬렉션 이름은 1~40자로 입력해 주세요." } });
+  });
+
+  it("Given 저장 중 When 바뀌면 Then 같은 자리의 컬렉션 이름만 바꾸고 소속 상품과 필터는 그대로 두며 알린다", () => {
+    const renamed = { ...desk, name: "작업 공간", revision: 2 };
+    const { state } = transition(ready({ collectionId: desk.id, dialog: renaming("작업 공간", { saving: true }) }),
+      { type: "rename.settled", outcome: { ok: true, value: renamed } });
+    expect(state).toEqual(ready({
+      library: { ...library, collections: [renamed, room] },
+      collectionId: desk.id,
+      toast: { kind: "notice", message: "컬렉션 이름을 바꿨어요" },
+    }));
+    expect(visibleProducts((state as Ready).library, "wish", desk.id)).toEqual([lamp]);
+  });
+
+  it("Given 저장 중 When 다른 곳에서 먼저 바뀌었거나 같은 이름이 생겼다고 거절되면 Then 입력을 지키고 안내하며 보관함을 다시 읽는다", () => {
+    const failure: ApiFailure = { kind: "stale", message: "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 저장해 주세요." };
+    const { state, call } = transition(ready({ dialog: renaming("작업 공간", { saving: true }) }), { type: "rename.settled", outcome: { ok: false, failure } });
+    expect(call).toEqual({ type: "library.read" });
+    expect(state).toMatchObject({ refreshing: true });
+    expect(dialogOf(state)).toEqual(renaming("작업 공간", { error: { field: "collection", message: failure.message } }));
   });
 });

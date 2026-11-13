@@ -1,0 +1,359 @@
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/screen/screen-state.test.ts (98 tests | 8 failed) 24ms
+   ❯ 컬렉션 대화상자 (5)
+     × Given 보관함 When 새 컬렉션 이름을 입력해 만들면 Then 저장 중이 되고 대화상자 요청을 보낸다 6ms
+   ❯ 요청 실행 (1)
+     × Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다 2ms
+   ❯ 컬렉션 이름 바꾸기 (6)
+     × Given 고른 컬렉션 When 이름 바꾸기를 열면 Then 지금 이름을 채운 대화상자를 열고 알림을 닫는다 2ms
+     × Given 새 이름 When 저장하면 Then 정리한 이름을 컬렉션의 revision으로 보내고 저장 중에는 다시 보내지 않는다 0ms
+     × Given 이름을 그대로 둠 When 저장하면 Then 요청하지 않고 닫는다 1ms
+     × Given 자기 이름의 대소문자만 바꿈 When 저장하면 Then 요청하고, 다른 컬렉션과 같은 이름이면 요청하지 않고 거절한다 0ms
+     × Given 저장 중 When 바뀌면 Then 같은 자리의 컬렉션 이름만 바꾸고 소속 상품과 필터는 그대로 두며 알린다 1ms
+     × Given 저장 중 When 다른 곳에서 먼저 바뀌었거나 같은 이름이 생겼다고 거절되면 Then 입력을 지키고 안내하며 보관함을 다시 읽는다 0ms
+ ❯ src/features/library/screen/library-api.test.ts (112 tests | 3 failed) 36ms
+   ❯ API 오류 응답의 화면 결과 (95)
+     × Given collection.rename의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 4ms
+     × Given collection.rename의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+   ❯ 보관함 API 클라이언트 (17)
+     × Given 컬렉션 이름 바꾸기 When 요청하면 Then 컬렉션 경로에 PATCH로 revision과 이름을 보내고 200 컬렉션을 돌려준다 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given collection.rename의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+AssertionError: expected { kind: 'unavailable', …(1) } to deeply equal { kind: 'stale', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "kind": "stale",
+-   "message": "컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요.",
++   "kind": "unavailable",
++   "message": "잠시 뒤 다시 시도해 주세요.",
+  }
+
+ ❯ src/features/library/screen/library-api.test.ts:173:77
+    171| describe("API 오류 응답의 화면 결과", () => {
+    172|   it.each(cases)("Given %s의 %s 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다", (en…
+    173|     expect(toApiFailure(endpoint, status[code], errorBody(endpoint, co…
+       |                                                                             ^
+    174|   });
+    175|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given collection.rename의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+AssertionError: expected { kind: 'unavailable', …(1) } to deeply equal { kind: 'stale', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "kind": "stale",
+-   "message": "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 저장해 주세요.",
++   "kind": "unavailable",
++   "message": "잠시 뒤 다시 시도해 주세요.",
+  }
+
+ ❯ src/features/library/screen/library-api.test.ts:173:77
+    171| describe("API 오류 응답의 화면 결과", () => {
+    172|   it.each(cases)("Given %s의 %s 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다", (en…
+    173|     expect(toApiFailure(endpoint, status[code], errorBody(endpoint, co…
+       |                                                                             ^
+    174|   });
+    175|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 컬렉션 이름 바꾸기 When 요청하면 Then 컬렉션 경로에 PATCH로 revision과 이름을 보내고 200 컬렉션을 돌려준다
+Error: not implemented
+ ❯ Object.renameCollection src/features/library/screen/library-api.ts:197:37
+    195|       { status: 202, parse: parsed(metadataRetryResponseSchema) },
+    196|     ]),
+    197|     renameCollection: () => { throw new Error("not implemented"); },
+       |                                     ^
+    198|     changeProduct: (productId, body) => request("product.change", `/ap…
+    199|       { status: 200, parse: parsed(productChangeResponseSchema) },
+ ❯ src/features/library/screen/library-api.test.ts:284:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 컬렉션 대화상자 > Given 보관함 When 새 컬렉션 이름을 입력해 만들면 Then 저장 중이 되고 대화상자 요청을 보낸다
+AssertionError: expected { kind: 'collection', …(3) } to deeply equal { kind: 'collection', …(4) }
+
+- Expected
++ Received
+
+  {
+    "error": null,
+    "kind": "collection",
+    "name": " 주방 ",
+-   "renaming": null,
+    "saving": true,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:380:29
+    378|       { type: "collection.submit" });
+    379|     expect(call).toEqual({ type: "collection.create", body: { name: "주…
+    380|     expect(dialogOf(state)).toEqual({ kind: "collection", renaming: nu…
+       |                             ^
+    381|   });
+    382|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 요청 실행 > Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다
+AssertionError: expected undefined to deeply equal { type: 'rename.settled', …(1) }
+
+- Expected:
+{
+  "outcome": {
+    "ok": true,
+    "value": {
+      "createdAt": "2026-11-10T00:00:00.000Z",
+      "id": "11111111-1111-4111-8111-111111111111",
+      "name": "작업 공간",
+      "revision": 2,
+      "updatedAt": "2026-11-10T00:00:00.000Z",
+    },
+  },
+  "type": "rename.settled",
+}
+
++ Received:
+undefined
+
+ ❯ src/features/library/screen/screen-state.test.ts:501:123
+    499|       .resolves.toEqual({ type: "change.settled", productId: lamp.id, …
+    500|     expect(api.changeProduct).toHaveBeenCalledWith(lamp.id, change);
+    501|     await expect(perform(api, { type: "collection.rename", collectionI…
+       |                                                                                                                           ^
+    502|       .resolves.toEqual({ type: "rename.settled", outcome: { ok: true,…
+    503|     expect(api.renameCollection).toHaveBeenCalledWith(desk.id, { revis…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 컬렉션 이름 바꾸기 > Given 고른 컬렉션 When 이름 바꾸기를 열면 Then 지금 이름을 채운 대화상자를 열고 알림을 닫는다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -1,14 +1,8 @@
+  {
+    "collectionId": "11111111-1111-4111-8111-111111111111",
+-   "dialog": {
+-     "error": null,
+-     "kind": "collection",
+-     "name": "Desk",
+-     "renaming": "11111111-1111-4111-8111-111111111111",
+-     "saving": false,
+-   },
++   "dialog": null,
+    "library": {
+      "collections": [
+        {
+          "createdAt": "2026-11-10T00:00:00.000Z",
+          "id": "11111111-1111-4111-8111-111111111111",
+@@ -77,9 +71,12 @@
+        },
+      ],
+    },
+    "phase": "ready",
+    "refreshing": false,
+-   "toast": null,
++   "toast": {
++     "kind": "notice",
++     "message": "위시리스트로 되돌렸어요",
++   },
+    "view": "wish",
+    "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:985:8
+    983|     const start = ready({ collectionId: desk.id, toast: { kind: "notic…
+    984|     expect(transition(start, { type: "rename.open", collectionId: desk…
+    985|       .toEqual(ready({ collectionId: desk.id, dialog: renaming("Desk")…
+       |        ^
+    986|     const missing = ready();
+    987|     expect(transition(missing, { type: "rename.open", collectionId: "9…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 컬렉션 이름 바꾸기 > Given 새 이름 When 저장하면 Then 정리한 이름을 컬렉션의 revision으로 보내고 저장 중에는 다시 보내지 않는다
+AssertionError: expected { type: 'collection.create', …(2) } to deeply equal { type: 'collection.rename', …(2) }
+
+- Expected
++ Received
+
+  {
+    "body": {
+      "name": "작업 공간",
+-     "revision": 1,
+    },
+-   "collectionId": "11111111-1111-4111-8111-111111111111",
+-   "type": "collection.rename",
++   "from": "dialog",
++   "type": "collection.create",
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:992:18
+    990|   it("Given 새 이름 When 저장하면 Then 정리한 이름을 컬렉션의 revision으로 보내고 저장 중에는 다시 …
+    991|     const { state, call } = run(ready({ dialog: renaming("Desk") }), {…
+    992|     expect(call).toEqual({ type: "collection.rename", collectionId: de…
+       |                  ^
+    993|     expect(dialogOf(state)).toEqual(renaming(" 작업 공간 ", { saving: true…
+    994|     expect(transition(state, { type: "collection.submit" })).toEqual({…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 컬렉션 이름 바꾸기 > Given 이름을 그대로 둠 When 저장하면 Then 요청하지 않고 닫는다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,19 @@
+  {
+    "call": null,
+    "state": {
+      "collectionId": null,
+-     "dialog": null,
++     "dialog": {
++       "error": {
++         "field": "collection",
++         "message": "같은 이름의 컬렉션이 이미 있어요.",
++       },
++       "kind": "collection",
++       "name": "Desk",
++       "renaming": "11111111-1111-4111-8111-111111111111",
++       "saving": false,
++     },
+      "library": {
+        "collections": [
+          {
+            "createdAt": "2026-11-10T00:00:00.000Z",
+            "id": "11111111-1111-4111-8111-111111111111",
+
+ ❯ src/features/library/screen/screen-state.test.ts:999:85
+    997|
+    998|   it("Given 이름을 그대로 둠 When 저장하면 Then 요청하지 않고 닫는다", () => {
+    999|     expect(run(ready({ dialog: renaming("Desk") }), { type: "collectio…
+       |                                                                                     ^
+    1000|   });
+    1001|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 컬렉션 이름 바꾸기 > Given 자기 이름의 대소문자만 바꿈 When 저장하면 Then 요청하고, 다른 컬렉션과 같은 이름이면 요청하지 않고 거절한다
+AssertionError: expected null to deeply equal { type: 'collection.rename', …(2) }
+
+- Expected:
+{
+  "body": {
+    "name": "desk",
+    "revision": 1,
+  },
+  "collectionId": "11111111-1111-4111-8111-111111111111",
+  "type": "collection.rename",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:1004:8
+    1002|   it("Given 자기 이름의 대소문자만 바꿈 When 저장하면 Then 요청하고, 다른 컬렉션과 같은 이름이면 요청하지 …
+    1003|     expect(run(ready({ dialog: renaming("desk") }), { type: "collectio…
+    1004|       .toEqual({ type: "collection.rename", collectionId: desk.id, bod…
+       |        ^
+    1005|     const duplicate = run(ready({ dialog: renaming(" 방 ") }), { type: …
+    1006|     expect(duplicate.call).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 컬렉션 이름 바꾸기 > Given 저장 중 When 바뀌면 Then 같은 자리의 컬렉션 이름만 바꾸고 소속 상품과 필터는 그대로 두며 알린다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(7) }
+
+- Expected
++ Received
+
+@@ -1,15 +1,21 @@
+  {
+    "collectionId": "11111111-1111-4111-8111-111111111111",
+-   "dialog": null,
++   "dialog": {
++     "error": null,
++     "kind": "collection",
++     "name": "작업 공간",
++     "renaming": "11111111-1111-4111-8111-111111111111",
++     "saving": true,
++   },
+    "library": {
+      "collections": [
+        {
+          "createdAt": "2026-11-10T00:00:00.000Z",
+          "id": "11111111-1111-4111-8111-111111111111",
+-         "name": "작업 공간",
+-         "revision": 2,
++         "name": "Desk",
++         "revision": 1,
+          "updatedAt": "2026-11-10T00:00:00.000Z",
+        },
+        {
+          "createdAt": "2026-11-10T00:00:00.000Z",
+          "id": "33333333-3333-4333-8333-333333333333",
+@@ -71,12 +77,9 @@
+        },
+      ],
+    },
+    "phase": "ready",
+    "refreshing": false,
+-   "toast": {
+-     "kind": "notice",
+-     "message": "컬렉션 이름을 바꿨어요",
+-   },
++   "toast": null,
+    "view": "wish",
+    "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:1016:19
+    1014|     const { state } = transition(ready({ collectionId: desk.id, dialog…
+    1015|       { type: "rename.settled", outcome: { ok: true, value: renamed } …
+    1016|     expect(state).toEqual(ready({
+       |                   ^
+    1017|       library: { ...library, collections: [renamed, room] },
+    1018|       collectionId: desk.id,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 컬렉션 이름 바꾸기 > Given 저장 중 When 다른 곳에서 먼저 바뀌었거나 같은 이름이 생겼다고 거절되면 Then 입력을 지키고 안내하며 보관함을 다시 읽는다
+AssertionError: expected null to deeply equal { type: 'library.read' }
+
+- Expected:
+{
+  "type": "library.read",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:1027:18
+    1025|     const failure: ApiFailure = { kind: "stale", message: "다른 곳에서 먼저 바…
+    1026|     const { state, call } = transition(ready({ dialog: renaming("작업 공간…
+    1027|     expect(call).toEqual({ type: "library.read" });
+       |                  ^
+    1028|     expect(state).toMatchObject({ refreshing: true });
+    1029|     expect(dialogOf(state)).toEqual(renaming("작업 공간", { error: { field…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  11 failed | 236 passed (247)
+   Start at  18:42:56
+   Duration  242ms (transform 40%, import 33%, tests 25%, worker 2%)
+

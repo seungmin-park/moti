@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { loginPath } from "../../auth/presentation/login-error";
 import {
   collectionCreateResponseSchema,
+  collectionRenameResponseSchema,
   errorResponseSchema,
   libraryReadResponseSchema,
   linkSaveResponseSchema,
@@ -9,6 +10,8 @@ import {
   productChangeResponseSchema,
   type CollectionCreateRequest,
   type CollectionCreateResponse,
+  type CollectionRenameRequest,
+  type CollectionRenameResponse,
   type ErrorCode,
   type ErrorResponse,
   type LibraryReadResponse,
@@ -27,11 +30,12 @@ export type ApiFailure =
   | { kind: "stale"; message: string }
   | { kind: "unavailable"; message: string };
 export type ApiOutcome<T> = { ok: true; value: T } | { ok: false; failure: ApiFailure };
-export type Endpoint = "library.read" | "link.save" | "collection.create" | "metadata.retry" | "product.change";
+export type Endpoint = "library.read" | "link.save" | "collection.create" | "collection.rename" | "metadata.retry" | "product.change";
 export type LibraryApi = {
   read(): Promise<ApiOutcome<LibraryReadResponse>>;
   saveLink(body: LinkSaveRequest): Promise<ApiOutcome<LinkSaveResponse>>;
   createCollection(body: CollectionCreateRequest): Promise<ApiOutcome<CollectionCreateResponse>>;
+  renameCollection(collectionId: string, body: CollectionRenameRequest): Promise<ApiOutcome<CollectionRenameResponse>>;
   retryMetadata(productId: string, body: MetadataRetryRequest): Promise<ApiOutcome<MetadataRetryResponse>>;
   changeProduct(productId: string, body: ProductChangeRequest): Promise<ApiOutcome<ProductChangeResponse>>;
 };
@@ -106,6 +110,25 @@ const failures: Record<Endpoint, Mapping> = {
     product_missing: retryLater,
     metadata_not_retryable: retryLater,
     revision_conflict: retryLater,
+    picture_missing: retryLater,
+  },
+  "collection.rename": {
+    ...session,
+    storage_unavailable: retryLater,
+    cross_origin: reload,
+    unsupported_media_type: retryLater,
+    payload_too_large: () => ({ kind: "invalid", field: "collection", message: "컬렉션 이름이 너무 길어요." }),
+    invalid_input: (error) => ({
+      kind: "invalid",
+      field: "collection",
+      message: error.field === "collection" ? error.message : "입력을 확인해 주세요.",
+    }),
+    collection_missing: stale("컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요."),
+    collection_duplicate: stale("같은 이름의 컬렉션이 이미 있어요."),
+    identity_conflict: retryLater,
+    product_missing: retryLater,
+    metadata_not_retryable: retryLater,
+    revision_conflict: changedElsewhere,
     picture_missing: retryLater,
   },
   "metadata.retry": {
@@ -186,6 +209,9 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
     ]),
     createCollection: (body) => request("collection.create", "/api/collections", write("POST", body), [
       { status: 201, parse: parsed(collectionCreateResponseSchema) },
+    ]),
+    renameCollection: (collectionId, body) => request("collection.rename", `/api/collections/${segment(collectionId)}`, write("PATCH", body), [
+      { status: 200, parse: parsed(collectionRenameResponseSchema) },
     ]),
     retryMetadata: (productId, body) => request("metadata.retry", `/api/products/${segment(productId)}/metadata`, write("POST", body), [
       { status: 202, parse: parsed(metadataRetryResponseSchema) },

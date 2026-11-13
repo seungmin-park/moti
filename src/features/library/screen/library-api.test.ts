@@ -104,6 +104,21 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
   },
+  "collection.rename": {
+    ...signedIn,
+    storage_unavailable: { kind: "unavailable", message: retryLater },
+    cross_origin: { kind: "unavailable", message: reload },
+    unsupported_media_type: { kind: "unavailable", message: retryLater },
+    payload_too_large: { kind: "invalid", field: "collection", message: "컬렉션 이름이 너무 길어요." },
+    invalid_input: { kind: "invalid", field: "collection", message: "컬렉션 이름은 1~40자로 입력해 주세요." },
+    collection_missing: { kind: "stale", message: "컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요." },
+    collection_duplicate: { kind: "stale", message: "같은 이름의 컬렉션이 이미 있어요." },
+    identity_conflict: { kind: "unavailable", message: retryLater },
+    product_missing: { kind: "unavailable", message: retryLater },
+    metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    revision_conflict: { kind: "stale", message: changedElsewhere },
+    picture_missing: { kind: "unavailable", message: retryLater },
+  },
   "metadata.retry": {
     ...signedIn,
     storage_unavailable: { kind: "unavailable", message: retryLater },
@@ -139,7 +154,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
 function errorBody(endpoint: Endpoint, code: ErrorCode) {
   if (code !== "invalid_input") return { error: code, message: "서버 문구" };
   if (endpoint === "product.change") return { error: code, message: "메모는 3,000자까지 적을 수 있어요.", field: "note" };
-  return endpoint === "collection.create"
+  return endpoint === "collection.create" || endpoint === "collection.rename"
     ? { error: code, message: "컬렉션 이름은 1~40자로 입력해 주세요.", field: "collection" }
     : { error: code, message: "서버가 거절한 링크예요.", field: "url" };
 }
@@ -261,6 +276,16 @@ describe("보관함 API 클라이언트", () => {
     expect(init?.method).toBe("PATCH");
     expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
     expect(JSON.parse(String(init?.body))).toEqual(body);
+  });
+
+  it("Given 컬렉션 이름 바꾸기 When 요청하면 Then 컬렉션 경로에 PATCH로 revision과 이름을 보내고 200 컬렉션을 돌려준다", async () => {
+    const renamed = { ...collection, name: "작업 공간", revision: 2 };
+    const { fetcher, api } = respond(renamed, { status: 200 });
+    await expect(api.renameCollection(collection.id, { revision: 1, name: "작업 공간" })).resolves.toEqual({ ok: true, value: renamed });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe(`/api/collections/${collection.id}`);
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(String(init?.body))).toEqual({ revision: 1, name: "작업 공간" });
   });
 
   it("Given 상품 정리에 200이 아닌 성공 코드 When 요청하면 Then 연결 안내로 실패한다", async () => {
