@@ -1,5 +1,14 @@
 import type { z } from "zod";
 import { loginPath } from "../../auth/presentation/login-error";
+import {
+  shareKeyIssueResponseSchema,
+  shareKeyReadResponseSchema,
+  shareKeyRevokeResponseSchema,
+  type ShareKeyIssueRequest,
+  type ShareKeyIssueResponse,
+  type ShareKeyReadResponse,
+  type ShareKeyRevokeResponse,
+} from "../../share/presentation/share-dto";
 import { MAX_BACKUP_BYTES, backupFileName, readLibraryBackup, type BackupCounts } from "../presentation/library-backup";
 import {
   collectionCreateResponseSchema,
@@ -42,7 +51,10 @@ export type Endpoint =
   | "metadata.wake"
   | "product.change"
   | "library.backup"
-  | "library.restore";
+  | "library.restore"
+  | "share.read"
+  | "share.issue"
+  | "share.revoke";
 // A backup the server made and the reader accepted, kept as the exact text the owner downloads.
 export type BackupFile = { name: string; text: string; counts: BackupCounts; restorable: boolean };
 export type LibraryApi = {
@@ -56,6 +68,9 @@ export type LibraryApi = {
   // Sends the chosen file's text unchanged, so the server checks exactly what the screen checked.
   restore(text: string): Promise<ApiOutcome<LibraryReadResponse>>;
   wake(): Promise<ApiOutcome<MetadataWakeResponse>>;
+  readShareKey(): Promise<ApiOutcome<ShareKeyReadResponse>>;
+  issueShareKey(body: ShareKeyIssueRequest): Promise<ApiOutcome<ShareKeyIssueResponse>>;
+  revokeShareKey(keyId: string): Promise<ApiOutcome<ShareKeyRevokeResponse>>;
 };
 
 const connection: ApiFailure = { kind: "unavailable", message: "연결을 확인하고 다시 시도해 주세요." };
@@ -102,7 +117,35 @@ const readFailures: Mapping = {
   share_key_missing: readFailed,
 };
 
+const every = (failure: () => ApiFailure) => ({
+  storage_unavailable: failure,
+  cross_origin: failure,
+  unsupported_media_type: failure,
+  payload_too_large: failure,
+  invalid_input: failure,
+  collection_missing: failure,
+  collection_duplicate: failure,
+  identity_conflict: failure,
+  product_missing: failure,
+  metadata_not_retryable: failure,
+  revision_conflict: failure,
+  picture_missing: failure,
+  share_key_missing: failure,
+});
+const keyChanged = stale("다른 곳에서 키가 바뀌었어요. 최신 상태를 불러왔어요.");
+// A key write whose answer is lost may still have committed, so the panel re-reads after any of these.
+const keyWrite = (unknown: string): Mapping => ({
+  ...session,
+  ...every(unavailable(unknown)),
+  cross_origin: reload,
+  revision_conflict: keyChanged,
+  share_key_missing: keyChanged,
+});
+
 const failures: Record<Endpoint, Mapping> = {
+  "share.read": { ...session, ...every(unavailable("저장 키를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.")) },
+  "share.issue": keyWrite("새 키를 받지 못했어요. 최신 상태를 불러왔어요."),
+  "share.revoke": keyWrite("키를 폐기했는지 확인하지 못했어요. 최신 상태를 불러왔어요."),
   // The screen shows nothing when a wake fails: the library it read is still right, and the retry button remains.
   "metadata.wake": readFailures,
   "library.read": readFailures,
@@ -325,5 +368,15 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
     wake: () => request("metadata.wake", "/api/library/metadata", write("POST", {}), [
       { status: 202, parse: parsed(metadataWakeResponseSchema) },
     ]),
+    readShareKey: () => request("share.read", "/api/share-keys", { method: "GET", headers: { accept: "application/json" } }, [
+      { status: 200, parse: parsed(shareKeyReadResponseSchema) },
+    ]),
+    issueShareKey: (body) => request("share.issue", "/api/share-keys", write("POST", body), [
+      { status: 201, parse: parsed(shareKeyIssueResponseSchema) },
+    ]),
+    revokeShareKey: (keyId) => request("share.revoke", `/api/share-keys/${segment(keyId)}`, {
+      method: "DELETE",
+      headers: { accept: "application/json" },
+    }, [{ status: 200, parse: parsed(shareKeyRevokeResponseSchema) }]),
   };
 }

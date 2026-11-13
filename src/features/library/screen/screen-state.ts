@@ -20,8 +20,9 @@ import type {
 } from "../presentation/library-dto";
 import type { ApiFailure, ApiOutcome, BackupFile, FieldName, LibraryApi } from "./library-api";
 import { canRetry } from "./product-view";
+import { closeShare, isShareEvent, onShare, openShare, type ShareCall, type ShareEvent, type SharePanel } from "./share-state";
 
-export type View = "wish" | "purchased";
+export type View = "wish" | "purchased" | "share";
 export type LinkDraft = { url: string; option: string; collectionIds: string[] };
 export type FormError = { field: FieldName | null; message: string };
 // Only the fields the owner touched. Every other field shows the live product, so collection results and a re-read
@@ -60,6 +61,7 @@ export type LibraryScreenState =
     // One product write at a time; every button that would write waits for it.
     writing: { productId: string; intent: ProductIntent } | null;
     toast: Toast | null;
+    share: SharePanel;
   }
   | { phase: "leaving"; to: string };
 export type ApiCall =
@@ -73,7 +75,8 @@ export type ApiCall =
   | { type: "backup.export" }
   | { type: "backup.file"; file: File }
   | { type: "library.restore"; text: string }
-  | { type: "metadata.wake" };
+  | { type: "metadata.wake" }
+  | ShareCall;
 export type ScreenEvent =
   | { type: "retry" }
   | { type: "resume" }
@@ -115,7 +118,8 @@ export type ScreenEvent =
   | { type: "backup.back" }
   | { type: "backup.restore" }
   | { type: "restore.settled"; outcome: ApiOutcome<LibraryReadResponse> }
-  | { type: "wake.settled"; outcome: ApiOutcome<MetadataWakeResponse> };
+  | { type: "wake.settled"; outcome: ApiOutcome<MetadataWakeResponse> }
+  | ShareEvent;
 export type Transition = { state: LibraryScreenState; call: ApiCall | null };
 
 export const initialScreen: Transition = { state: { phase: "loading" }, call: { type: "library.read" } };
@@ -598,13 +602,34 @@ function onRestored(state: Ready, outcome: ApiOutcome<LibraryReadResponse>): Tra
   return { state: { ...at({ kind: "info", message: restoreUnknown }), refreshing: true }, call: refresh };
 }
 
+// A list view. Leaving the share view forgets the secret: the view decides whether it may stay visible.
+function listing(state: Ready, view: Exclude<View, "share">): Ready {
+  return { ...state, view, toast: null, share: closeShare(state.share) };
+}
+
+function onView(state: Ready, view: View): Transition {
+  if (view === state.view) return stay(state);
+  if (view !== "share") return stay(listing(state, view));
+  const { panel, call } = openShare(state.share);
+  return { state: { ...state, view, toast: null, share: panel }, call };
+}
+
+function onSharePanel(state: Ready, event: ShareEvent): Transition {
+  const { panel, call, leave: to } = onShare(state.share, event, state.view === "share");
+  return to === null ? { state: { ...state, share: panel }, call } : leave(to);
+}
+
 function onReady(state: Ready, event: ScreenEvent): Transition {
   const { dialog } = state;
+  if (isShareEvent(event)) return onSharePanel(state, event);
   switch (event.type) {
     case "view":
-      return stay({ ...state, view: event.view, toast: null });
-    case "filter":
-      return stay({ ...state, collectionId: event.collectionId, toast: null });
+      return onView(state, event.view);
+    case "filter": {
+      // Collections hold products, so choosing one from the share view shows the wish list.
+      const listed = state.view === "share" ? listing(state, "wish") : state;
+      return stay({ ...listed, collectionId: event.collectionId, toast: null });
+    }
     case "add.open":
       if (busy(state)) return stay(state);
       return stay({ ...state, toast: null, dialog: {
@@ -731,7 +756,7 @@ export function transition(state: LibraryScreenState, event: ScreenEvent): Trans
         return {
           state: {
             phase: "ready", library: event.outcome.value, view: "wish", collectionId: null,
-            dialog: null, refreshing: false, writing: null, toast: null,
+            dialog: null, refreshing: false, writing: null, toast: null, share: { status: "unread" },
           },
           call: hasUnstarted(event.outcome.value) ? { type: "metadata.wake" } : null,
         };
@@ -779,6 +804,12 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       return { type: "restore.settled", outcome: await api.restore(call.text) };
     case "metadata.wake":
       return { type: "wake.settled", outcome: await api.wake() };
+    case "share.read":
+      return { type: "share.read.settled", outcome: await api.readShareKey() };
+    case "share.issue":
+      return { type: "share.issue.settled", outcome: await api.issueShareKey({ replaces: call.replaces }) };
+    case "share.revoke":
+      return { type: "share.revoke.settled", outcome: await api.revokeShareKey(call.keyId) };
   }
 }
 

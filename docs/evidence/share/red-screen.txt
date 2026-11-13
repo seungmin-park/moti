@@ -1,0 +1,1280 @@
+# Red: the share view on the real screen (step 7), screen state and helpers. share-state.ts and share-view.ts exported behaviour-free stubs with the final signatures, and the screen state, API client and nav had no share view yet.
+# Command: npx vitest run src/features/library/screen
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/screen/share-view.test.ts (6 tests | 5 failed) 13ms
+   ❯ 저장 키 표시 (6)
+     × Given 키 없음 When 보이면 Then 단축어를 먼저 만들고 키는 마지막에 만들라고 안내한다 9ms
+     × Given 아직 쓰지 않은 활성 키 When 보이면 Then 끝 네 글자와 만든 날, 아직 담은 상품이 없다는 것만 보여준다 1ms
+     × Given 단축어가 쓴 키 When 보이면 Then 서울 시각으로 마지막으로 담은 때를 보여준다 0ms
+     × Given 폐기한 키 When 보이면 Then 언제 폐기했고 그 키로는 담을 수 없다고 알린다 0ms
+     × Given 바꾸기와 폐기 확인 When 보이면 Then 무엇이 폐기되는지 말한다 1ms
+ ❯ src/features/library/screen/share-state.test.ts (19 tests | 14 failed) 16ms
+   ❯ 공유 저장 키 패널 열기 (5)
+     × Given 처음 여는 보기 When 열면 Then 불러오는 중이고 키를 읽는다 5ms
+     × Given 이미 읽은 패널 When 다시 열면 Then 보이는 키를 두고 마지막 사용 시각을 다시 읽는다 1ms
+     × Given 불러오는 중 When 키가 없다는 답 Then 키 없음 패널이고, 실패하면 안내와 다시 불러오기를 준다 0ms
+     × Given 세션이 끝남 When 키를 읽으면 Then 로그인으로 떠난다 0ms
+   ❯ 저장 키 만들기 (7)
+     × Given 키 없음 When 만들면 Then 바꿀 키 없이 만들기를 요청한다 0ms
+     × Given 폐기한 키 When 만들면 Then 바꿀 키 없이 만들기를 요청한다 0ms
+     × Given 만드는 중 When 비밀을 받으면 Then 새 키와 비밀을 한 번 보여주고, 붙여 넣었다고 하면 비밀을 지운다 0ms
+     × Given 만드는 중 보기를 떠남 When 비밀을 받으면 Then 키만 남기고 비밀은 버린다 2ms
+     × Given 비밀이 보이는 패널 When 보기를 떠나면 Then 비밀과 열린 확인을 지운다 1ms
+   ❯ 새 키로 바꾸기와 폐기 (7)
+     × Given 활성 키 When 새 키로 바꾸기를 물으면 Then 확인을 열고, 취소하면 닫고, 확인하면 화면이 본 키를 바꿀 키로 보낸다 1ms
+     × Given 활성 키 When 폐기를 확인하면 Then 그 키를 폐기하고, 결과로 폐기한 키를 보여준다 1ms
+     × Given 다른 곳에서 키가 바뀜 When 바꾸거나 폐기하면 Then 안내를 남기고 다시 읽으며, 읽은 뒤에도 안내가 남는다 1ms
+     × Given 연결 실패 When 폐기하면 Then 오류 안내를 남기고 실제 상태를 다시 읽는다 1ms
+     × Given 세션이 끝남 When 키를 만들면 Then 로그인으로 떠난다 0ms
+ ❯ src/features/library/screen/screen-state.test.ts (110 tests | 9 failed) 28ms
+   ❯ 보관함 불러오기 (5)
+     × Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다 6ms
+     × Given 아직 수집을 시작하지 않은 상품이 없음 When 보관함을 받으면 Then 깨우지 않는다 1ms
+   ❯ 요청 실행 (1)
+     × Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다 2ms
+   ❯ 공유 저장 보기 (7)
+     × Given 위시 보기 When 공유 저장으로 가면 Then 키를 읽기 시작한다 1ms
+     × Given 비밀이 보이는 공유 저장 보기 When 다른 보기로 가면 Then 비밀을 지운다 1ms
+     × Given 공유 저장 보기 When 컬렉션을 고르면 Then 그 컬렉션의 위시 보기로 간다 1ms
+     × Given 공유 저장 보기에서 키를 만듦 When 응답 전에 떠났다가 비밀이 오면 Then 비밀을 보이지 않는다 0ms
+     × Given 공유 저장 보기 When 패널 사건이 오면 Then 패널의 요청을 그대로 보낸다 1ms
+     × Given 세션이 끝남 When 키 결과가 오면 Then 로그인으로 떠난다 0ms
+ ❯ src/features/library/screen/library-api.test.ts (225 tests | 51 failed) 73ms
+   ❯ API 오류 응답의 화면 결과 (197)
+     × Given share.read의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 5ms
+     × Given share.read의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.read의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.issue의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given share.revoke의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+   ❯ 보관함 API 클라이언트 (21)
+     × Given 저장 키 When 읽으면 Then /api/share-keys를 GET으로 읽고 키를 돌려준다 0ms
+     × Given 새 저장 키 When 만들면 Then 화면이 본 키를 replaces로 POST하고 201 비밀을 돌려준다 0ms
+     × Given 저장 키 폐기 When 요청하면 Then 키 경로에 본문 없는 DELETE를 보내고 200 키를 돌려준다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 79 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'signed_out')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'forbidden')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'unconfigured')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'storage_unavailable')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'cross_origin')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'unsupported_media_type')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'payload_too_large')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'invalid_input')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'collection_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'collection_duplicate')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'identity_conflict')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'product_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'metadata_not_retryable')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'revision_conflict')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'picture_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.read의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.issue의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given share.revoke의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'share_key_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:233:47
+    231| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    232|   const error = errorResponseSchema.safeParse(body);
+    233|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    234|   return status === 401 ? session.signed_out() : connection;
+    235| }
+ ❯ src/features/library/screen/library-api.test.ts:258:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 저장 키 When 읽으면 Then /api/share-keys를 GET으로 읽고 키를 돌려준다
+TypeError: api.readShareKey is not a function
+ ❯ src/features/library/screen/library-api.test.ts:363:22
+    361|     const key = { id: "55555555-5555-4555-8555-555555555555", hint: "a…
+    362|     const { fetcher, api } = respond({ key }, { status: 200 });
+    363|     await expect(api.readShareKey()).resolves.toEqual({ ok: true, valu…
+       |                      ^
+    364|     const [path, init] = fetcher.mock.calls[0];
+    365|     expect(path).toBe("/api/share-keys");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 새 저장 키 When 만들면 Then 화면이 본 키를 replaces로 POST하고 201 비밀을 돌려준다
+TypeError: api.issueShareKey is not a function
+ ❯ src/features/library/screen/library-api.test.ts:374:22
+    372|     const secret = `moti_sk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_A…
+    373|     const { fetcher, api } = respond({ key, secret }, { status: 201 });
+    374|     await expect(api.issueShareKey({ replaces: null })).resolves.toEqu…
+       |                      ^
+    375|     const [path, init] = fetcher.mock.calls[0];
+    376|     expect(path).toBe("/api/share-keys");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/79]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 저장 키 폐기 When 요청하면 Then 키 경로에 본문 없는 DELETE를 보내고 200 키를 돌려준다
+TypeError: api.revokeShareKey is not a function
+ ❯ src/features/library/screen/library-api.test.ts:384:22
+    382|     const key = { id: "55555555-5555-4555-8555-555555555555", hint: "a…
+    383|     const { fetcher, api } = respond({ key }, { status: 200 });
+    384|     await expect(api.revokeShareKey("../" + key.id)).resolves.toMatchO…
+       |                      ^
+    385|     const [path, init] = fetcher.mock.calls[0];
+    386|     expect(path).toBe(`/api/share-keys/..%2F${key.id}`);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 보관함 불러오기 > Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(8) }
+
+- Expected
++ Received
+
+@@ -71,12 +71,9 @@
+        },
+      ],
+    },
+    "phase": "ready",
+    "refreshing": false,
+-   "share": {
+-     "status": "unread",
+-   },
+    "toast": null,
+    "view": "wish",
+    "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:101:19
+     99|   it("Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다", () => {
+    100|     const { state, call } = transition({ phase: "loading" }, { type: "…
+    101|     expect(state).toEqual(ready());
+       |                   ^
+    102|     expect(call).toEqual({ type: "metadata.wake" });
+    103|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 보관함 불러오기 > Given 아직 수집을 시작하지 않은 상품이 없음 When 보관함을 받으면 Then 깨우지 않는다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'ready', …(8) }
+
+- Expected
++ Received
+
+@@ -47,12 +47,9 @@
+        },
+      ],
+    },
+    "phase": "ready",
+    "refreshing": false,
+-   "share": {
+-     "status": "unread",
+-   },
+    "toast": null,
+    "view": "wish",
+    "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:108:19
+    106|     const started = { ...library, products: [{ ...lamp, metadata: { ph…
+    107|     const { state, call } = transition({ phase: "loading" }, { type: "…
+    108|     expect(state).toEqual(ready({ library: started }));
+       |                   ^
+    109|     expect(call).toBeNull();
+    110|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 요청 실행 > Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다
+AssertionError: expected undefined to deeply equal { type: 'share.read.settled', …(1) }
+
+- Expected:
+{
+  "outcome": {
+    "ok": true,
+    "value": {
+      "key": null,
+    },
+  },
+  "type": "share.read.settled",
+}
+
++ Received:
+undefined
+
+ ❯ src/features/library/screen/screen-state.test.ts:530:55
+    528|     await expect(perform(api, { type: "metadata.wake" })).resolves.toE…
+    529|     expect(api.wake).toHaveBeenCalledOnce();
+    530|     await expect(perform(api, { type: "share.read" })).resolves.toEqua…
+       |                                                       ^
+    531|     await expect(perform(api, { type: "share.issue", replaces: null }))
+    532|       .resolves.toEqual({ type: "share.issue.settled", outcome: { ok: …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 공유 저장 보기 > Given 위시 보기 When 공유 저장으로 가면 Then 키를 읽기 시작한다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -1,9 +1,7 @@
+  {
+-   "call": {
+-     "type": "share.read",
+-   },
++   "call": null,
+    "state": {
+      "collectionId": null,
+      "dialog": null,
+      "library": {
+        "collections": [
+@@ -76,11 +74,11 @@
+        ],
+      },
+      "phase": "ready",
+      "refreshing": false,
+      "share": {
+-       "status": "loading",
++       "status": "unread",
+      },
+      "toast": null,
+      "view": "share",
+      "writing": null,
+    },
+
+ ❯ src/features/library/screen/screen-state.test.ts:1096:8
+    1094|   it("Given 위시 보기 When 공유 저장으로 가면 Then 키를 읽기 시작한다", () => {
+    1095|     expect(transition(ready(), { type: "view", view: "share" }))
+    1096|       .toEqual({ state: ready({ view: "share", share: { status: "loadi…
+       |        ^
+    1097|   });
+    1098|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 공유 저장 보기 > Given 비밀이 보이는 공유 저장 보기 When 다른 보기로 가면 Then 비밀을 지운다
+AssertionError: expected { phase: 'ready', …(8) } to deeply equal { phase: 'ready', …(8) }
+
+- Expected
++ Received
+
+@@ -82,11 +82,11 @@
+        "id": "55555555-5555-4555-8555-555555555555",
+        "lastUsedAt": null,
+        "revokedAt": null,
+      },
+      "notice": null,
+-     "secret": null,
++     "secret": "moti_sk_AbcdEfghIjklMnopQrstUvwxYz0123456789-_Aa1B2",
+      "status": "ready",
+    },
+    "toast": null,
+    "view": "purchased",
+    "writing": null,
+
+ ❯ src/features/library/screen/screen-state.test.ts:1101:19
+    1099|   it("Given 비밀이 보이는 공유 저장 보기 When 다른 보기로 가면 Then 비밀을 지운다", () => {
+    1100|     const { state, call } = transition(ready({ view: "share", share: s…
+    1101|     expect(state).toEqual(ready({ view: "purchased", share: { ...shown…
+       |                   ^
+    1102|     expect(call).toBeNull();
+    1103|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 공유 저장 보기 > Given 공유 저장 보기 When 컬렉션을 고르면 Then 그 컬렉션의 위시 보기로 간다
+AssertionError: expected { phase: 'ready', …(8) } to deeply equal { phase: 'ready', …(8) }
+
+- Expected
++ Received
+
+@@ -75,8 +75,8 @@
+    "refreshing": false,
+    "share": {
+      "status": "unread",
+    },
+    "toast": null,
+-   "view": "wish",
++   "view": "share",
+    "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:1107:8
+    1105|   it("Given 공유 저장 보기 When 컬렉션을 고르면 Then 그 컬렉션의 위시 보기로 간다", () => {
+    1106|     expect(transition(ready({ view: "share" }), { type: "filter", coll…
+    1107|       .toEqual(ready({ view: "wish", collectionId: desk.id }));
+       |        ^
+    1108|   });
+    1109|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 공유 저장 보기 > Given 공유 저장 보기에서 키를 만듦 When 응답 전에 떠났다가 비밀이 오면 Then 비밀을 보이지 않는다
+AssertionError: expected { status: 'ready', key: null, …(4) } to deeply equal { Object (status, key, ...) }
+
+- Expected
++ Received
+
+  {
+-   "busy": false,
++   "busy": true,
+    "confirm": null,
+-   "key": {
+-     "createdAt": "2026-11-13T05:00:00.000Z",
+-     "hint": "a1B2",
+-     "id": "55555555-5555-4555-8555-555555555555",
+-     "lastUsedAt": null,
+-     "revokedAt": null,
+-   },
++   "key": null,
+    "notice": null,
+    "secret": null,
+    "status": "ready",
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:1114:36
+    1112|     const left = transition(ready({ view: "share", share: busy }), { t…
+    1113|     const { state } = transition(left, { type: "share.issue.settled", …
+    1114|     expect((state as Ready).share).toEqual({ ...shown, secret: null });
+       |                                    ^
+    1115|   });
+    1116|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 공유 저장 보기 > Given 공유 저장 보기 When 패널 사건이 오면 Then 패널의 요청을 그대로 보낸다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,7 @@
+  {
+-   "call": {
+-     "replaces": null,
+-     "type": "share.issue",
+-   },
++   "call": null,
+    "state": {
+      "collectionId": null,
+      "dialog": null,
+      "library": {
+        "collections": [
+@@ -77,11 +74,11 @@
+        ],
+      },
+      "phase": "ready",
+      "refreshing": false,
+      "share": {
+-       "busy": true,
++       "busy": false,
+        "confirm": null,
+        "key": null,
+        "notice": null,
+        "secret": null,
+        "status": "ready",
+
+ ❯ src/features/library/screen/screen-state.test.ts:1120:8
+    1118|     const empty = { ...shown, key: null, secret: null };
+    1119|     expect(transition(ready({ view: "share", share: empty }), { type: …
+    1120|       .toEqual({ state: ready({ view: "share", share: { ...empty, busy…
+       |        ^
+    1121|   });
+    1122|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/79]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 공유 저장 보기 > Given 세션이 끝남 When 키 결과가 오면 Then 로그인으로 떠난다
+AssertionError: expected { phase: 'ready', …(8) } to deeply equal { phase: 'leaving', to: '/login' }
+
+- Expected
++ Received
+
+  {
+-   "phase": "leaving",
+-   "to": "/login",
++   "collectionId": null,
++   "dialog": null,
++   "library": {
++     "collections": [
++       {
++         "createdAt": "2026-11-10T00:00:00.000Z",
++         "id": "11111111-1111-4111-8111-111111111111",
++         "name": "Desk",
++         "revision": 1,
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++       {
++         "createdAt": "2026-11-10T00:00:00.000Z",
++         "id": "33333333-3333-4333-8333-333333333333",
++         "name": "방",
++         "revision": 1,
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++     ],
++     "products": [
++       {
++         "addedAt": "2026-11-10T00:00:00.000Z",
++         "collectionIds": [
++           "11111111-1111-4111-8111-111111111111",
++         ],
++         "id": "22222222-2222-4222-8222-222222222222",
++         "identityUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
++         "lastSuccessfulPrice": null,
++         "metadata": {
++           "attempts": 0,
++           "generation": 1,
++           "phase": "queued",
++           "stalled": false,
++         },
++         "note": "",
++         "option": "",
++         "picture": null,
++         "purchase": {
++           "status": "wish",
++         },
++         "revision": 1,
++         "shop": "example.com",
++         "sourceUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
++         "title": "새로 담은 상품",
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++       {
++         "addedAt": "2026-11-11T00:00:00.000Z",
++         "collectionIds": [],
++         "id": "44444444-4444-4444-8444-444444444444",
++         "identityUrl": "https://example.com/44444444-4444-4444-8444-444444444444",
++         "lastSuccessfulPrice": null,
++         "metadata": {
++           "attempts": 0,
++           "generation": 1,
++           "phase": "queued",
++           "stalled": false,
++         },
++         "note": "",
++         "option": "",
++         "picture": null,
++         "purchase": {
++           "status": "wish",
++         },
++         "revision": 1,
++         "shop": "example.com",
++         "sourceUrl": "https://example.com/44444444-4444-4444-8444-444444444444",
++         "title": "새로 담은 상품",
++         "updatedAt": "2026-11-11T00:00:00.000Z",
++       },
++     ],
++   },
++   "phase": "ready",
++   "refreshing": false,
++   "share": {
++     "status": "loading",
++   },
++   "toast": null,
++   "view": "share",
++   "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:1126:8
+    1124|     const outcome = { ok: false as const, failure: { kind: "redirect" …
+    1125|     expect(transition(ready({ view: "share", share: { status: "loading…
+    1126|       .toEqual({ phase: "leaving", to: "/login" });
+       |        ^
+    1127|   });
+    1128|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 공유 저장 키 패널 열기 > Given 처음 여는 보기 When 열면 Then 불러오는 중이고 키를 읽는다
+AssertionError: expected { panel: { status: 'unread' }, …(2) } to deeply equal { panel: { status: 'loading' }, …(2) }
+
+- Expected
++ Received
+
+  {
+-   "call": {
+-     "type": "share.read",
+-   },
++   "call": null,
+    "leave": null,
+    "panel": {
+-     "status": "loading",
++     "status": "unread",
+    },
+  }
+
+ ❯ src/features/library/screen/share-state.test.ts:26:45
+     24| describe("공유 저장 키 패널 열기", () => {
+     25|   it("Given 처음 여는 보기 When 열면 Then 불러오는 중이고 키를 읽는다", () => {
+     26|     expect(openShare({ status: "unread" })).toEqual({ panel: { status:…
+       |                                             ^
+     27|   });
+     28|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 공유 저장 키 패널 열기 > Given 이미 읽은 패널 When 다시 열면 Then 보이는 키를 두고 마지막 사용 시각을 다시 읽는다
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+@@ -1,9 +1,7 @@
+  {
+-   "call": {
+-     "type": "share.read",
+-   },
++   "call": null,
+    "leave": null,
+    "panel": {
+      "busy": false,
+      "confirm": null,
+      "key": {
+
+ ❯ src/features/library/screen/share-state.test.ts:30:32
+     28|
+     29|   it("Given 이미 읽은 패널 When 다시 열면 Then 보이는 키를 두고 마지막 사용 시각을 다시 읽는다", () …
+     30|     expect(openShare(ready())).toEqual({ panel: ready(), call: read, l…
+       |                                ^
+     31|   });
+     32|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 공유 저장 키 패널 열기 > Given 불러오는 중 When 키가 없다는 답 Then 키 없음 패널이고, 실패하면 안내와 다시 불러오기를 준다
+AssertionError: expected { status: 'loading' } to deeply equal { status: 'ready', key: null, …(4) }
+
+- Expected
++ Received
+
+  {
+-   "busy": false,
+-   "confirm": null,
+-   "key": null,
+-   "notice": null,
+-   "secret": null,
+-   "status": "ready",
++   "status": "loading",
+  }
+
+ ❯ src/features/library/screen/share-state.test.ts:40:8
+     38|   it("Given 불러오는 중 When 키가 없다는 답 Then 키 없음 패널이고, 실패하면 안내와 다시 불러오기를 준다"…
+     39|     expect(onShare({ status: "loading" }, { type: "share.read.settled"…
+     40|       .toEqual(ready({ key: null }));
+       |        ^
+     41|     const failed = onShare({ status: "loading" }, { type: "share.read.…
+     42|     expect(failed.panel).toEqual({ status: "failed", message: unavaila…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 공유 저장 키 패널 열기 > Given 세션이 끝남 When 키를 읽으면 Then 로그인으로 떠난다
+AssertionError: expected null to be '/login' // Object.is equality
+
+- Expected:
+"/login"
+
++ Received:
+null
+
+ ❯ src/features/library/screen/share-state.test.ts:48:97
+     46|   it("Given 세션이 끝남 When 키를 읽으면 Then 로그인으로 떠난다", () => {
+     47|     const outcome = { ok: false as const, failure: { kind: "redirect" …
+     48|     expect(onShare({ status: "loading" }, { type: "share.read.settled"…
+       |                                                                                                 ^
+     49|   });
+     50| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 저장 키 만들기 > Given 키 없음 When 만들면 Then 바꿀 키 없이 만들기를 요청한다
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+@@ -1,13 +1,10 @@
+  {
+-   "call": {
+-     "replaces": null,
+-     "type": "share.issue",
+-   },
++   "call": null,
+    "leave": null,
+    "panel": {
+-     "busy": true,
++     "busy": false,
+      "confirm": null,
+      "key": null,
+      "notice": null,
+      "secret": null,
+      "status": "ready",
+
+ ❯ src/features/library/screen/share-state.test.ts:55:8
+     53|   it.each([["키 없음", null], ["폐기한 키", revoked]])("Given %s When 만들면 The…
+     54|     expect(onShare(ready({ key: shown }), { type: "share.create" }, tr…
+     55|       .toEqual({ panel: ready({ key: shown, busy: true }), call: { typ…
+       |        ^
+     56|   });
+     57|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 저장 키 만들기 > Given 폐기한 키 When 만들면 Then 바꿀 키 없이 만들기를 요청한다
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+@@ -1,13 +1,10 @@
+  {
+-   "call": {
+-     "replaces": null,
+-     "type": "share.issue",
+-   },
++   "call": null,
+    "leave": null,
+    "panel": {
+-     "busy": true,
++     "busy": false,
+      "confirm": null,
+      "key": {
+        "createdAt": "2026-11-13T05:00:00.000Z",
+        "hint": "a1B2",
+        "id": "55555555-5555-4555-8555-555555555555",
+
+ ❯ src/features/library/screen/share-state.test.ts:55:8
+     53|   it.each([["키 없음", null], ["폐기한 키", revoked]])("Given %s When 만들면 The…
+     54|     expect(onShare(ready({ key: shown }), { type: "share.create" }, tr…
+     55|       .toEqual({ panel: ready({ key: shown, busy: true }), call: { typ…
+       |        ^
+     56|   });
+     57|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 저장 키 만들기 > Given 만드는 중 When 비밀을 받으면 Then 새 키와 비밀을 한 번 보여주고, 붙여 넣었다고 하면 비밀을 지운다
+AssertionError: expected { status: 'ready', key: null, …(4) } to deeply equal { Object (status, key, ...) }
+
+- Expected
++ Received
+
+  {
+-   "busy": false,
++   "busy": true,
+    "confirm": null,
+-   "key": {
+-     "createdAt": "2026-11-13T05:00:00.000Z",
+-     "hint": "Zz9_",
+-     "id": "66666666-6666-4666-8666-666666666666",
+-     "lastUsedAt": null,
+-     "revokedAt": null,
+-   },
++   "key": null,
+    "notice": null,
+-   "secret": "moti_sk_AbcdEfghIjklMnopQrstUvwxYz0123456789-_AZz9_",
++   "secret": null,
+    "status": "ready",
+  }
+
+ ❯ src/features/library/screen/share-state.test.ts:64:25
+     62|   it("Given 만드는 중 When 비밀을 받으면 Then 새 키와 비밀을 한 번 보여주고, 붙여 넣었다고 하면 비밀을 …
+     63|     const shown = onShare(ready({ key: null, busy: true }), { type: "s…
+     64|     expect(shown.panel).toEqual(ready({ key: next, secret }));
+       |                         ^
+     65|     expect(onShare(shown.panel, { type: "share.pasted" }, true).panel)…
+     66|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 저장 키 만들기 > Given 만드는 중 보기를 떠남 When 비밀을 받으면 Then 키만 남기고 비밀은 버린다
+AssertionError: expected { status: 'ready', key: null, …(4) } to deeply equal { Object (status, key, ...) }
+
+- Expected
++ Received
+
+  {
+-   "busy": false,
++   "busy": true,
+    "confirm": null,
+-   "key": {
+-     "createdAt": "2026-11-13T05:00:00.000Z",
+-     "hint": "Zz9_",
+-     "id": "66666666-6666-4666-8666-666666666666",
+-     "lastUsedAt": null,
+-     "revokedAt": null,
+-   },
++   "key": null,
+    "notice": null,
+    "secret": null,
+    "status": "ready",
+  }
+
+ ❯ src/features/library/screen/share-state.test.ts:70:19
+     68|   it("Given 만드는 중 보기를 떠남 When 비밀을 받으면 Then 키만 남기고 비밀은 버린다", () => {
+     69|     const { panel } = onShare(ready({ key: null, busy: true }), { type…
+     70|     expect(panel).toEqual(ready({ key: next }));
+       |                   ^
+     71|   });
+     72|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 저장 키 만들기 > Given 비밀이 보이는 패널 When 보기를 떠나면 Then 비밀과 열린 확인을 지운다
+AssertionError: expected { Object (status, key, ...) } to deeply equal { Object (status, key, ...) }
+
+- Expected
++ Received
+
+@@ -7,8 +7,8 @@
+      "id": "66666666-6666-4666-8666-666666666666",
+      "lastUsedAt": null,
+      "revokedAt": null,
+    },
+    "notice": null,
+-   "secret": null,
++   "secret": "moti_sk_AbcdEfghIjklMnopQrstUvwxYz0123456789-_AZz9_",
+    "status": "ready",
+  }
+
+ ❯ src/features/library/screen/share-state.test.ts:74:54
+     72|
+     73|   it("Given 비밀이 보이는 패널 When 보기를 떠나면 Then 비밀과 열린 확인을 지운다", () => {
+     74|     expect(closeShare(ready({ key: next, secret }))).toEqual(ready({ k…
+       |                                                      ^
+     75|     expect(closeShare(ready({ confirm: "revoke" }))).toEqual(ready());
+     76|     expect(closeShare({ status: "loading" })).toEqual({ status: "loadi…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 새 키로 바꾸기와 폐기 > Given 활성 키 When 새 키로 바꾸기를 물으면 Then 확인을 열고, 취소하면 닫고, 확인하면 화면이 본 키를 바꿀 키로 보낸다
+AssertionError: expected { Object (status, key, ...) } to deeply equal { Object (status, key, ...) }
+
+- Expected
++ Received
+
+@@ -1,8 +1,8 @@
+  {
+    "busy": false,
+-   "confirm": "rotate",
++   "confirm": null,
+    "key": {
+      "createdAt": "2026-11-13T05:00:00.000Z",
+      "hint": "a1B2",
+      "id": "55555555-5555-4555-8555-555555555555",
+      "lastUsedAt": null,
+
+ ❯ src/features/library/screen/share-state.test.ts:88:19
+     86|   it("Given 활성 키 When 새 키로 바꾸기를 물으면 Then 확인을 열고, 취소하면 닫고, 확인하면 화면이 본 키…
+     87|     const asked = onShare(ready(), { type: "share.ask", confirm: "rota…
+     88|     expect(asked).toEqual(ready({ confirm: "rotate" }));
+       |                   ^
+     89|     expect(onShare(asked, { type: "share.cancel" }, true).panel).toEqu…
+     90|     expect(onShare(asked, { type: "share.confirm" }, true))
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 새 키로 바꾸기와 폐기 > Given 활성 키 When 폐기를 확인하면 Then 그 키를 폐기하고, 결과로 폐기한 키를 보여준다
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+@@ -1,13 +1,10 @@
+  {
+-   "call": {
+-     "keyId": "55555555-5555-4555-8555-555555555555",
+-     "type": "share.revoke",
+-   },
++   "call": null,
+    "leave": null,
+    "panel": {
+-     "busy": true,
++     "busy": false,
+      "confirm": "revoke",
+      "key": {
+        "createdAt": "2026-11-13T05:00:00.000Z",
+        "hint": "a1B2",
+        "id": "55555555-5555-4555-8555-555555555555",
+
+ ❯ src/features/library/screen/share-state.test.ts:96:23
+     94|   it("Given 활성 키 When 폐기를 확인하면 Then 그 키를 폐기하고, 결과로 폐기한 키를 보여준다", () =>…
+     95|     const confirmed = onShare(ready({ confirm: "revoke" }), { type: "s…
+     96|     expect(confirmed).toEqual({ panel: ready({ confirm: "revoke", busy…
+       |                       ^
+     97|     expect(onShare(confirmed.panel, { type: "share.revoke.settled", ou…
+     98|       .toEqual(ready({ key: revoked }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 새 키로 바꾸기와 폐기 > Given 다른 곳에서 키가 바뀜 When 바꾸거나 폐기하면 Then 안내를 남기고 다시 읽으며, 읽은 뒤에도 안내가 남는다
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+  {
+-   "call": {
+-     "type": "share.read",
+-   },
++   "call": null,
+    "leave": null,
+    "panel": {
+-     "busy": false,
+-     "confirm": null,
++     "busy": true,
++     "confirm": "rotate",
+      "key": {
+        "createdAt": "2026-11-13T05:00:00.000Z",
+        "hint": "a1B2",
+        "id": "55555555-5555-4555-8555-555555555555",
+        "lastUsedAt": null,
+        "revokedAt": null,
+      },
+-     "notice": {
+-       "kind": "info",
+-       "message": "다른 곳에서 키가 바뀌었어요. 최신 상태를 불러왔어요.",
+-     },
++     "notice": null,
+      "secret": null,
+      "status": "ready",
+    },
+  }
+
+ ❯ src/features/library/screen/share-state.test.ts:114:21
+    112|   it("Given 다른 곳에서 키가 바뀜 When 바꾸거나 폐기하면 Then 안내를 남기고 다시 읽으며, 읽은 뒤에도 안내…
+    113|     const rotated = onShare(ready({ confirm: "rotate", busy: true }), …
+    114|     expect(rotated).toEqual({ panel: ready({ notice: { kind: "info", m…
+       |                     ^
+    115|     const reread = onShare(rotated.panel, { type: "share.read.settled"…
+    116|     expect(reread.panel).toEqual(ready({ key: next, notice: { kind: "i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 새 키로 바꾸기와 폐기 > Given 연결 실패 When 폐기하면 Then 오류 안내를 남기고 실제 상태를 다시 읽는다
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+  {
+-   "call": {
+-     "type": "share.read",
+-   },
++   "call": null,
+    "leave": null,
+    "panel": {
+-     "busy": false,
+-     "confirm": null,
++     "busy": true,
++     "confirm": "revoke",
+      "key": {
+        "createdAt": "2026-11-13T05:00:00.000Z",
+        "hint": "a1B2",
+        "id": "55555555-5555-4555-8555-555555555555",
+        "lastUsedAt": null,
+        "revokedAt": null,
+      },
+-     "notice": {
+-       "kind": "error",
+-       "message": "연결을 확인하고 다시 시도해 주세요.",
+-     },
++     "notice": null,
+      "secret": null,
+      "status": "ready",
+    },
+  }
+
+ ❯ src/features/library/screen/share-state.test.ts:121:20
+    119|   it("Given 연결 실패 When 폐기하면 Then 오류 안내를 남기고 실제 상태를 다시 읽는다", () => {
+    120|     const failed = onShare(ready({ confirm: "revoke", busy: true }), {…
+    121|     expect(failed).toEqual({ panel: ready({ notice: { kind: "error", m…
+       |                    ^
+    122|   });
+    123|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/79]⎯
+
+ FAIL  src/features/library/screen/share-state.test.ts > 새 키로 바꾸기와 폐기 > Given 세션이 끝남 When 키를 만들면 Then 로그인으로 떠난다
+AssertionError: expected null to be '/login?error=forbidden' // Object.is equality
+
+- Expected:
+"/login?error=forbidden"
+
++ Received:
+null
+
+ ❯ src/features/library/screen/share-state.test.ts:126:98
+    124|   it("Given 세션이 끝남 When 키를 만들면 Then 로그인으로 떠난다", () => {
+    125|     const outcome = { ok: false as const, failure: { kind: "redirect" …
+    126|     expect(onShare(ready({ busy: true }), { type: "share.issue.settled…
+       |                                                                                                  ^
+    127|   });
+    128| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/79]⎯
+
+ FAIL  src/features/library/screen/share-view.test.ts > 저장 키 표시 > Given 키 없음 When 보이면 Then 단축어를 먼저 만들고 키는 마지막에 만들라고 안내한다
+AssertionError: expected { title: '', detail: '' } to deeply equal { title: '아직 저장 키가 없어요.', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "detail": "단축어를 먼저 만들고, 마지막에 키를 만들어 붙여 넣으세요.",
+-   "title": "아직 저장 키가 없어요.",
++   "detail": "",
++   "title": "",
+  }
+
+ ❯ src/features/library/screen/share-view.test.ts:16:32
+     14| describe("저장 키 표시", () => {
+     15|   it("Given 키 없음 When 보이면 Then 단축어를 먼저 만들고 키는 마지막에 만들라고 안내한다", () => {
+     16|     expect(shareKeyView(null)).toEqual({
+       |                                ^
+     17|       title: "아직 저장 키가 없어요.",
+     18|       detail: "단축어를 먼저 만들고, 마지막에 키를 만들어 붙여 넣으세요.",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/79]⎯
+
+ FAIL  src/features/library/screen/share-view.test.ts > 저장 키 표시 > Given 아직 쓰지 않은 활성 키 When 보이면 Then 끝 네 글자와 만든 날, 아직 담은 상품이 없다는 것만 보여준다
+AssertionError: expected { title: '', detail: '' } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+  {
+-   "detail": "아직 이 키로 담은 상품이 없어요.",
+-   "title": "저장 키 ••••a1B2 · 11월 13일 만듦",
++   "detail": "",
++   "title": "",
+  }
+
+ ❯ src/features/library/screen/share-view.test.ts:23:31
+     21|
+     22|   it("Given 아직 쓰지 않은 활성 키 When 보이면 Then 끝 네 글자와 만든 날, 아직 담은 상품이 없다는 것만…
+     23|     expect(shareKeyView(key)).toEqual({ title: "저장 키 ••••a1B2 · 11월 13…
+       |                               ^
+     24|   });
+     25|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/79]⎯
+
+ FAIL  src/features/library/screen/share-view.test.ts > 저장 키 표시 > Given 단축어가 쓴 키 When 보이면 Then 서울 시각으로 마지막으로 담은 때를 보여준다
+AssertionError: expected '' to be '마지막으로 이 키로 담은 때: 11월 13일 오후 2:04' // Object.is equality
+
+- Expected
++ Received
+
+- 마지막으로 이 키로 담은 때: 11월 13일 오후 2:04
+
+ ❯ src/features/library/screen/share-view.test.ts:27:85
+     25|
+     26|   it("Given 단축어가 쓴 키 When 보이면 Then 서울 시각으로 마지막으로 담은 때를 보여준다", () => {
+     27|     expect(shareKeyView({ ...key, lastUsedAt: "2026-11-13T05:04:00.000…
+       |                                                                                     ^
+     28|   });
+     29|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/79]⎯
+
+ FAIL  src/features/library/screen/share-view.test.ts > 저장 키 표시 > Given 폐기한 키 When 보이면 Then 언제 폐기했고 그 키로는 담을 수 없다고 알린다
+AssertionError: expected { title: '', detail: '' } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+  {
+-   "detail": "그 키를 넣은 단축어로는 더 이상 담을 수 없어요.",
+-   "title": "이전 키(••••a1B2)는 11월 15일에 폐기했어요.",
++   "detail": "",
++   "title": "",
+  }
+
+ ❯ src/features/library/screen/share-view.test.ts:31:77
+     29|
+     30|   it("Given 폐기한 키 When 보이면 Then 언제 폐기했고 그 키로는 담을 수 없다고 알린다", () => {
+     31|     expect(shareKeyView({ ...key, revokedAt: "2026-11-14T15:30:00.000Z…
+       |                                                                             ^
+     32|       title: "이전 키(••••a1B2)는 11월 15일에 폐기했어요.",
+     33|       detail: "그 키를 넣은 단축어로는 더 이상 담을 수 없어요.",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/79]⎯
+
+ FAIL  src/features/library/screen/share-view.test.ts > 저장 키 표시 > Given 바꾸기와 폐기 확인 When 보이면 Then 무엇이 폐기되는지 말한다
+AssertionError: expected { message: '', action: '' } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+  {
+-   "action": "새 키로 바꾸기",
+-   "message": "새 키를 만들면 지금 키(••••a1B2)는 바로 폐기돼요. 단축어에도 새 키를 넣어야 해요.",
++   "action": "",
++   "message": "",
+  }
+
+ ❯ src/features/library/screen/share-view.test.ts:38:45
+     36|
+     37|   it("Given 바꾸기와 폐기 확인 When 보이면 Then 무엇이 폐기되는지 말한다", () => {
+     38|     expect(shareConfirmView("rotate", key)).toEqual({
+       |                                             ^
+     39|       message: "새 키를 만들면 지금 키(••••a1B2)는 바로 폐기돼요. 단축어에도 새 키를 넣어야 해요.",
+     40|       action: "새 키로 바꾸기",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/79]⎯
+
+
+ Test Files  4 failed | 2 passed (6)
+      Tests  79 failed | 341 passed (420)
+   Start at  22:16:35
+   Duration  426ms (transform 52%, import 27%, tests 19%, worker 2%)
+

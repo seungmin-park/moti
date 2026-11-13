@@ -39,7 +39,8 @@ export type JsonBody =
   | { ok: true; value: unknown }
   | { ok: false; reason: "unsupported_media_type" | "payload_too_large" | "invalid_json" };
 
-// Callers run the origin and session checks first, so only the signed-in owner can make a route read up to its limit.
+// Owner routes run the origin and session checks first, so only the signed-in owner can make them read up to their
+// limit. The share Shortcut's route checks only the key's format first, so anyone can make it read its 8 KiB.
 export async function readJsonBody(request: Request, limit = MAX_JSON_BYTES): Promise<JsonBody> {
   const type = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
   if (type !== "application/json") return { ok: false, reason: "unsupported_media_type" };
