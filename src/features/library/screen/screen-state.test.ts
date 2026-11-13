@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CollectionResponse, LibraryReadResponse, ProductResponse } from "../presentation/library-dto";
 import type { ApiFailure, LibraryApi } from "./library-api";
 import {
+  detailForms,
   initialScreen,
   MAX_POLLS,
   perform,
@@ -187,7 +188,7 @@ describe("링크 추가", () => {
     expect(call).toBeNull();
     expect(state).toEqual(ready({
       library: { ...library, products: [added, lamp, chair] },
-      dialog: { kind: "detail", productId: added.id, arrival: "added", error: null },
+      dialog: { kind: "detail", productId: added.id, arrival: "added", draft: {}, notice: null },
     }));
   });
 
@@ -197,7 +198,7 @@ describe("링크 추가", () => {
       { type: "link.settled", outcome: { ok: true, value: { kind: "duplicate", product: updated } } });
     expect(state).toEqual(ready({
       library: { ...library, products: [updated, chair] },
-      dialog: { kind: "detail", productId: lamp.id, arrival: "duplicate", error: null },
+      dialog: { kind: "detail", productId: lamp.id, arrival: "duplicate", draft: {}, notice: null },
     }));
   });
 
@@ -418,11 +419,11 @@ describe("컬렉션 대화상자", () => {
 describe("상세", () => {
   it("Given 보관함 When 상품을 열면 Then 도착 안내 없이 상세를 연다", () => {
     expect(dialogOf(run(ready(), { type: "detail.open", productId: lamp.id }).state))
-      .toEqual({ kind: "detail", productId: lamp.id, arrival: null, error: null });
+      .toEqual({ kind: "detail", productId: lamp.id, arrival: null, draft: {}, notice: null });
   });
 
   it("Given 상세를 연 상품이 사라짐 When 새 보관함을 받으면 Then 상세를 닫는다", () => {
-    const open = ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null, error: null }, refreshing: true });
+    const open = ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null, draft: {}, notice: null }, refreshing: true });
     expect(transition(open, { type: "library.settled", outcome: { ok: true, value: { ...library, products: [chair] } } }).state)
       .toMatchObject({ dialog: null });
   });
@@ -457,7 +458,7 @@ describe("뒤로 가기 캐시에서 돌아온 화면", () => {
       ready(),
       ready({ collectionId: desk.id, refreshing: true }),
       adding({}, { saving: true }),
-      ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null, error: null } }),
+      ready({ dialog: { kind: "detail", productId: lamp.id, arrival: null, draft: {}, notice: null } }),
       { phase: "failed", message: unavailable.message },
     ] satisfies LibraryScreenState[]) {
       expect(transition(state, { type: "resume" })).toEqual(initialScreen);
@@ -550,7 +551,7 @@ describe("수집 결과 기다리기", () => {
   it("Given 확인 결과 When 받으면 Then 화면의 상품에 이름·수집 상태·가격·사진만 반영하고 다른 내용과 순서는 그대로 둔다", () => {
     const polled = { ...readyLamp, note: "다른 곳에서 고친 메모", collectionIds: [], option: "바뀐 옵션" };
     const stranger = product("66666666-6666-4666-8666-666666666666", "2026-11-12T00:00:00.000Z");
-    const { state, call } = transition(ready({ dialog: { kind: "detail", productId: lamp.id, arrival: "added", error: null } }), settled([stranger, chair, polled]));
+    const { state, call } = transition(ready({ dialog: { kind: "detail", productId: lamp.id, arrival: "added", draft: {}, notice: null } }), settled([stranger, chair, polled]));
     expect(call).toBeNull();
     expect(productsOf(state)).toEqual([
       { ...lamp, title: readyLamp.title, metadata: readyLamp.metadata, lastSuccessfulPrice: readyLamp.lastSuccessfulPrice, picture: null },
@@ -583,8 +584,9 @@ describe("수집 결과 기다리기", () => {
 });
 
 describe("다시 가져오기", () => {
-  const detail = (productId = lamp.id): ScreenDialog => ({ kind: "detail", productId, arrival: null, error: null });
+  const detail = (productId = lamp.id): ScreenDialog => ({ kind: "detail", productId, arrival: null, draft: {}, notice: null });
   const retrying = { productId: lamp.id, intent: "retry" as const };
+  const retryError = (message: string) => ({ form: "retry" as const, kind: "error" as const, field: null, message });
 
   it("Given 실패한 상품의 상세 When 다시 가져오면 Then 그 세대로 요청하고 끝날 때까지 다시 누를 수 없다", () => {
     const start = withProducts([failedLamp, chair], { dialog: detail() });
@@ -642,14 +644,14 @@ describe("다시 가져오기", () => {
     const failure: ApiFailure = { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." };
     const { state, call } = transition(start, { type: "metadata.settled", productId: lamp.id, outcome: { ok: false, failure } });
     expect(call).toEqual({ type: "library.read" });
-    expect(state).toMatchObject({ writing: null, refreshing: true, dialog: { ...detail(), error: failure.message } });
+    expect(state).toMatchObject({ writing: null, refreshing: true, dialog: { ...detail(), notice: retryError(failure.message) } });
   });
 
   it("Given 일시적 실패 When 결과를 받으면 Then 상세에 안내하고 다시 누를 수 있게 한다", () => {
     const start = withProducts([failedLamp], { dialog: detail(), writing: retrying });
     const { state, call } = transition(start, { type: "metadata.settled", productId: lamp.id, outcome: { ok: false, failure: unavailable } });
     expect(call).toBeNull();
-    expect(state).toEqual({ ...start, writing: null, dialog: { ...detail(), error: unavailable.message } });
+    expect(state).toEqual({ ...start, writing: null, dialog: { ...detail(), notice: retryError(unavailable.message) } });
     expect(transition(state, { type: "metadata.retry", productId: lamp.id }).state).toMatchObject({ writing: retrying, dialog: detail() });
   });
 
@@ -797,6 +799,174 @@ describe("구매완료와 실행 취소", () => {
   it("Given 알림 When 대화상자가 열려 있으면 Then 보이지 않는다", () => {
     const toast = { kind: "notice" as const, message: "위시리스트로 되돌렸어요" };
     expect(visibleToast(ready({ toast }))).toEqual({ message: toast.message, undo: false });
-    expect(visibleToast(ready({ toast, dialog: { kind: "detail", productId: lamp.id, arrival: null, error: null } }))).toBeNull();
+    expect(visibleToast(ready({ toast, dialog: { kind: "detail", productId: lamp.id, arrival: null, draft: {}, notice: null } }))).toBeNull();
+  });
+});
+
+type Detail = Extract<ScreenDialog, { kind: "detail" }>;
+const today = "2026-11-13";
+const opened = (overrides: Partial<Detail> = {}, productId = lamp.id): Detail =>
+  ({ kind: "detail", productId, arrival: null, draft: {}, notice: null, ...overrides });
+const detailOf = (state: LibraryScreenState) => dialogOf(state) as Detail;
+const conflict: ApiFailure = { kind: "stale", message: "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 저장해 주세요." };
+
+describe("상세에서 이름·메모·컬렉션 고치기", () => {
+  it("Given 상세 When 고친 칸만 초안에 남기고 Then 나머지 칸은 화면의 상품을 따른다", () => {
+    const { state } = run(ready({ dialog: opened() }), { type: "detail.edit", field: "note", value: "선물용" },
+      { type: "detail.toggle", collectionId: room.id });
+    expect(detailOf(state).draft).toEqual({ note: "선물용", collectionIds: [desk.id, room.id] });
+
+    const collected = transition(state, settled([readyLamp, chair])).state;
+    expect(detailForms(productsOf(collected)[0], detailOf(collected).draft)).toMatchObject({
+      title: readyLamp.title, note: "선물용", collectionIds: [desk.id, room.id], detailsChanged: true, recordChanged: false,
+    });
+  });
+
+  it("Given 고친 이름·메모·컬렉션 When 저장하면 Then 화면이 본 revision으로 정리한 값을 보내고, 이름을 고치지 않았으면 이름은 보내지 않는다", () => {
+    const named = run(ready({ dialog: opened() }), { type: "detail.edit", field: "title", value: "  책상 조명 " },
+      { type: "detail.save", form: "details", today });
+    expect(named.call).toEqual({
+      type: "product.change", productId: lamp.id,
+      body: { revision: 1, change: { type: "details", title: "책상 조명", note: "", collectionIds: [desk.id] } },
+    });
+    expect(named.state).toMatchObject({ writing: { productId: lamp.id, intent: "details" } });
+
+    const noted = run(ready({ dialog: opened() }), { type: "detail.edit", field: "note", value: "메모" },
+      { type: "detail.toggle", collectionId: desk.id }, { type: "detail.save", form: "details", today });
+    expect(noted.call).toMatchObject({ body: { change: { type: "details", title: null, note: "메모", collectionIds: [] } } });
+  });
+
+  it("Given 규칙에 맞지 않는 이름이나 메모 When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다", () => {
+    const title = run(ready({ dialog: opened() }), { type: "detail.edit", field: "title", value: "  " }, { type: "detail.save", form: "details", today });
+    expect(title.call).toBeNull();
+    expect(detailOf(title.state).notice).toEqual({ form: "details", kind: "error", field: "title", message: "상품 이름은 1~120자로 입력해 주세요." });
+    const note = run(ready({ dialog: opened() }), { type: "detail.edit", field: "note", value: "가".repeat(3001) }, { type: "detail.save", form: "details", today });
+    expect(note.call).toBeNull();
+    expect(detailOf(note.state).notice).toMatchObject({ field: "note", message: "메모는 3,000자까지 적을 수 있어요." });
+  });
+
+  it("Given 정리하면 지금과 같은 값 When 저장하면 Then 요청하지 않고 초안을 비운다", () => {
+    const { state, call } = run(ready({ dialog: opened() }), { type: "detail.edit", field: "title", value: " 새로 담은 상품 " },
+      { type: "detail.edit", field: "price", value: "1000" }, { type: "detail.save", form: "details", today });
+    expect(call).toBeNull();
+    expect(detailOf(state).draft).toEqual({ price: "1000" });
+  });
+
+  it("Given 저장 중 When 고치거나 다시 저장하거나 닫으면 Then 무시한다", () => {
+    const saving = ready({ dialog: opened({ draft: { note: "메모" } }), writing: { productId: lamp.id, intent: "details" } });
+    for (const event of [
+      { type: "detail.edit", field: "note", value: "또" },
+      { type: "detail.toggle", collectionId: room.id },
+      { type: "detail.save", form: "details", today },
+      { type: "dialog.close" },
+    ] satisfies ScreenEvent[]) {
+      expect(transition(saving, event)).toEqual({ state: saving, call: null });
+    }
+  });
+
+  it("Given 저장 중 When 성공하면 Then 상품을 바꾸고 이 양식의 초안만 비우며 저장했다고 알린다", () => {
+    const saved = { ...lamp, revision: 2, note: "메모" };
+    const start = ready({ dialog: opened({ draft: { note: "메모", date: "2026-11-01" } }), writing: { productId: lamp.id, intent: "details" } });
+    const { state } = transition(start, { type: "change.settled", productId: lamp.id, intent: "details", outcome: { ok: true, value: { product: saved } } });
+    expect(productsOf(state)[0]).toEqual(saved);
+    expect(state).toMatchObject({ writing: null });
+    expect(detailOf(state)).toEqual(opened({
+      draft: { date: "2026-11-01" }, notice: { form: "details", kind: "saved", field: null, message: "변경사항을 저장했어요" },
+    }));
+  });
+
+  it("Given 다른 곳에서 먼저 바뀜 When 저장이 거절되면 Then 안내하고 다시 읽은 뒤 고친 칸은 지키고 다음 저장은 새 revision으로 보낸다", () => {
+    const start = ready({ dialog: opened({ draft: { note: "내 메모" } }), writing: { productId: lamp.id, intent: "details" } });
+    const rejected = transition(start, { type: "change.settled", productId: lamp.id, intent: "details", outcome: { ok: false, failure: conflict } });
+    expect(rejected.call).toEqual({ type: "library.read" });
+    expect(rejected.state).toMatchObject({ refreshing: true, writing: null });
+    expect(detailOf(rejected.state).notice).toEqual({ form: "details", kind: "error", field: null, message: conflict.message });
+
+    const elsewhere = { ...lamp, revision: 2, title: "다른 곳의 이름", note: "다른 곳의 메모" };
+    const reread = transition(rejected.state, { type: "library.settled", outcome: { ok: true, value: { ...library, products: [elsewhere, chair] } } });
+    expect(detailOf(reread.state).draft).toEqual({ note: "내 메모" });
+    expect(detailForms(productsOf(reread.state)[0], detailOf(reread.state).draft)).toMatchObject({ title: "다른 곳의 이름", note: "내 메모" });
+    expect(transition(reread.state, { type: "detail.save", form: "details", today }).call).toMatchObject({
+      body: { revision: 2, change: { type: "details", title: null, note: "내 메모" } },
+    });
+  });
+
+  it("Given 고른 컬렉션이 다른 곳에서 지워짐 When 다시 읽으면 Then 초안에서 그 컬렉션만 뺀다", () => {
+    const start = ready({ dialog: opened({ draft: { collectionIds: [desk.id, room.id] } }), refreshing: true });
+    const { state } = transition(start, { type: "library.settled", outcome: { ok: true, value: { ...library, collections: [room] } } });
+    expect(detailOf(state).draft).toEqual({ collectionIds: [room.id] });
+  });
+});
+
+describe("상세에서 구매 기록", () => {
+  const bought = (purchase: Extract<ProductResponse["purchase"], { status: "purchased" }>) => ({ ...lamp, revision: 2, purchase });
+  const recording = (product: ProductResponse, draft: Detail["draft"]) => withProducts([product, chair], { dialog: opened({ draft }) });
+
+  it("Given 구매한 상품 When 빈 구매일과 0원을 저장하면 Then 미입력 날짜와 0원을 보낸다", () => {
+    const { call } = transition(recording(bought({ status: "purchased", date: "2026-11-01", price: null }), { date: "", price: "0" }),
+      { type: "detail.save", form: "record", today });
+    expect(call).toEqual({
+      type: "product.change", productId: lamp.id,
+      body: { revision: 2, change: { type: "purchase.record", date: null, price: { amountMinor: 0, currency: "KRW" } } },
+    });
+  });
+
+  it("Given 저장한 구매 기록 When 상세를 열면 Then 양식이 그 값을 보여주고 0원과 미입력을 구분한다", () => {
+    expect(detailForms(bought({ status: "purchased", date: "2026-11-01", price: { amountMinor: 0, currency: "KRW" } }), {}))
+      .toMatchObject({ date: "2026-11-01", price: "0", recordChanged: false });
+    expect(detailForms(bought({ status: "purchased", date: null, price: null }), {})).toMatchObject({ date: "", price: "" });
+  });
+
+  it.each([
+    ["서울 기준 내일", { date: "2026-11-14" }, "date", "구매일은 오늘까지 입력할 수 있어요."],
+    ["쉼표가 들어간 금액", { price: "1,000" }, "price", "실구매가는 0 이상의 정수로 입력해 주세요."],
+  ])("Given %s When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다", (_, draft, field, message) => {
+    const { state, call } = transition(recording(bought({ status: "purchased", date: null, price: null }), draft),
+      { type: "detail.save", form: "record", today });
+    expect(call).toBeNull();
+    expect(detailOf(state).notice).toEqual({ form: "record", kind: "error", field, message });
+  });
+
+  it("Given 위시 상품 When 구매 기록을 저장하면 Then 요청하지 않는다", () => {
+    const state = recording(lamp, { price: "1000" });
+    expect(transition(state, { type: "detail.save", form: "record", today })).toEqual({ state, call: null });
+  });
+
+  it("Given 구매 기록 저장 중 When 성공하면 Then 구매 정보를 저장했다고 알리고 이름·메모 초안은 지킨다", () => {
+    const recorded = bought({ status: "purchased", date: "2026-11-01", price: null });
+    const start = withProducts([bought({ status: "purchased", date: null, price: null })], {
+      dialog: opened({ draft: { note: "메모", date: "2026-11-01" } }), writing: { productId: lamp.id, intent: "purchase.record" },
+    });
+    const { state } = transition(start, { type: "change.settled", productId: lamp.id, intent: "purchase.record", outcome: { ok: true, value: { product: { ...recorded, revision: 3 } } } });
+    expect(detailOf(state)).toEqual(opened({
+      draft: { note: "메모" }, notice: { form: "record", kind: "saved", field: null, message: "구매 정보를 저장했어요" },
+    }));
+  });
+});
+
+describe("상세에서 구매완료와 위시로 되돌리기", () => {
+  it("Given 위시 상품의 상세 When 구매완료로 옮기면 Then 성공하면 상세를 닫고 실행 취소 알림을 띄운다", () => {
+    const start = ready({ dialog: opened() });
+    const asked = transition(start, { type: "product.purchase", productId: lamp.id });
+    expect(asked.call).toMatchObject({ body: { revision: 1, change: { type: "purchase" } } });
+    expect(transition(asked.state, { type: "dialog.close" }).state).toBe(asked.state);
+    const { state } = transition(asked.state, changed(purchasedLamp));
+    expect(state).toMatchObject({ dialog: null, toast: { kind: "purchased", productId: lamp.id, revision: 2 } });
+  });
+
+  it("Given 구매한 상품의 상세 When 위시로 되돌리면 Then 성공하면 상세를 닫고 되돌렸다고 알린다", () => {
+    const start = withProducts([purchasedLamp, chair], { dialog: opened() });
+    const asked = transition(start, { type: "product.wish", productId: lamp.id });
+    expect(asked.call).toMatchObject({ body: { revision: 2, change: { type: "wish" } } });
+    const { state } = transition(asked.state, changed({ ...lamp, revision: 3 }, "wish"));
+    expect(state).toMatchObject({ dialog: null, toast: { kind: "notice", message: "위시리스트로 되돌렸어요" } });
+  });
+
+  it("Given 상세에서 구매완료로 옮기는 중 When 다른 곳에서 먼저 바뀌어 거절되면 Then 상세에 알리고 다시 읽는다", () => {
+    const start = ready({ dialog: opened(), writing: purchasing });
+    const { state, call } = transition(start, failedChange(conflict));
+    expect(call).toEqual({ type: "library.read" });
+    expect(detailOf(state).notice).toEqual({ form: "status", kind: "error", field: null, message: conflict.message });
+    expect(state).toMatchObject({ toast: null });
   });
 });

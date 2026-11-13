@@ -1373,7 +1373,8 @@ h1 {
   padding: 12px;
   margin: 0 0 20px;
 }
-.purchase-form {
+.purchase-form,
+.detail-form {
   border-top: 1px solid var(--line);
   margin-top: 23px;
   padding-top: 22px;

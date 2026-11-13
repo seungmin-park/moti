@@ -127,10 +127,11 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
         product={product}
         collections={library.collections}
         arrival={dialog.arrival}
-        retrying={state.writing?.productId === product.id && state.writing.intent === "retry"}
-        error={dialog.error}
-        onRetry={() => send({ type: "metadata.retry", productId: product.id })}
-        onClose={() => send({ type: "dialog.close" })}
+        draft={dialog.draft}
+        notice={dialog.notice}
+        writing={state.writing?.productId === product.id ? state.writing.intent : null}
+        blocked={state.writing !== null || state.refreshing}
+        send={send}
       />
     ) : null;
   }

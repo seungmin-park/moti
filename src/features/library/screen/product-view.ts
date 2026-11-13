@@ -24,9 +24,7 @@ export type ProductDetailView = {
   status: { title: string; detail: string };
   sourceUrl: string;
   openUrl: string | null;
-  collectionNames: string[];
   addedOn: string;
-  note: string | null;
   arrival: string | null;
   canRetry: boolean;
   picture: PictureView;
@@ -166,11 +164,7 @@ export function toProductCardView(product: ProductResponse, collections: Collect
   };
 }
 
-export function toProductDetailView(
-  product: ProductResponse,
-  collections: CollectionResponse[],
-  arrival: "added" | "duplicate" | null,
-): ProductDetailView {
+export function toProductDetailView(product: ProductResponse, arrival: "added" | "duplicate" | null): ProductDetailView {
   return {
     shop: product.shop,
     title: product.title,
@@ -180,9 +174,7 @@ export function toProductDetailView(
     status: statusOf(product.metadata),
     sourceUrl: product.sourceUrl,
     openUrl: openableUrl(product.sourceUrl),
-    collectionNames: namesOf(product, collections),
     addedOn: onSeoulDate(product.addedAt),
-    note: product.note.trim() ? product.note : null,
     arrival: arrival && arrivals[arrival],
     canRetry: canRetry(product),
     picture: pictureOf(product, `${product.title} 사진`),

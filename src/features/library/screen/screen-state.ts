@@ -1,8 +1,10 @@
 import { parseCollectionName } from "../../wishlist/collection-name";
 import { parseLink } from "../../wishlist/link";
+import { parsePaidPrice, parseProductNote, parseProductTitle, parsePurchaseDate } from "../../wishlist/product-fields";
 import type {
   CollectionCreateRequest,
   CollectionCreateResponse,
+  CollectionResponse,
   LibraryReadResponse,
   LinkSaveRequest,
   LinkSaveResponse,
@@ -18,10 +20,15 @@ import { canRetry } from "./product-view";
 export type View = "wish" | "purchased";
 export type LinkDraft = { url: string; option: string; collectionIds: string[] };
 export type FormError = { field: FieldName | null; message: string };
+// Only the fields the owner touched. Every other field shows the live product, so collection results and a re-read
+// reach the untouched fields with no extra step.
+export type DetailDraft = { title?: string; note?: string; collectionIds?: string[]; date?: string; price?: string };
+export type DetailForm = "retry" | "details" | "record" | "status";
+export type DetailNotice = { form: DetailForm; kind: "error" | "saved"; field: FieldName | null; message: string };
 export type ScreenDialog =
   | { kind: "add"; draft: LinkDraft; saving: boolean; creating: string | null; error: FormError | null }
   | { kind: "collection"; name: string; saving: boolean; error: FormError | null }
-  | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; error: string | null };
+  | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; draft: DetailDraft; notice: DetailNotice | null };
 export type ProductChange = ProductChangeRequest["change"];
 export type ProductIntent = "retry" | ProductChange["type"];
 // The purchase toast offers undo only while the product still has the revision the purchase gave it.
@@ -62,7 +69,11 @@ export type ScreenEvent =
   | { type: "collection.edit"; name: string }
   | { type: "collection.submit" }
   | { type: "detail.open"; productId: string }
+  | { type: "detail.edit"; field: "title" | "note" | "date" | "price"; value: string }
+  | { type: "detail.toggle"; collectionId: string }
+  | { type: "detail.save"; form: "details" | "record"; today: string }
   | { type: "product.purchase"; productId: string }
+  | { type: "product.wish"; productId: string }
   | { type: "toast.undo" }
   | { type: "toast.dismiss" }
   | { type: "dialog.close" }
@@ -81,6 +92,7 @@ export const initialScreen: Transition = { state: { phase: "loading" }, call: { 
 type Ready = Extract<LibraryScreenState, { phase: "ready" }>;
 type AddDialog = Extract<ScreenDialog, { kind: "add" }>;
 type CollectionDialog = Extract<ScreenDialog, { kind: "collection" }>;
+type DetailDialog = Extract<ScreenDialog, { kind: "detail" }>;
 
 const stay = (state: LibraryScreenState): Transition => ({ state, call: null });
 const leave = (to: string): Transition => stay({ phase: "leaving", to });
@@ -88,18 +100,24 @@ const refresh: ApiCall = { type: "library.read" };
 // A write that settles before the pending read would be erased by the read's older snapshot.
 const writes: ReadonlySet<ScreenEvent["type"]> = new Set(["add.submit", "add.createCollection", "collection.submit"]);
 
-function busy(dialog: ScreenDialog | null): boolean {
-  if (dialog === null || dialog.kind === "detail") return false;
+function busy(state: Ready): boolean {
+  const { dialog, writing } = state;
+  if (dialog === null) return false;
+  if (dialog.kind === "detail") return writing !== null && writing.productId === dialog.productId && writing.intent !== "retry";
   return dialog.saving || (dialog.kind === "add" && dialog.creating !== null);
 }
 
-function sameName(collections: CollectionCreateResponse[], name: string): CollectionCreateResponse | undefined {
+function sameName(collections: CollectionResponse[], name: string): CollectionResponse | undefined {
   const key = name.toLocaleLowerCase();
   return collections.find((collection) => collection.name.normalize("NFC").toLocaleLowerCase() === key);
 }
 
 function including(ids: string[], id: string): string[] {
   return ids.includes(id) ? ids : [...ids, id];
+}
+
+function sameIds(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id) => b.includes(id));
 }
 
 function upsert(products: ProductResponse[], product: ProductResponse): ProductResponse[] {
@@ -114,7 +132,7 @@ function isLater(incoming: ProductResponse["metadata"], shown: ProductResponse["
   return phaseOrder[incoming.phase] >= phaseOrder[shown.phase];
 }
 
-// The title moves with collection: it is the collected name unless the owner set one at this revision.
+// The shown title moves with collection: it is the collected name unless the owner set one at the same revision.
 function withProgress(shown: ProductResponse, incoming: ProductResponse): ProductResponse {
   if (!isLater(incoming.metadata, shown.metadata)) return shown;
   return { ...shown, title: incoming.title, metadata: incoming.metadata, lastSuccessfulPrice: incoming.lastSuccessfulPrice, picture: incoming.picture };
@@ -127,7 +145,7 @@ export function mergeProduct(shown: ProductResponse, incoming: ProductResponse):
   return withProgress(shown, incoming);
 }
 
-// A poll moves only collection progress; one that was read before an owner change is ignored.
+// A poll moves only collection progress, so an open form's base never moves under it.
 function withPolled(products: ProductResponse[], polled: ProductResponse[]): ProductResponse[] {
   const latest = new Map(polled.map((product) => [product.id, product]));
   return products.map((product) => {
@@ -145,8 +163,54 @@ function replace(products: ProductResponse[], product: ProductResponse): Product
   return products.map((item) => (item.id === product.id ? product : item));
 }
 
-function withDetailError(dialog: ScreenDialog | null, error: string | null): ScreenDialog | null {
-  return dialog?.kind === "detail" ? { ...dialog, error } : dialog;
+function recordValues(product: ProductResponse): { date: string; price: string } {
+  const { purchase } = product;
+  if (purchase.status === "wish") return { date: "", price: "" };
+  return { date: purchase.date ?? "", price: purchase.price ? String(purchase.price.amountMinor) : "" };
+}
+
+export type DetailForms = {
+  title: string;
+  note: string;
+  collectionIds: string[];
+  date: string;
+  price: string;
+  detailsChanged: boolean;
+  recordChanged: boolean;
+};
+
+// What each form shows: a touched field's draft, otherwise the live product.
+export function detailForms(product: ProductResponse, draft: DetailDraft): DetailForms {
+  const live = recordValues(product);
+  const forms = {
+    title: draft.title ?? product.title,
+    note: draft.note ?? product.note,
+    collectionIds: draft.collectionIds ?? product.collectionIds,
+    date: draft.date ?? live.date,
+    price: draft.price ?? live.price,
+  };
+  return {
+    ...forms,
+    detailsChanged: forms.title !== product.title || forms.note !== product.note || !sameIds(forms.collectionIds, product.collectionIds),
+    recordChanged: forms.date !== live.date || forms.price !== live.price,
+  };
+}
+
+const formFields: Record<"details" | "record", readonly (keyof DetailDraft)[]> = {
+  details: ["title", "note", "collectionIds"],
+  record: ["date", "price"],
+};
+
+function withoutDrafts(draft: DetailDraft, form: "details" | "record"): DetailDraft {
+  return Object.fromEntries(Object.entries(draft).filter(([field]) => !formFields[form].includes(field as keyof DetailDraft)));
+}
+
+function withDetailNotice(dialog: ScreenDialog | null, productId: string, notice: DetailNotice | null): ScreenDialog | null {
+  return dialog?.kind === "detail" && dialog.productId === productId ? { ...dialog, notice } : dialog;
+}
+
+function detailOf(state: Ready, productId: string): DetailDialog | null {
+  return state.dialog?.kind === "detail" && state.dialog.productId === productId ? state.dialog : null;
 }
 
 function findProduct(state: Ready, productId: string): ProductResponse | undefined {
@@ -157,32 +221,86 @@ function canWrite(state: Ready): boolean {
   return state.writing === null && !state.refreshing;
 }
 
+function write(state: Ready, product: ProductResponse, change: ProductChange): Transition {
+  return {
+    state: {
+      ...state,
+      writing: { productId: product.id, intent: change.type },
+      toast: null,
+      dialog: withDetailNotice(state.dialog, product.id, null),
+    },
+    call: { type: "product.change", productId: product.id, body: { revision: product.revision, change } },
+  };
+}
+
 function onRetry(state: Ready, productId: string): Transition {
   const product = findProduct(state, productId);
   if (!canWrite(state) || !product || !canRetry(product)) return stay(state);
   return {
-    state: { ...state, writing: { productId, intent: "retry" }, dialog: withDetailError(state.dialog, null) },
+    state: { ...state, writing: { productId, intent: "retry" }, dialog: withDetailNotice(state.dialog, productId, null) },
     call: { type: "metadata.retry", productId, body: { generation: product.metadata.generation } },
   };
 }
 
-function onRetried(state: Ready, outcome: ApiOutcome<MetadataRetryResponse>): Transition {
+function onRetried(state: Ready, productId: string, outcome: ApiOutcome<MetadataRetryResponse>): Transition {
   const next: Ready = { ...state, writing: null };
   if (outcome.ok) {
     return stay({ ...next, library: { ...next.library, products: replace(next.library.products, outcome.value.product) } });
   }
   const { failure } = outcome;
   if (failure.kind === "redirect") return leave(failure.to);
-  const dialog = withDetailError(next.dialog, failure.message);
+  const dialog = withDetailNotice(next.dialog, productId, { form: "retry", kind: "error", field: null, message: failure.message });
   if (failure.kind === "stale") return { state: { ...next, dialog, refreshing: true }, call: refresh };
   return stay({ ...next, dialog });
 }
 
-function write(state: Ready, product: ProductResponse, change: ProductChange): Transition {
-  return {
-    state: { ...state, writing: { productId: product.id, intent: change.type }, toast: null },
-    call: { type: "product.change", productId: product.id, body: { revision: product.revision, change } },
-  };
+function onDetailSave(state: Ready, dialog: DetailDialog, form: "details" | "record", today: string): Transition {
+  const product = findProduct(state, dialog.productId);
+  if (!product || !canWrite(state)) return stay(state);
+  const reject = (field: FieldName, message: string) =>
+    stay({ ...state, dialog: { ...dialog, notice: { form, kind: "error", field, message } } });
+  const values = detailForms(product, dialog.draft);
+  const settledDrafts = stay({ ...state, dialog: { ...dialog, draft: withoutDrafts(dialog.draft, form) } });
+  if (form === "details") {
+    const title = parseProductTitle(values.title);
+    if (!title.ok) return reject("title", title.message);
+    const note = parseProductNote(values.note);
+    if (!note.ok) return reject("note", note.message);
+    const titleChanged = title.value !== product.title;
+    if (!titleChanged && note.value === product.note && sameIds(values.collectionIds, product.collectionIds)) return settledDrafts;
+    return write(state, product, {
+      type: "details", title: titleChanged ? title.value : null, note: note.value, collectionIds: values.collectionIds,
+    });
+  }
+  if (product.purchase.status !== "purchased") return stay(state);
+  const date = parsePurchaseDate(values.date, today);
+  if (!date.ok) return reject("date", date.message);
+  const price = parsePaidPrice(values.price);
+  if (!price.ok) return reject("price", price.message);
+  const stored = product.purchase.price;
+  const samePrice = price.value === null ? stored === null
+    : stored !== null && stored.amountMinor === price.value.amountMinor && stored.currency === price.value.currency;
+  if (date.value === product.purchase.date && samePrice) return settledDrafts;
+  return write(state, product, { type: "purchase.record", date: date.value, price: price.value });
+}
+
+function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Transition {
+  if (busy(state)) return stay(state);
+  switch (event.type) {
+    case "detail.edit":
+      return stay({ ...state, dialog: { ...dialog, draft: { ...dialog.draft, [event.field]: event.value }, notice: null } });
+    case "detail.toggle": {
+      const product = findProduct(state, dialog.productId);
+      if (!product) return stay(state);
+      const ids = dialog.draft.collectionIds ?? product.collectionIds;
+      const collectionIds = ids.includes(event.collectionId) ? ids.filter((id) => id !== event.collectionId) : [...ids, event.collectionId];
+      return stay({ ...state, dialog: { ...dialog, draft: { ...dialog.draft, collectionIds }, notice: null } });
+    }
+    case "detail.save":
+      return onDetailSave(state, dialog, event.form, event.today);
+    default:
+      return stay(state);
+  }
 }
 
 function onPurchase(state: Ready, productId: string, to: "purchased" | "wish"): Transition {
@@ -199,24 +317,42 @@ function onUndo(state: Ready): Transition {
   return onPurchase(state, product.id, "wish");
 }
 
-function onChanged(state: Ready, productId: string, outcome: ApiOutcome<ProductChangeResponse>): Transition {
+function onChanged(state: Ready, productId: string, intent: ProductChange["type"], outcome: ApiOutcome<ProductChangeResponse>): Transition {
   const next: Ready = { ...state, writing: null };
+  const dialog = detailOf(next, productId);
   if (outcome.ok) {
     const products = withResponse(next.library.products, outcome.value.product);
+    const library = { ...next.library, products };
     const shown = products.find((item) => item.id === productId) ?? outcome.value.product;
-    const toast: Toast = shown.purchase.status === "purchased"
-      ? { kind: "purchased", productId, revision: shown.revision }
-      : { kind: "notice", message: "위시리스트로 되돌렸어요" };
-    return stay({ ...next, library: { ...next.library, products }, toast });
+    switch (intent) {
+      case "details":
+      case "purchase.record": {
+        const form = intent === "details" ? "details" : "record";
+        const message = intent === "details" ? "변경사항을 저장했어요" : "구매 정보를 저장했어요";
+        return stay({
+          ...next,
+          library,
+          dialog: dialog ? { ...dialog, draft: withoutDrafts(dialog.draft, form), notice: { form, kind: "saved", field: null, message } } : next.dialog,
+        });
+      }
+      case "purchase":
+        return stay({ ...next, library, dialog: dialog ? null : next.dialog, toast: { kind: "purchased", productId, revision: shown.revision } });
+      case "wish":
+        return stay({ ...next, library, dialog: dialog ? null : next.dialog, toast: { kind: "notice", message: "위시리스트로 되돌렸어요" } });
+    }
   }
   const { failure } = outcome;
   if (failure.kind === "redirect") return leave(failure.to);
-  const toast: Toast = { kind: "notice", message: failure.message };
-  if (failure.kind === "stale") return { state: { ...next, toast, refreshing: true }, call: refresh };
-  return stay({ ...next, toast });
+  const form: DetailForm = intent === "details" ? "details" : intent === "purchase.record" ? "record" : "status";
+  const field = failure.kind === "invalid" ? failure.field : null;
+  const shownAt: Partial<Ready> = dialog
+    ? { dialog: { ...dialog, notice: { form, kind: "error", field, message: failure.message } } }
+    : { toast: { kind: "notice", message: failure.message } };
+  if (failure.kind === "stale") return { state: { ...next, ...shownAt, refreshing: true }, call: refresh };
+  return stay({ ...next, ...shownAt });
 }
 
-function withCollection(library: LibraryReadResponse, collection: CollectionCreateResponse): LibraryReadResponse {
+function withCollection(library: LibraryReadResponse, collection: CollectionResponse): LibraryReadResponse {
   if (library.collections.some((item) => item.id === collection.id)) return library;
   return { ...library, collections: [...library.collections, collection] };
 }
@@ -233,8 +369,9 @@ function settledLibrary(state: Ready, library: LibraryReadResponse): Ready {
     dialog = { ...dialog, draft: { ...dialog.draft, collectionIds: dialog.draft.collectionIds.filter((id) => ids.has(id)) } };
   }
   if (dialog?.kind === "detail") {
-    const { productId } = dialog;
+    const { productId, draft } = dialog;
     if (!products.some((product) => product.id === productId)) dialog = null;
+    else if (draft.collectionIds) dialog = { ...dialog, draft: { ...draft, collectionIds: draft.collectionIds.filter((id) => ids.has(id)) } };
   }
   return {
     ...state,
@@ -323,7 +460,7 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
     case "filter":
       return stay({ ...state, collectionId: event.collectionId, toast: null });
     case "add.open":
-      if (busy(dialog)) return stay(state);
+      if (busy(state)) return stay(state);
       return stay({ ...state, toast: null, dialog: {
         kind: "add",
         draft: { url: "", option: "", collectionIds: state.collectionId ? [state.collectionId] : [] },
@@ -332,13 +469,13 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
         error: null,
       } });
     case "collection.open":
-      if (busy(dialog)) return stay(state);
+      if (busy(state)) return stay(state);
       return stay({ ...state, toast: null, dialog: { kind: "collection", name: "", saving: false, error: null } });
     case "detail.open":
-      if (busy(dialog)) return stay(state);
-      return stay({ ...state, toast: null, dialog: { kind: "detail", productId: event.productId, arrival: null, error: null } });
+      if (busy(state)) return stay(state);
+      return stay({ ...state, toast: null, dialog: { kind: "detail", productId: event.productId, arrival: null, draft: {}, notice: null } });
     case "dialog.close":
-      return busy(dialog) ? stay(state) : stay({ ...state, dialog: null });
+      return busy(state) ? stay(state) : stay({ ...state, dialog: null });
     case "library.settled":
       if (event.outcome.ok) return stay(settledLibrary(state, event.outcome.value));
       return leaveOrStay({ ...state, refreshing: false }, event.outcome.failure);
@@ -348,7 +485,7 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
         return stay({
           ...state,
           library: { ...state.library, products: upsert(state.library.products, product) },
-          dialog: dialog?.kind === "add" ? { kind: "detail", productId: product.id, arrival: kind, error: null } : dialog,
+          dialog: dialog?.kind === "add" ? { kind: "detail", productId: product.id, arrival: kind, draft: {}, notice: null } : dialog,
         });
       }
       if (dialog?.kind !== "add") return leaveOrStay(state, event.outcome.failure);
@@ -357,15 +494,17 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
     case "metadata.retry":
       return onRetry(state, event.productId);
     case "metadata.settled":
-      return onRetried(state, event.outcome);
+      return onRetried(state, event.productId, event.outcome);
     case "product.purchase":
       return onPurchase(state, event.productId, "purchased");
+    case "product.wish":
+      return onPurchase(state, event.productId, "wish");
     case "toast.undo":
       return onUndo(state);
     case "toast.dismiss":
       return stay({ ...state, toast: null });
     case "change.settled":
-      return onChanged(state, event.productId, event.outcome);
+      return onChanged(state, event.productId, event.intent, event.outcome);
     case "poll":
       return { state, call: { type: "library.poll" } };
     case "poll.settled":
@@ -402,6 +541,7 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       if (state.refreshing && writes.has(event.type)) return stay(state);
       if (dialog?.kind === "add") return onAdd(state, dialog, event);
       if (dialog?.kind === "collection") return onCollection(state, dialog, event);
+      if (dialog?.kind === "detail") return onDetail(state, dialog, event);
       return stay(state);
   }
 }
@@ -468,7 +608,7 @@ export function visibleProducts(library: LibraryReadResponse, view: View, collec
 
 export type ToastView = { message: string; undo: boolean };
 
-// Hidden while a dialog is open, as in the mockup. The purchase toast goes away once the product changes again.
+// Hidden while a dialog is open, as in the mockup. The purchase toast disappears once the product changes again.
 export function visibleToast(state: Ready): ToastView | null {
   const { toast } = state;
   if (toast === null || state.dialog !== null) return null;
@@ -477,3 +617,4 @@ export function visibleToast(state: Ready): ToastView | null {
   if (!product || product.revision !== toast.revision) return null;
   return { message: "구매완료 목록으로 옮겼어요", undo: true };
 }
+
