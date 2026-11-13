@@ -166,6 +166,16 @@ describe("작업자의 가격 확인 집기", () => {
     expect(order).toEqual([never, older, newer]);
   });
 
+  it("집으면 지난 확인이 남긴 이유를 지운다", async () => {
+    const run = await start();
+    const product = await collected("kept-yesterday");
+    await setProduct(product, "price_checked_at = now() - interval '1 day', price_check_code = 'timeout'");
+
+    expect((await pick(run)).product).toBe(product);
+
+    expect(await productRow(product)).toMatchObject({ checked_today: true, price_check_code: null });
+  });
+
   it("다른 요청이 잠근 상품은 건너뛴다", async () => {
     const run = await start();
     const locked = await collected("locked", undefined, 5);
@@ -206,6 +216,18 @@ describe("작업자의 가격 확인 결과", () => {
     expect(await runRow(run.run)).toEqual({ ...untouchedRun, prices_confirmed: 1 });
     const { rows } = await fixture.admin.query("select count(*)::int as objects from storage.objects where split_part(name, '/', 1) = $1", [fixture.owner.id]);
     expect(rows).toEqual([{ objects: 0 }]);
+  });
+
+  // The pick already clears the code. The settle states its own result whatever the row holds.
+  it("같은 통화의 가격을 확인하면 상품에 남아 있던 이유를 지운다", async () => {
+    const run = await start();
+    const product = await collected("lamp");
+    const item = await pick(run);
+    await setProduct(product, "price_check_code = 'timeout'");
+
+    expect(await settle(run, item, { amount: 8500, currency: "KRW" })).toEqual({ code: null, data: { kind: "applied" } });
+
+    expect(await productRow(product)).toMatchObject({ last_success_amount_minor: "8500", price_check_code: null });
   });
 
   it("저장한 가격이 없으면 확인한 가격을 처음으로 저장한다", async () => {
@@ -337,6 +359,17 @@ describe("작업자의 수집이 오늘의 가격 확인을 대신한다", () =>
     await collect(run, { amount: 12000, currency: "KRW" });
     expect(await productRow(product)).toMatchObject({ checked_today: true, price_check_code: null, last_success_amount_minor: "12000" });
     expect(await next(run)).toEqual({ code: null, data: { kind: "none" } });
+  });
+
+  it("다시 수집한 상품이 같은 통화의 가격을 쓰면 지난 확인이 남긴 이유를 지운다", async () => {
+    const run = await start();
+    const product = await save("lamp");
+    await setProduct(product, `last_success_amount_minor = 9000, last_success_currency = 'KRW', last_success_at = now() - interval '2 days',
+      price_checked_at = now() - interval '1 day', price_check_code = 'timeout'`);
+
+    await collect(run, { amount: 12000, currency: "KRW" });
+
+    expect(await productRow(product)).toMatchObject({ checked_today: true, price_check_code: null, last_success_amount_minor: "12000" });
   });
 
   it("수집한 가격이 다른 통화면 other_currency, 하나의 가격이 없으면 no_single_price로 오늘 확인한 것으로 남긴다", async () => {

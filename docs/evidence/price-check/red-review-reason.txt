@@ -1,0 +1,198 @@
+# Red (review): the three places that clear price_check_code. Before the review every price test started with no code,
+# so dropping any of them still passed. Three defects were put into the migration at once (diff below, removed
+# afterwards): the pick keeps the code, the confirming settle keeps it, and the worker's collection no longer sets it.
+# The three new tests fail, one per defect, and so does the collection test that expects other_currency and
+# no_single_price (the third defect also drops those). The other 27 price tests pass.
+# A first try made the collection keep the old code by reading it (`else p.price_check_code`). moti_worker has no
+# SELECT on that column, so every worker collection failed with 42501: not this rule's failure, so it was replaced.
+# Command: npm run test:database -- -t "가격 확인|오늘의 가격 확인" (other tests filtered out, so the runner exits 1 on skips).
+#
+# 107c107
+# <   update moti.products p set price_checked_at = now(), price_check_code = null
+# ---
+# >   update moti.products p set price_checked_at = now()
+# 153c153
+# <         price_checked_at = now(), price_check_code = null
+# ---
+# >         price_checked_at = now()
+# 207,211c207
+# <   set price_checked_at = now(),
+# <       price_check_code = case
+# <         when p_amount_minor is null then 'no_single_price'
+# <         when p.last_success_currency <> p_currency then 'other_currency'
+# <       end
+# ---
+# >   set price_checked_at = now()
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs -t 가격 확인|오늘의 가격 확인
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ tests/persistence/worker-price.test.ts (28 tests | 4 failed) 7945ms
+   ❯ 작업자의 가격 확인 집기 (5)
+     ✓ 남은 수집을 먼저 집고, 그다음 수집이 끝난 위시 상품의 가격 확인을 집어 상품 id·확인 시각·링크만 돌려준다 349ms
+     ✓ 서울 날짜로 오늘 확인했거나 오늘 가격을 얻은 상품, 구매완료, 수집이 끝나지 않은 상품은 집지 않는다. 어제 늦게 확인한 상품은 집는다 308ms
+     ✓ 확인한 적 없는 상품부터, 그다음 가장 오래전에 확인한 상품부터 집는다 287ms
+     × 집으면 지난 확인이 남긴 이유를 지운다 281ms
+     ✓ 다른 요청이 잠근 상품은 건너뛴다 283ms
+   ❯ 작업자의 가격 확인 결과 (17)
+     ✓ 같은 통화의 가격은 마지막 확인 가격과 시각을 바꾸고 셈한다. 이름·소유자 이름·revision·수집 단계·사진은 그대로다 282ms
+     × 같은 통화의 가격을 확인하면 상품에 남아 있던 이유를 지운다 285ms
+     ✓ 저장한 가격이 없으면 확인한 가격을 처음으로 저장한다 277ms
+     ✓ 다른 통화의 가격은 이전 가격과 시각을 지키고 other_currency로 남기며 유지와 이유로 센다 278ms
+     ✓ 확인하지 못한 이유는 상품에 남기고 이전 가격과 시각을 지키며 이유별로 센다 290ms
+     ✓ 집은 뒤 구매완료로 옮긴 상품의 정산은 stale이고 아무것도 쓰지 않는다 280ms
+     ✓ 한 확인은 한 번만 정산한다. 다른 확인 시각이나 다른 상품의 정산은 stale이다 278ms
+     ✓ 가격과 이유를 함께 보낸 정산은 M0002이고 아무것도 쓰지 않는다 278ms
+     ✓ 가격도 이유도 없는 정산은 M0002이고 아무것도 쓰지 않는다 279ms
+     ✓ 통화 없는 가격의 정산은 M0002이고 아무것도 쓰지 않는다 275ms
+     ✓ 가격 없는 통화의 정산은 M0002이고 아무것도 쓰지 않는다 275ms
+     ✓ 0원의 정산은 M0002이고 아무것도 쓰지 않는다 276ms
+     ✓ 소문자 통화의 정산은 M0002이고 아무것도 쓰지 않는다 280ms
+     ✓ 작업자가 정하지 않는 other_currency의 정산은 M0002이고 아무것도 쓰지 않는다 276ms
+     ✓ 수집에만 있는 attempts_exhausted의 정산은 M0002이고 아무것도 쓰지 않는다 274ms
+     ✓ 목록에 없는 이유의 정산은 M0002이고 아무것도 쓰지 않는다 275ms
+     ✓ 실행 중에 키를 폐기하면 정산은 M0012이고, 닫힌 실행의 정산은 M0013이다 283ms
+   ❯ 작업자의 수집이 오늘의 가격 확인을 대신한다 (4)
+     ✓ 수집이 같은 통화의 가격을 쓰면 오늘 확인한 것으로 남기고, 같은 날 그 상품의 가격 확인을 다시 집지 않는다 280ms
+     × 다시 수집한 상품이 같은 통화의 가격을 쓰면 지난 확인이 남긴 이유를 지운다 275ms
+     × 수집한 가격이 다른 통화면 other_currency, 하나의 가격이 없으면 no_single_price로 오늘 확인한 것으로 남긴다 281ms
+     ✓ 수집 중에 구매완료로 옮긴 상품은 가격 확인 열도 그대로다 277ms
+   ✓ 가격 확인 어댑터 (1)
+     ✓ 집은 확인을 도메인 값으로 돌려주고 확인 시각을 받은 그대로 보내 정산한다. 끝내기와 소유자의 기록은 가격 셈과 이유를 돌려준다 289ms
+   ✓ 보관함 읽기의 가격 확인 (1)
+     ✓ 확인한 적 없는 상품은 null, 확인한 상품은 그 확인의 시각과 이전 가격을 지킨 이유(확인했으면 null)를 돌려준다 288ms
+ ✓ tests/service/scheduled-run.test.ts (6 tests | 3 skipped) 953ms
+   ✓ 실제 저장소를 쓰는 매일 가격 확인 (3)
+     ✓ 수집이 끝난 위시 상품을 다음 날 확인하면 같은 통화의 새 가격으로 바꾸고 이름·사진은 그대로다. 같은 날 다음 실행은 다시 읽지 않는다 349ms
+     ✓ 가격이 여럿인 페이지, 다른 통화, 막힌 쇼핑몰은 이전 가격과 그 시각을 지키고 이유를 실행 기록에 남긴다 303ms
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/share-add.test.ts (20 tests | 20 skipped)
+ ↓ tests/persistence/worker-collect.test.ts (19 tests | 19 skipped)
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-runs.test.ts (13 tests | 13 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 집기 > 집으면 지난 확인이 남긴 이유를 지운다
+AssertionError: expected { title: '새로 담은 상품', …(15) } to match object { checked_today: true, …(1) }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "checked_today": true,
+-   "price_check_code": null,
++   "price_check_code": "timeout",
+  }
+
+ ❯ tests/persistence/worker-price.test.ts:176:39
+    174|     expect((await pick(run)).product).toBe(product);
+    175|
+    176|     expect(await productRow(product)).toMatchObject({ checked_today: t…
+       |                                       ^
+    177|   });
+    178|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 결과 > 같은 통화의 가격을 확인하면 상품에 남아 있던 이유를 지운다
+AssertionError: expected { title: '새로 담은 상품', …(15) } to match object { …(2) }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "last_success_amount_minor": "8500",
+-   "price_check_code": null,
++   "price_check_code": "timeout",
+  }
+
+ ❯ tests/persistence/worker-price.test.ts:230:39
+    228|     expect(await settle(run, item, { amount: 8500, currency: "KRW" }))…
+    229|
+    230|     expect(await productRow(product)).toMatchObject({ last_success_amo…
+       |                                       ^
+    231|   });
+    232|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 수집이 오늘의 가격 확인을 대신한다 > 다시 수집한 상품이 같은 통화의 가격을 쓰면 지난 확인이 남긴 이유를 지운다
+AssertionError: expected { title: '수집한 이름', …(15) } to match object { checked_today: true, …(2) }
+(13 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "checked_today": true,
+    "last_success_amount_minor": "12000",
+-   "price_check_code": null,
++   "price_check_code": "timeout",
+  }
+
+ ❯ tests/persistence/worker-price.test.ts:372:39
+    370|     await collect(run, { amount: 12000, currency: "KRW" });
+    371|
+    372|     expect(await productRow(product)).toMatchObject({ checked_today: t…
+       |                                       ^
+    373|   });
+    374|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 수집이 오늘의 가격 확인을 대신한다 > 수집한 가격이 다른 통화면 other_currency, 하나의 가격이 없으면 no_single_price로 오늘 확인한 것으로 남긴다
+AssertionError: expected { title: '수집한 이름', …(15) } to match object { checked_today: true, …(2) }
+(13 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "checked_today": true,
+    "last_success_amount_minor": null,
+-   "price_check_code": "no_single_price",
++   "price_check_code": null,
+  }
+
+ ❯ tests/persistence/worker-price.test.ts:383:40
+    381|     await collect(run, { amount: 1999, currency: "USD" });
+    382|
+    383|     expect(await productRow(unpriced)).toMatchObject({ checked_today: …
+       |                                        ^
+    384|     expect(await productRow(foreign)).toMatchObject({ checked_today: t…
+    385|     expect(await next(run)).toEqual({ code: null, data: { kind: "none"…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed | 1 passed | 19 skipped (21)
+      Tests  4 failed | 27 passed | 287 skipped (318)
+   Start at  03:26:23
+   Duration  11.59s (tests 86%, import 13%)
+
+    Isolate  21 workers spawned · ~56ms startup each (spawn + environment, per file)
+             at least ~1.12s faster with isolate: false — reuses workers across files instead of one per file
+
+JSON report written to /private/var/folders/tv/r1qdgk8x6972cyp7yrxlxdb80000gn/T/moti-database-7YLHqz/database-results.json
