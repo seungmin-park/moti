@@ -527,11 +527,11 @@ describe("요청 실행", () => {
     expect(api.read).toHaveBeenCalledTimes(2);
     await expect(perform(api, { type: "metadata.wake" })).resolves.toEqual({ type: "wake.settled", outcome: { ok: true, value: { products: [lamp] } } });
     expect(api.wake).toHaveBeenCalledOnce();
-    await expect(perform(api, { type: "share.read" })).resolves.toEqual({ type: "share.read.settled", outcome: { ok: true, value: { key: null } } });
-    await expect(perform(api, { type: "share.issue", replaces: null }))
-      .resolves.toEqual({ type: "share.issue.settled", outcome: { ok: true, value: { key: shareKey, secret: shareSecret } } });
+    await expect(perform(api, { type: "key.read", endpoint: "share" })).resolves.toEqual({ type: "key.read.settled", endpoint: "share", outcome: { ok: true, value: { key: null } } });
+    await expect(perform(api, { type: "key.issue", endpoint: "share", replaces: null }))
+      .resolves.toEqual({ type: "key.issue.settled", endpoint: "share", outcome: { ok: true, value: { key: shareKey, secret: shareSecret } } });
     expect(api.issueShareKey).toHaveBeenCalledWith({ replaces: null });
-    await expect(perform(api, { type: "share.revoke", keyId: shareKey.id })).resolves.toMatchObject({ type: "share.revoke.settled" });
+    await expect(perform(api, { type: "key.revoke", endpoint: "share", keyId: shareKey.id })).resolves.toMatchObject({ type: "key.revoke.settled", endpoint: "share" });
     expect(api.revokeShareKey).toHaveBeenCalledWith(shareKey.id);
   });
 });
@@ -1093,7 +1093,7 @@ describe("공유 저장 보기", () => {
 
   it("Given 위시 보기 When 공유 저장으로 가면 Then 키를 읽기 시작한다", () => {
     expect(transition(ready(), { type: "view", view: "share" }))
-      .toEqual({ state: ready({ view: "share", share: { status: "loading" } }), call: { type: "share.read" } });
+      .toEqual({ state: ready({ view: "share", share: { status: "loading" } }), call: { type: "key.read", endpoint: "share" } });
   });
 
   it("Given 비밀이 보이는 공유 저장 보기 When 다른 보기로 가면 Then 비밀을 지운다", () => {
@@ -1110,19 +1110,19 @@ describe("공유 저장 보기", () => {
   it("Given 공유 저장 보기에서 키를 만듦 When 응답 전에 떠났다가 비밀이 오면 Then 비밀을 보이지 않는다", () => {
     const busy = { ...shown, key: null, secret: null, busy: true };
     const left = transition(ready({ view: "share", share: busy }), { type: "view", view: "wish" }).state;
-    const { state } = transition(left, { type: "share.issue.settled", outcome: { ok: true, value: { key: shareKey, secret: shareSecret } } });
+    const { state } = transition(left, { type: "key.issue.settled", endpoint: "share", outcome: { ok: true, value: { key: shareKey, secret: shareSecret } } });
     expect((state as Ready).share).toEqual({ ...shown, secret: null });
   });
 
   it("Given 공유 저장 보기 When 패널 사건이 오면 Then 패널의 요청을 그대로 보낸다", () => {
     const empty = { ...shown, key: null, secret: null };
-    expect(transition(ready({ view: "share", share: empty }), { type: "share.create" }))
-      .toEqual({ state: ready({ view: "share", share: { ...empty, busy: true } }), call: { type: "share.issue", replaces: null } });
+    expect(transition(ready({ view: "share", share: empty }), { type: "key.create", endpoint: "share" }))
+      .toEqual({ state: ready({ view: "share", share: { ...empty, busy: true } }), call: { type: "key.issue", endpoint: "share", replaces: null } });
   });
 
   it("Given 세션이 끝남 When 키 결과가 오면 Then 로그인으로 떠난다", () => {
     const outcome = { ok: false as const, failure: { kind: "redirect" as const, to: "/login" } };
-    expect(transition(ready({ view: "share", share: { status: "loading" } }), { type: "share.read.settled", outcome }).state)
+    expect(transition(ready({ view: "share", share: { status: "loading" } }), { type: "key.read.settled", endpoint: "share", outcome }).state)
       .toEqual({ phase: "leaving", to: "/login" });
   });
 

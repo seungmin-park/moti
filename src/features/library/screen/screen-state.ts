@@ -20,7 +20,7 @@ import type {
 } from "../presentation/library-dto";
 import type { ApiFailure, ApiOutcome, BackupFile, FieldName, LibraryApi } from "./library-api";
 import { canRetry } from "./product-view";
-import { closeShare, isShareEvent, onShare, openShare, type ShareCall, type ShareEvent, type SharePanel } from "./share-state";
+import { closeKeyPanel, isKeyEvent, onKeyPanel, openKeyPanel, type KeyCall, type KeyEvent, type KeyPanel } from "./key-panel-state";
 
 export type View = "wish" | "purchased" | "share";
 export type LinkDraft = { url: string; option: string; collectionIds: string[] };
@@ -61,7 +61,7 @@ export type LibraryScreenState =
     // One product write at a time; every button that would write waits for it.
     writing: { productId: string; intent: ProductIntent } | null;
     toast: Toast | null;
-    share: SharePanel;
+    share: KeyPanel;
   }
   | { phase: "leaving"; to: string };
 export type ApiCall =
@@ -76,7 +76,7 @@ export type ApiCall =
   | { type: "backup.file"; file: File }
   | { type: "library.restore"; text: string }
   | { type: "metadata.wake" }
-  | ShareCall;
+  | KeyCall;
 export type ScreenEvent =
   | { type: "retry" }
   | { type: "resume" }
@@ -119,7 +119,7 @@ export type ScreenEvent =
   | { type: "backup.restore" }
   | { type: "restore.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "wake.settled"; outcome: ApiOutcome<MetadataWakeResponse> }
-  | ShareEvent;
+  | KeyEvent;
 export type Transition = { state: LibraryScreenState; call: ApiCall | null };
 
 export const initialScreen: Transition = { state: { phase: "loading" }, call: { type: "library.read" } };
@@ -604,24 +604,25 @@ function onRestored(state: Ready, outcome: ApiOutcome<LibraryReadResponse>): Tra
 
 // A list view. Leaving the share view forgets the secret: the view decides whether it may stay visible.
 function listing(state: Ready, view: Exclude<View, "share">): Ready {
-  return { ...state, view, toast: null, share: closeShare(state.share) };
+  return { ...state, view, toast: null, share: closeKeyPanel(state.share) };
 }
 
 function onView(state: Ready, view: View): Transition {
   if (view === state.view) return stay(state);
   if (view !== "share") return stay(listing(state, view));
-  const { panel, call } = openShare(state.share);
+  const { panel, call } = openKeyPanel(state.share, "share");
   return { state: { ...state, view, toast: null, share: panel }, call };
 }
 
-function onSharePanel(state: Ready, event: ShareEvent): Transition {
-  const { panel, call, leave: to } = onShare(state.share, event, state.view === "share");
+// Each key's panel sees only its own events, and it is visible only where the owner can see it.
+function onKey(state: Ready, event: KeyEvent): Transition {
+  const { panel, call, leave: to } = onKeyPanel(state.share, event, state.view === "share");
   return to === null ? { state: { ...state, share: panel }, call } : leave(to);
 }
 
 function onReady(state: Ready, event: ScreenEvent): Transition {
   const { dialog } = state;
-  if (isShareEvent(event)) return onSharePanel(state, event);
+  if (isKeyEvent(event)) return onKey(state, event);
   switch (event.type) {
     case "view":
       return onView(state, event.view);
@@ -804,12 +805,12 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       return { type: "restore.settled", outcome: await api.restore(call.text) };
     case "metadata.wake":
       return { type: "wake.settled", outcome: await api.wake() };
-    case "share.read":
-      return { type: "share.read.settled", outcome: await api.readShareKey() };
-    case "share.issue":
-      return { type: "share.issue.settled", outcome: await api.issueShareKey({ replaces: call.replaces }) };
-    case "share.revoke":
-      return { type: "share.revoke.settled", outcome: await api.revokeShareKey(call.keyId) };
+    case "key.read":
+      return { type: "key.read.settled", endpoint: call.endpoint, outcome: await api.readShareKey() };
+    case "key.issue":
+      return { type: "key.issue.settled", endpoint: call.endpoint, outcome: await api.issueShareKey({ replaces: call.replaces }) };
+    case "key.revoke":
+      return { type: "key.revoke.settled", endpoint: call.endpoint, outcome: await api.revokeShareKey(call.keyId) };
   }
 }
 
