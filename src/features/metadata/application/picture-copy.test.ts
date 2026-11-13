@@ -82,7 +82,7 @@ describe("사진 사본 복사", () => {
     expect(pictures.put).not.toHaveBeenCalled();
   });
 
-  it.each(["unreadable_image", "too_large"] as const)("Given 정규화가 %s When 복사하면 Then 그 원인으로 끝내고 올리지 않는다", async (code) => {
+  it.each(["unreadable_image", "too_large", "timeout"] as const)("Given 정규화가 %s When 복사하면 Then 그 원인으로 끝내고 올리지 않는다", async (code) => {
     const { pictures, copier } = given({ normalize: async () => ({ ok: false, code }) });
     expect((await settledWith(copier)).image).toEqual({ outcome: "failed", code });
     expect(pictures.put).not.toHaveBeenCalled();

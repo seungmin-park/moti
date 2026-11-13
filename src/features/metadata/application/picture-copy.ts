@@ -14,7 +14,7 @@ export interface ImageSource {
 
 // Always WebP in sRGB with no metadata, re-encoded from pixels so nothing of the shop's file survives but the picture.
 export type NormalizedPicture = { bytes: Uint8Array; width: number; height: number };
-export type Normalized = { ok: true; picture: NormalizedPicture } | { ok: false; code: "unreadable_image" | "too_large" };
+export type Normalized = { ok: true; picture: NormalizedPicture } | { ok: false; code: "unreadable_image" | "too_large" | "timeout" };
 export type PictureNormalizer = (bytes: Uint8Array, format: ImageFormat) => Promise<Normalized>;
 
 // The private bucket, reached with the owner's token. Storage policies admit only the reserved name of a running job.

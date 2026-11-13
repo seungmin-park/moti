@@ -1,9 +1,10 @@
 export type ImageFormat = "jpeg" | "png" | "webp" | "gif" | "avif";
 
-// Bounds for a copy: the shop's bytes, the pixels a decoder may allocate, and the stored WebP.
+// Bounds for a copy: the shop's bytes, the pixels a decoder may allocate, the time to re-encode, and the stored WebP.
 export const pictureLimits = {
   maxSourceBytes: 8 * 1024 * 1024,
   maxInputPixels: 25_000_000,
+  maxNormalizeSeconds: 5,
   maxEdge: 1200,
   maxStoredBytes: 1024 * 1024,
 } as const;

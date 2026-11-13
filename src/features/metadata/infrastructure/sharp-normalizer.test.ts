@@ -1,6 +1,6 @@
 import { deflateSync } from "node:zlib";
 import sharp from "sharp";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { pictureLimits } from "../domain/picture";
 import { createPictureNormalizer, normalizePicture } from "./sharp-normalizer";
 
@@ -120,6 +120,21 @@ describe("사진 정규화", () => {
 
   it("Given 머리말만 3만×3만 픽셀인 PNG When 정규화하면 Then 풀지 않고 너무 크다", async () => {
     expect(await normalizePicture(pixelBomb(), "png")).toEqual({ ok: false, code: "too_large" });
+  });
+
+  it("Given 시간 제한 안에 끝나지 않는 처리 When 정규화하면 Then 시간 초과로 끝낸다", async () => {
+    const png = await solid(30, 30, "#808080").png().toBuffer();
+    // A real overrun depends on the machine's speed, so libvips's timeout error is injected where sharp raises it.
+    const limit = vi.spyOn(sharp.prototype, "timeout");
+    const encode = vi.spyOn(sharp.prototype, "toBuffer").mockRejectedValueOnce(new Error('timeout: 2% complete\nVipsImage: killed for image "temp-60"'));
+    try {
+      expect(await normalizePicture(png, "png")).toEqual({ ok: false, code: "timeout" });
+      expect(limit).toHaveBeenCalledExactlyOnceWith({ seconds: pictureLimits.maxNormalizeSeconds });
+      expect(encode).toHaveBeenCalledOnce();
+    } finally {
+      limit.mockRestore();
+      encode.mockRestore();
+    }
   });
 
   it("Given 저장 한도보다 큰 결과 When 정규화하면 Then 너무 크다", async () => {
