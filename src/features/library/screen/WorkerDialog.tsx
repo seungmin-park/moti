@@ -85,7 +85,11 @@ function Runs({ panel, runs }: { panel: KeyPanelState; runs: WorkerRunResponse[]
                 {run.failed && <CircleAlert size={14} aria-hidden="true" />}
                 {run.state}
               </p>
-              {run.failures.length > 0 && <p className="worker-run-failures">{run.failures.join(" · ")}</p>}
+              {run.failures.length > 0 && (
+                <ul className="worker-run-failures">
+                  {run.failures.map((failure) => <li key={failure}>{failure}</li>)}
+                </ul>
+              )}
             </li>
           ))}
         </ol>

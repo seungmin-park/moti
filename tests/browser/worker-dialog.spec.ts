@@ -99,7 +99,7 @@ test("소유자는 작업 키를 한 번만 보고, GitHub처럼 실행하면 �
   await expect(keyPanel(page)).toContainText("마지막으로 이 키로 실행을 시작한 때:");
   await expect(record(page)).toContainText("수집 0 · 실패 1");
   await expect(record(page)).toContainText("할 일을 모두 마쳤어요.");
-  await expect(record(page)).toContainText("안전을 위해 열지 않는 주소예요. 1건");
+  await expect(record(page)).toContainText("1건 · 안전을 위해 열지 않는 주소예요.");
   await expect(claimsDone(page)).toHaveCount(0);
 });
 
