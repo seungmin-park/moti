@@ -115,6 +115,7 @@ const readFailures: Mapping = {
   revision_conflict: readFailed,
   picture_missing: readFailed,
   share_key_missing: readFailed,
+  worker_key_missing: readFailed,
 };
 
 const every = (failure: () => ApiFailure) => ({
@@ -131,6 +132,7 @@ const every = (failure: () => ApiFailure) => ({
   revision_conflict: failure,
   picture_missing: failure,
   share_key_missing: failure,
+  worker_key_missing: failure,
 });
 const keyChanged = stale("다른 곳에서 키가 바뀌었어요. 최신 상태를 불러왔어요.");
 // A key write whose answer is lost may still have committed, so the panel re-reads after any of these.
@@ -140,6 +142,7 @@ const keyWrite = (unknown: string): Mapping => ({
   cross_origin: reload,
   revision_conflict: keyChanged,
   share_key_missing: keyChanged,
+  worker_key_missing: keyChanged,
 });
 
 const failures: Record<Endpoint, Mapping> = {
@@ -164,6 +167,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: retryLater,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "collection.create": {
     ...session,
@@ -184,6 +188,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: retryLater,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "collection.rename": {
     ...session,
@@ -204,6 +209,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "metadata.retry": {
     ...session,
@@ -220,6 +226,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: retryLater,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "product.change": {
     ...session,
@@ -236,6 +243,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
     share_key_missing: retryLater,
+    worker_key_missing: retryLater,
   },
   "library.backup": {
     ...session,
@@ -252,6 +260,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: backupFailed,
     picture_missing: backupFailed,
     share_key_missing: backupFailed,
+    worker_key_missing: backupFailed,
   },
   "library.restore": {
     ...session,
@@ -268,6 +277,7 @@ const failures: Record<Endpoint, Mapping> = {
     revision_conflict: restoreUnknown,
     picture_missing: restoreUnknown,
     share_key_missing: restoreUnknown,
+    worker_key_missing: restoreUnknown,
   },
 };
 

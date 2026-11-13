@@ -1,0 +1,23 @@
+# Red: the worker's HTTP routes (steps 5 and 6, one run). The app was built without src/app/api/worker-keys and src/app/api/scheduled-runs; persistence and service passed (230 and 51), then the HTTP phase ran.
+# 6 tests fail with 404 (no route): /api/worker-keys (2) and /api/scheduled-runs (4, including the worker key on owner routes, which stops at the missing /api/worker-keys). The 38 passing are the existing HTTP tests.
+# Command: npm run build (routes held out) && npm run test:database
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+     × 작업 키 없이, 공유 키로, 소유자 쿠키만으로, 모르는 키로 부르면 같은 401이고 아무것도 실행하지 않는다 381ms
+     × 작업 키로 부르면 대기 중인 상품을 수집하고 셈을 돌려준다. 앱의 주소 정책이 막은 링크는 blocked_address로 남는다 332ms
+     × 다른 실행이 임대를 쥐고 있으면 409 run_busy이고, 24시간에 여덟 번을 넘기면 429 run_limit이다 331ms
+     × 작업 키로 소유자 경로를 부르면 쿠키가 없어 모두 401 signed_out이고 DB는 그대로다 334ms
+     × 소유자는 작업 키를 만들어 한 번 보고, 새 키로 바꾸고 폐기한다. 읽기는 키의 끝 네 글자와 실행 기록만 보인다 361ms
+     × 다른 출처의 만들기·폐기는 403이고, 없는 키는 404 worker_key_missing, UUID가 아닌 키는 400이며 키는 그대로다 331ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/http/scheduled-runs.test.ts > 실제 HTTP 예약 실행 > 작업 키 없이, 공유 키로, 소유자 쿠키만으로, 모르는 키로 부르면 같은 401이고 아무것도 실행하지 않는다
+AssertionError: expected 404 to be 401 // Object.is equality
+ FAIL  tests/http/scheduled-runs.test.ts > 실제 HTTP 예약 실행 > 작업 키로 부르면 대기 중인 상품을 수집하고 셈을 돌려준다. 앱의 주소 정책이 막은 링크는 blocked_address로 남는다
+AssertionError: expected 404 to be 200 // Object.is equality
+ FAIL  tests/http/scheduled-runs.test.ts > 실제 HTTP 예약 실행 > 다른 실행이 임대를 쥐고 있으면 409 run_busy이고, 24시간에 여덟 번을 넘기면 429 run_limit이다
+AssertionError: expected 404 to be 409 // Object.is equality
+ FAIL  tests/http/scheduled-runs.test.ts > 실제 HTTP 예약 실행 > 작업 키로 소유자 경로를 부르면 쿠키가 없어 모두 401 signed_out이고 DB는 그대로다
+AssertionError: /api/worker-keys: expected 404 to be 401 // Object.is equality
+ FAIL  tests/http/worker-keys.test.ts > 실제 HTTP 작업 키 관리 > 소유자는 작업 키를 만들어 한 번 보고, 새 키로 바꾸고 폐기한다. 읽기는 키의 끝 네 글자와 실행 기록만 보인다
+ FAIL  tests/http/worker-keys.test.ts > 실제 HTTP 작업 키 관리 > 다른 출처의 만들기·폐기는 403이고, 없는 키는 404 worker_key_missing, UUID가 아닌 키는 400이며 키는 그대로다
+ Test Files  2 failed | 7 passed (9)
+      Tests  6 failed | 38 passed (44)

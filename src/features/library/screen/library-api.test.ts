@@ -51,6 +51,7 @@ const status: Record<ErrorCode, number> = {
   revision_conflict: 409,
   picture_missing: 404,
   share_key_missing: 404,
+  worker_key_missing: 404,
   storage_unavailable: 503,
 };
 
@@ -83,12 +84,13 @@ const everyCode = (failure: ApiFailure) => ({
   revision_conflict: failure,
   picture_missing: failure,
   share_key_missing: failure,
+  worker_key_missing: failure,
 });
 
 const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
   "share.read": { ...signedIn, ...everyCode(readShareFailed) },
-  "share.issue": { ...signedIn, ...everyCode(issueUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged },
-  "share.revoke": { ...signedIn, ...everyCode(revokeUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged },
+  "share.issue": { ...signedIn, ...everyCode(issueUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged, worker_key_missing: keyChanged },
+  "share.revoke": { ...signedIn, ...everyCode(revokeUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged, worker_key_missing: keyChanged },
   "library.backup": {
     ...signedIn,
     storage_unavailable: backupFailed,
@@ -104,6 +106,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: backupFailed,
     picture_missing: backupFailed,
     share_key_missing: backupFailed,
+    worker_key_missing: backupFailed,
   },
   "library.restore": {
     ...signedIn,
@@ -120,6 +123,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: restoreUnknown,
     picture_missing: restoreUnknown,
     share_key_missing: restoreUnknown,
+    worker_key_missing: restoreUnknown,
   },
   "metadata.wake": {
     ...signedIn,
@@ -136,6 +140,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: { kind: "unavailable", message: readFailed },
     picture_missing: { kind: "unavailable", message: readFailed },
     share_key_missing: { kind: "unavailable", message: readFailed },
+    worker_key_missing: { kind: "unavailable", message: readFailed },
   },
   "library.read": {
     ...signedIn,
@@ -152,6 +157,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: { kind: "unavailable", message: readFailed },
     picture_missing: { kind: "unavailable", message: readFailed },
     share_key_missing: { kind: "unavailable", message: readFailed },
+    worker_key_missing: { kind: "unavailable", message: readFailed },
   },
   "link.save": {
     ...signedIn,
@@ -168,6 +174,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
     share_key_missing: { kind: "unavailable", message: retryLater },
+    worker_key_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.create": {
     ...signedIn,
@@ -184,6 +191,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
     share_key_missing: { kind: "unavailable", message: retryLater },
+    worker_key_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.rename": {
     ...signedIn,
@@ -200,6 +208,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: { kind: "stale", message: changedElsewhere },
     picture_missing: { kind: "unavailable", message: retryLater },
     share_key_missing: { kind: "unavailable", message: retryLater },
+    worker_key_missing: { kind: "unavailable", message: retryLater },
   },
   "metadata.retry": {
     ...signedIn,
@@ -216,6 +225,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
     share_key_missing: { kind: "unavailable", message: retryLater },
+    worker_key_missing: { kind: "unavailable", message: retryLater },
   },
   "product.change": {
     ...signedIn,
@@ -232,6 +242,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     revision_conflict: { kind: "stale", message: changedElsewhere },
     picture_missing: { kind: "unavailable", message: retryLater },
     share_key_missing: { kind: "unavailable", message: retryLater },
+    worker_key_missing: { kind: "unavailable", message: retryLater },
   },
 };
 

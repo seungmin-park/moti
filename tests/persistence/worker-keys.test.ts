@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
+import type { WorkerKeyId } from "../../src/features/worker/domain/worker";
+import { createSupabaseWorkerKeyStore } from "../../src/features/worker/infrastructure/supabase-worker-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
@@ -209,5 +211,53 @@ describe("소유자의 작업 키", () => {
     await library.restoreLibrary({ backup: { collections: [], products: [] } });
 
     expect({ keys: await stored(), read: await read() }).toEqual(before);
+  });
+});
+
+describe("작업 키 어댑터", () => {
+  const store = (client: SupabaseClient = fixture.owner.client) => createSupabaseWorkerKeyStore(client);
+
+  it("만들기·읽기·바꾸기·폐기를 도메인 값으로 돌려주고 DB 오류를 보관함 오류 코드로 바꾼다", async () => {
+    expect(await store().read()).toEqual({ key: null, runs: [] });
+
+    const first = await store().issue({ replaces: null });
+
+    expect(first.secret).toMatch(secretFormat);
+    expect(first.key).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      hint: first.secret.slice(-4),
+      createdAt: expect.stringMatching(/Z$/),
+      lastUsedAt: null,
+      revokedAt: null,
+    });
+    await expect(store().issue({ replaces: null })).rejects.toMatchObject({ code: "revision_conflict" });
+    const second = await store().issue({ replaces: first.key.id });
+    const revoked = await store().revoke({ keyId: second.key.id });
+    expect(revoked).toEqual({ ...second.key, revokedAt: expect.stringMatching(/Z$/) });
+    await expect(store().revoke({ keyId: randomUUID() as WorkerKeyId })).rejects.toMatchObject({ code: "worker_key_missing" });
+  });
+
+  it("실행 기록을 상태와 수집·가격 셈, 이유별 실패로 돌려준다", async () => {
+    const { key } = await issue();
+    await run(key.id, { startedAgo: "1 hour", open: false, stop: "deadline", collected: 2 });
+    await run(key.id, { startedAgo: "2 minutes", open: true, leaseLeft: "-30 seconds" });
+
+    const { runs } = await store().read();
+
+    expect(runs).toEqual([
+      {
+        id: expect.any(String), startedAt: expect.stringMatching(/Z$/), finishedAt: expect.stringMatching(/Z$/), state: "cut",
+        collections: { collected: 0, failed: 0 }, prices: { confirmed: 0, kept: 0 }, failures: {},
+      },
+      {
+        id: expect.any(String), startedAt: expect.stringMatching(/Z$/), finishedAt: expect.stringMatching(/Z$/), state: "deadline",
+        collections: { collected: 2, failed: 0 }, prices: { confirmed: 0, kept: 0 }, failures: { timeout: 1 },
+      },
+    ]);
+  });
+
+  it("소유자가 아닌 세션은 unauthorized다", async () => {
+    await expect(store(fixture.stranger.client).read()).rejects.toMatchObject({ code: "unauthorized" });
+    await expect(store(fixture.stranger.client).issue({ replaces: null })).rejects.toMatchObject({ code: "unauthorized" });
   });
 });

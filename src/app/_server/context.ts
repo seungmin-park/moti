@@ -21,6 +21,8 @@ import { createSupabaseLibraryStore } from "@/features/library/infrastructure/su
 import type { LibraryRequestContext } from "@/features/library/presentation/library-handlers";
 import { createShareKeyService } from "@/features/share/application/share-service";
 import { createSupabaseShareKeyStore } from "@/features/share/infrastructure/supabase-share-store";
+import { createWorkerKeyService } from "@/features/worker/application/worker-service";
+import { createSupabaseWorkerKeyStore } from "@/features/worker/infrastructure/supabase-worker-store";
 import { createCollectionRunner, runWithin, type CollectionRequest } from "@/features/metadata/application/collection";
 import { WAKE_CONCURRENCY, WAKE_WINDOW_MS } from "@/features/metadata/application/commands";
 import { createPictureCopier } from "@/features/metadata/application/picture-copy";
@@ -98,6 +100,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
       retry: unavailable,
       settleRestore: () => {},
       shareKeys: createShareKeyService({ read: unavailable, issue: unavailable, revoke: unavailable }),
+      workerKeys: createWorkerKeyService({ read: unavailable, issue: unavailable, revoke: unavailable }),
       wake: unavailable,
       collectAll: () => {},
     };
@@ -113,6 +116,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
     retry: (command) => createSupabaseCollectionStore(client).retry(command),
     settleRestore: (result) => scheduleRestoreFollowUp(config, accessToken, result),
     shareKeys: createShareKeyService(createSupabaseShareKeyStore(client)),
+    workerKeys: createWorkerKeyService(createSupabaseWorkerKeyStore(client)),
     wake: (command) => createSupabaseCollectionStore(client).wake(command),
     collectAll: (requests) => scheduleCollections(config, accessToken, requests),
   };

@@ -132,6 +132,7 @@ export const errorCodes = [
   "revision_conflict",
   "picture_missing",
   "share_key_missing",
+  "worker_key_missing",
   "storage_unavailable",
 ] as const;
 export type ErrorCode = (typeof errorCodes)[number];

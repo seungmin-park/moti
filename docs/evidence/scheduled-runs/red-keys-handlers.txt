@@ -1,0 +1,53 @@
+# Red: owner worker key routes (step 5). The handlers are stubs with the same signatures that answer 501, and the API document has no /api/worker-keys routes, so the committed OpenAPI no longer matches.
+# 16 tests fail: 15 handler tests (every allowed, refused and error case) and the OpenAPI drift test. The passing ones are the existing library handler and document tests.
+# Command: npx vitest run src/features/library/presentation/library-handlers.test.ts src/features/library/presentation/api-document.test.ts
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+     × 커밋한 OpenAPI 문서가 실행 계약에서 생성한 문서와 같다 17ms
+     × Given 허용한 Google 계정 When 작업 키를 읽으면 Then 200과 끝 네 글자·시각·최근 실행의 셈만 돌려주고 비밀은 없다 4ms
+     × Given {"kind":"signed_out"} When 작업 키만 보내 읽으면 Then 401 signed_out이고 키를 읽지 않는다 0ms
+     × Given {"kind":"forbidden"} When 작업 키만 보내 읽으면 Then 403 forbidden이고 키를 읽지 않는다 0ms
+     × Given {"kind":"unconfigured"} When 작업 키만 보내 읽으면 Then 503 unconfigured이고 키를 읽지 않는다 0ms
+     × Given 같은 출처의 소유자 When 화면에 키가 없던 상태로 만들면 Then 201과 비밀을 한 번 돌려주고 캐시하지 않는다 0ms
+     × Given 화면이 본 활성 키 When 새 키로 바꾸면 Then 그 키 ID를 소문자로 넘긴다 1ms
+     × Given 다른 출처 When 키를 만들면 Then 403 cross_origin이고 키를 만들지 않는다 0ms
+     × Given UUID가 아닌 replaces When 키를 만들면 Then 400이고 키를 만들지 않는다 0ms
+     × Given replaces 없음 When 키를 만들면 Then 400이고 키를 만들지 않는다 0ms
+     × Given 다른 필드 When 키를 만들면 Then 400이고 키를 만들지 않는다 1ms
+     × Given 다른 곳에서 키가 바뀜 When 오래된 화면으로 만들면 Then 409 revision_conflict다 0ms
+     × Given 세션 없이 작업 키만 보냄 When 키를 만들면 Then 401이고 키를 만들지 않는다 0ms
+     × Given 같은 출처의 소유자 When 키를 폐기하면 Then 200과 폐기 시각이 있는 키를 돌려준다 0ms
+     × Given 다른 출처나 UUID가 아닌 ID When 폐기하면 Then 403·400이고 폐기하지 않는다 0ms
+     × Given 소유자에게 없는 키 When 폐기하면 Then 404 worker_key_missing이다 0ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 커밋한 OpenAPI 문서가 실행 계약에서 생성한 문서와 같다
+AssertionError: npm run api:doc으로 문서를 다시 생성하세요.: expected '{\n  "openapi": "3.1.0",\n  "info": {…' to be '{\n  "openapi": "3.1.0",\n  "info": {…' // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/worker-keys > Given 허용한 Google 계정 When 작업 키를 읽으면 Then 200과 끝 네 글자·시각·최근 실행의 셈만 돌려주고 비밀은 없다
+AssertionError: expected 501 to be 200 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/worker-keys > Given {"kind":"signed_out"} When 작업 키만 보내 읽으면 Then 401 signed_out이고 키를 읽지 않는다
+AssertionError: expected 501 to be 401 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/worker-keys > Given {"kind":"forbidden"} When 작업 키만 보내 읽으면 Then 403 forbidden이고 키를 읽지 않는다
+AssertionError: expected 501 to be 403 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/worker-keys > Given {"kind":"unconfigured"} When 작업 키만 보내 읽으면 Then 503 unconfigured이고 키를 읽지 않는다
+AssertionError: expected 501 to be 503 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/worker-keys > Given 같은 출처의 소유자 When 화면에 키가 없던 상태로 만들면 Then 201과 비밀을 한 번 돌려주고 캐시하지 않는다
+AssertionError: expected 501 to be 201 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/worker-keys > Given 화면이 본 활성 키 When 새 키로 바꾸면 Then 그 키 ID를 소문자로 넘긴다
+AssertionError: expected "vi.fn()" to be called with arguments: [ Array(1) ]
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/worker-keys > Given 다른 출처 When 키를 만들면 Then 403 cross_origin이고 키를 만들지 않는다
+AssertionError: expected 501 to be 403 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/worker-keys > Given UUID가 아닌 replaces When 키를 만들면 Then 400이고 키를 만들지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/worker-keys > Given replaces 없음 When 키를 만들면 Then 400이고 키를 만들지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/worker-keys > Given 다른 필드 When 키를 만들면 Then 400이고 키를 만들지 않는다
+AssertionError: expected 501 to be 400 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/worker-keys > Given 다른 곳에서 키가 바뀜 When 오래된 화면으로 만들면 Then 409 revision_conflict다
+AssertionError: expected 501 to be 409 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/worker-keys > Given 세션 없이 작업 키만 보냄 When 키를 만들면 Then 401이고 키를 만들지 않는다
+AssertionError: expected 501 to be 401 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/worker-keys/{keyId} > Given 같은 출처의 소유자 When 키를 폐기하면 Then 200과 폐기 시각이 있는 키를 돌려준다
+AssertionError: expected 501 to be 200 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/worker-keys/{keyId} > Given 다른 출처나 UUID가 아닌 ID When 폐기하면 Then 403·400이고 폐기하지 않는다
+AssertionError: expected 501 to be 403 // Object.is equality
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/worker-keys/{keyId} > Given 소유자에게 없는 키 When 폐기하면 Then 404 worker_key_missing이다
+AssertionError: expected 501 to be 404 // Object.is equality
+ Test Files  2 failed (2)
+      Tests  16 failed | 171 passed (187)

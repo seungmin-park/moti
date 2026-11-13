@@ -17,6 +17,14 @@ import {
   toShareKeyReadResponse,
   toShareKeyRevokeResponse,
 } from "../../share/presentation/share-dto";
+import { toWorkerKeyIssueCommand, toWorkerKeyRevokeCommand } from "../../worker/application/commands";
+import type { WorkerKeyService } from "../../worker/application/worker-service";
+import {
+  toWorkerKeyIssueResponse,
+  toWorkerKeyRevokeResponse,
+  toWorkerReadResponse,
+  workerKeyIssueRequestSchema,
+} from "../../worker/presentation/worker-dto";
 import { seoulToday } from "../../wishlist/product-fields";
 import {
   toCollectionCreateCommand,
@@ -64,6 +72,8 @@ export type LibraryRequestContext = {
   settleRestore(result: LibraryRestoreResult): void;
   // The owner's share key, managed only with the owner's session.
   shareKeys: ShareKeyService;
+  // The scheduled worker's key and its runs, managed only with the owner's session.
+  workerKeys: WorkerKeyService;
   wake(command: MetadataWakeCommand): Promise<MetadataWakeResult>;
   // Schedules collection of several products after the response, within a window; never delays or fails the request.
   collectAll(requests: CollectionRequest[]): void;
@@ -71,6 +81,7 @@ export type LibraryRequestContext = {
 export type ProductRoute = { params: Promise<{ productId: string }> };
 export type CollectionRoute = { params: Promise<{ collectionId: string }> };
 export type ShareKeyRoute = { params: Promise<{ keyId: string }> };
+export type WorkerKeyRoute = { params: Promise<{ keyId: string }> };
 
 const errorStatus: Record<ErrorCode, number> = {
   signed_out: 401,
@@ -88,6 +99,7 @@ const errorStatus: Record<ErrorCode, number> = {
   revision_conflict: 409,
   picture_missing: 404,
   share_key_missing: 404,
+  worker_key_missing: 404,
   storage_unavailable: 503,
 };
 
@@ -107,6 +119,7 @@ const errorMessages: Record<ErrorCode, string> = {
   revision_conflict: "다른 곳에서 먼저 바뀌었어요. 최신 내용을 확인해 주세요.",
   picture_missing: "보여줄 사진이 없어요.",
   share_key_missing: "저장 키를 찾을 수 없어요.",
+  worker_key_missing: "작업 키를 찾을 수 없어요.",
   storage_unavailable: "잠시 뒤 다시 시도해 주세요.",
 };
 
@@ -120,6 +133,7 @@ const fromLibraryError: Record<LibraryErrorCode, ErrorCode> = {
   metadata_not_retryable: "metadata_not_retryable",
   revision_conflict: "revision_conflict",
   share_key_missing: "share_key_missing",
+  worker_key_missing: "worker_key_missing",
   storage_unavailable: "storage_unavailable",
 };
 
@@ -138,7 +152,9 @@ function failure(code: ErrorCode, message = errorMessages[code], field?: string)
   return json(errorStatus[code], body);
 }
 
-type Allowed = Pick<LibraryRequestContext, "service" | "collect" | "retry" | "settleRestore" | "shareKeys" | "wake" | "collectAll">;
+type Allowed = Pick<
+  LibraryRequestContext, "service" | "collect" | "retry" | "settleRestore" | "shareKeys" | "workerKeys" | "wake" | "collectAll"
+>;
 type Action<Route> = (allowed: Allowed, request: Request, route: Route) => Promise<Response>;
 
 export function createLibraryHandlers(context: (request: Request) => Promise<LibraryRequestContext>) {
@@ -256,6 +272,18 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
     deleteShareKey: handle<ShareKeyRoute>(async ({ shareKeys }, _request, route) => {
       const { keyId } = await route.params;
       return json(200, toShareKeyRevokeResponse(await shareKeys.revoke(toShareKeyRevokeCommand(keyId))));
+    }, { write: true }),
+    getWorkerKey: handle(async ({ workerKeys }) => json(200, toWorkerReadResponse(await workerKeys.read())), { write: false }),
+    // The only answer that carries the worker key's secret, for the owner to put into GitHub. Nothing stores it to show again.
+    postWorkerKey: handle(async ({ workerKeys }, request) => {
+      const workerKeyIssueRequest = await readRequest(request, (value) => workerKeyIssueRequestSchema.parse(value));
+      if (workerKeyIssueRequest instanceof Response) return workerKeyIssueRequest;
+      const result = await workerKeys.issue(toWorkerKeyIssueCommand(workerKeyIssueRequest));
+      return json(201, toWorkerKeyIssueResponse(result));
+    }, { write: true }),
+    deleteWorkerKey: handle<WorkerKeyRoute>(async ({ workerKeys }, _request, route) => {
+      const { keyId } = await route.params;
+      return json(200, toWorkerKeyRevokeResponse(await workerKeys.revoke(toWorkerKeyRevokeCommand(keyId))));
     }, { write: true }),
     // The screen calls this once it has the library: products nobody started collecting (a share key's adds) start now.
     postMetadataWake: handle(async ({ wake, collectAll }, request) => {

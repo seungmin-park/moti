@@ -63,6 +63,7 @@ export type LibraryErrorCode =
   | "metadata_not_retryable"
   | "revision_conflict"
   | "share_key_missing"
+  | "worker_key_missing"
   | "storage_unavailable";
 
 export class LibraryError extends Error {

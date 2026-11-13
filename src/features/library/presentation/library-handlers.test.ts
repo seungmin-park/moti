@@ -19,6 +19,18 @@ import {
   shareKeyReadResponseSchema,
   shareKeyRevokeResponseSchema,
 } from "../../share/presentation/share-dto";
+import type {
+  WorkerKeyIssueCommand,
+  WorkerKeyIssueResult,
+  WorkerKeyRevokeCommand,
+  WorkerReadResult,
+} from "../../worker/application/commands";
+import type { WorkerKey, WorkerKeyId, WorkerRun, WorkerSecret } from "../../worker/domain/worker";
+import {
+  workerKeyIssueResponseSchema,
+  workerKeyRevokeResponseSchema,
+  workerReadResponseSchema,
+} from "../../worker/presentation/worker-dto";
 import { MAX_BACKUP_BYTES, readLibraryBackup, toLibraryBackupDocument } from "./library-backup";
 import { createLibraryHandlers } from "./library-handlers";
 import {
@@ -84,6 +96,23 @@ const shareKey = {
   revokedAt: null,
 } satisfies ShareKey;
 const shareSecret = `moti_sk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_Aa1B2"}` as ShareSecret;
+const workerKey = {
+  id: "55555555-5555-4555-8555-555555555555" as WorkerKeyId,
+  hint: "Wk9_",
+  createdAt: "2026-11-13T05:00:00.000Z",
+  lastUsedAt: "2026-11-13T05:17:00.000Z",
+  revokedAt: null,
+} satisfies WorkerKey;
+const workerSecret = `moti_wk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_AWk9_"}` as WorkerSecret;
+const workerRun = {
+  id: "66666666-6666-4666-8666-666666666666",
+  startedAt: "2026-11-13T05:17:00.000Z",
+  finishedAt: "2026-11-13T05:17:40.000Z",
+  state: "done",
+  collections: { collected: 2, failed: 1 },
+  prices: { confirmed: 0, kept: 0 },
+  failures: { timeout: 1 },
+} satisfies WorkerRun;
 
 function given(access: Access) {
   const service = {
@@ -115,14 +144,26 @@ function given(access: Access) {
       ...shareKey, id: command.keyId, revokedAt: "2026-11-13T06:00:00.000Z",
     })),
   };
+  const workerKeys = {
+    read: vi.fn(async (): Promise<WorkerReadResult> => ({ key: workerKey, runs: [workerRun] })),
+    issue: vi.fn(async (command: WorkerKeyIssueCommand): Promise<WorkerKeyIssueResult> => {
+      void command;
+      return { key: workerKey, secret: workerSecret };
+    }),
+    revoke: vi.fn(async (command: WorkerKeyRevokeCommand): Promise<WorkerKey> => ({
+      ...workerKey, id: command.keyId, revokedAt: "2026-11-13T06:00:00.000Z",
+    })),
+  };
   const wake = vi.fn(async (command: MetadataWakeCommand): Promise<MetadataWakeResult> => {
     void command;
     return { products: [product] };
   });
   // collectAll is a mock: handing the woken products to collection after the response is the requirement.
   const collectAll = vi.fn<(requests: CollectionRequest[]) => void>();
-  const handlers = createLibraryHandlers(async () => ({ access, service, signOut, collect, retry, settleRestore, shareKeys, wake, collectAll }));
-  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys, wake, collectAll };
+  const handlers = createLibraryHandlers(async () => ({
+    access, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll,
+  }));
+  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll };
 }
 
 const get = () => new Request(`${origin}/api/library`);
@@ -1067,6 +1108,116 @@ describe("DELETE /api/share-keys/{keyId}", () => {
     const response = await handlers.deleteShareKey(revoke(shareKey.id), route(shareKey.id));
     expect(response.status).toBe(404);
     expect(await errorOf(response)).toEqual({ error: "share_key_missing", message: "missing" });
+  });
+});
+
+describe("GET /api/worker-keys", () => {
+  const read = (headers: Record<string, string> = {}) => new Request(`${origin}/api/worker-keys`, { headers });
+
+  it("Given 허용한 Google 계정 When 작업 키를 읽으면 Then 200과 끝 네 글자·시각·최근 실행의 셈만 돌려주고 비밀은 없다", async () => {
+    const { handlers, workerKeys } = given(allowed);
+    const response = await handlers.getWorkerKey(read());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const text = await response.text();
+    expect(workerReadResponseSchema.parse(JSON.parse(text))).toEqual({ key: workerKey, runs: [workerRun] });
+    expect(text).not.toContain("moti_wk_");
+    expect(workerKeys.read).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [{ kind: "signed_out" } as Access, 401, "signed_out"],
+    [{ kind: "forbidden" } as Access, 403, "forbidden"],
+    [{ kind: "unconfigured" } as Access, 503, "unconfigured"],
+  ])("Given %j When 작업 키만 보내 읽으면 Then %i %s이고 키를 읽지 않는다", async (access, status, code) => {
+    const { handlers, workerKeys } = given(access);
+    const response = await handlers.getWorkerKey(read({ authorization: `Bearer ${workerSecret}` }));
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(workerKeys.read).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/worker-keys", () => {
+  it("Given 같은 출처의 소유자 When 화면에 키가 없던 상태로 만들면 Then 201과 비밀을 한 번 돌려주고 캐시하지 않는다", async () => {
+    const { handlers, workerKeys } = given(allowed);
+    const response = await handlers.postWorkerKey(post("/api/worker-keys", { replaces: null }));
+    expect(response.status).toBe(201);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(workerKeyIssueResponseSchema.parse(await response.json())).toEqual({ key: workerKey, secret: workerSecret });
+    expect(workerKeys.issue).toHaveBeenCalledWith({ replaces: null });
+  });
+
+  it("Given 화면이 본 활성 키 When 새 키로 바꾸면 Then 그 키 ID를 소문자로 넘긴다", async () => {
+    const { handlers, workerKeys } = given(allowed);
+    await handlers.postWorkerKey(post("/api/worker-keys", { replaces: workerKey.id.toUpperCase() }));
+    expect(workerKeys.issue).toHaveBeenCalledWith({ replaces: workerKey.id });
+  });
+
+  it("Given 다른 출처 When 키를 만들면 Then 403 cross_origin이고 키를 만들지 않는다", async () => {
+    const { handlers, workerKeys } = given(allowed);
+    const response = await handlers.postWorkerKey(post("/api/worker-keys", { replaces: null }, { origin: "https://evil.example" }));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(workerKeys.issue).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["UUID가 아닌 replaces", { replaces: "not-a-uuid" }],
+    ["replaces 없음", {}],
+    ["다른 필드", { replaces: null, label: "github" }],
+  ])("Given %s When 키를 만들면 Then 400이고 키를 만들지 않는다", async (_name, body) => {
+    const { handlers, workerKeys } = given(allowed);
+    const response = await handlers.postWorkerKey(post("/api/worker-keys", body));
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).error).toBe("invalid_input");
+    expect(workerKeys.issue).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 곳에서 키가 바뀜 When 오래된 화면으로 만들면 Then 409 revision_conflict다", async () => {
+    const { handlers, workerKeys } = given(allowed);
+    workerKeys.issue.mockRejectedValueOnce(new LibraryError("revision_conflict", "stale"));
+    const response = await handlers.postWorkerKey(post("/api/worker-keys", { replaces: null }));
+    expect(response.status).toBe(409);
+    expect((await errorOf(response)).error).toBe("revision_conflict");
+  });
+
+  it("Given 세션 없이 작업 키만 보냄 When 키를 만들면 Then 401이고 키를 만들지 않는다", async () => {
+    const { handlers, workerKeys } = given({ kind: "signed_out" });
+    const response = await handlers.postWorkerKey(post("/api/worker-keys", { replaces: null }, { authorization: `Bearer ${workerSecret}` }));
+    expect(response.status).toBe(401);
+    expect(workerKeys.issue).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /api/worker-keys/{keyId}", () => {
+  const revoke = (keyId: string, headers: Record<string, string> = { origin }) =>
+    new Request(`${origin}/api/worker-keys/${keyId}`, { method: "DELETE", headers });
+  const route = (keyId: string) => ({ params: Promise.resolve({ keyId }) });
+
+  it("Given 같은 출처의 소유자 When 키를 폐기하면 Then 200과 폐기 시각이 있는 키를 돌려준다", async () => {
+    const { handlers, workerKeys } = given(allowed);
+    const response = await handlers.deleteWorkerKey(revoke(workerKey.id), route(workerKey.id.toUpperCase()));
+    expect(response.status).toBe(200);
+    expect(workerKeyRevokeResponseSchema.parse(await response.json())).toEqual({
+      key: { ...workerKey, revokedAt: "2026-11-13T06:00:00.000Z" },
+    });
+    expect(workerKeys.revoke).toHaveBeenCalledWith({ keyId: workerKey.id });
+  });
+
+  it("Given 다른 출처나 UUID가 아닌 ID When 폐기하면 Then 403·400이고 폐기하지 않는다", async () => {
+    const { handlers, workerKeys } = given(allowed);
+    expect((await handlers.deleteWorkerKey(revoke(workerKey.id, { origin: "https://evil.example" }), route(workerKey.id))).status).toBe(403);
+    expect((await handlers.deleteWorkerKey(revoke("abc"), route("abc"))).status).toBe(400);
+    expect(workerKeys.revoke).not.toHaveBeenCalled();
+  });
+
+  it("Given 소유자에게 없는 키 When 폐기하면 Then 404 worker_key_missing이다", async () => {
+    const { handlers, workerKeys } = given(allowed);
+    workerKeys.revoke.mockRejectedValueOnce(new LibraryError("worker_key_missing", "missing"));
+    const response = await handlers.deleteWorkerKey(revoke(workerKey.id), route(workerKey.id));
+    expect(response.status).toBe(404);
+    expect(await errorOf(response)).toEqual({ error: "worker_key_missing", message: "missing" });
   });
 });
 

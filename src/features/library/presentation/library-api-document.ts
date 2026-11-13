@@ -11,6 +11,12 @@ import {
   shareKeyRevokeResponseSchema,
   shareLinkErrorResponseSchema,
 } from "../../share/presentation/share-dto";
+import {
+  workerKeyIssueRequestSchema,
+  workerKeyIssueResponseSchema,
+  workerKeyRevokeResponseSchema,
+  workerReadResponseSchema,
+} from "../../worker/presentation/worker-dto";
 import { MAX_BACKUP_BYTES, libraryBackupSchema } from "./library-backup";
 import {
   collectionCreateRequestSchema,
@@ -210,6 +216,36 @@ export const libraryRoutes: Route[] = [
       400: { description: "키 ID가 UUID가 아니다.", schema: errorResponseSchema },
       ...denied,
       404: { description: "소유자의 키가 아니다(share_key_missing).", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "get",
+    path: "/api/worker-keys",
+    summary: "예약 실행의 작업 키와 최근 실행 다섯 개를 읽는다. 키는 활성 키, 없으면 마지막으로 폐기한 키, 만든 적이 없으면 null이고 끝 네 글자와 만든·마지막으로 실행한·폐기한 시각만 보인다. 실행은 상태(running·done·deadline·cut·revoked)와 셈, 이유별 실패 횟수만 보인다.",
+    responses: { 200: { description: "WorkerReadResponse", schema: workerReadResponseSchema }, ...denied },
+  },
+  {
+    method: "post",
+    path: "/api/worker-keys",
+    summary: "새 작업 키를 만든다. replaces는 화면이 본 활성 키(없었으면 null)이며, 그 키를 폐기하고 열린 실행을 멈춘 뒤 새 키를 한 트랜잭션에서 만든다. 비밀은 이 응답에만 한 번 담긴다.",
+    request: workerKeyIssueRequestSchema,
+    responses: {
+      201: { description: "WorkerKeyIssueResponse. secret은 moti_wk_ 뒤에 base64url 43자다.", schema: workerKeyIssueResponseSchema },
+      ...writeFailures,
+      ...denied,
+      409: { description: "화면이 본 뒤 다른 곳에서 키가 바뀌었다(revision_conflict). 아무것도 바꾸지 않는다.", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "delete",
+    path: "/api/worker-keys/{keyId}",
+    summary: "작업 키를 폐기하고 그 키의 열린 실행을 멈춘다. 이미 폐기한 키는 처음 폐기한 시각 그대로 돌려준다.",
+    parameters: [{ name: "keyId", description: "작업 키 ID", schema: z.uuid() }],
+    responses: {
+      200: { description: "WorkerKeyRevokeResponse. revokedAt이 있다.", schema: workerKeyRevokeResponseSchema },
+      400: { description: "키 ID가 UUID가 아니다.", schema: errorResponseSchema },
+      ...denied,
+      404: { description: "소유자의 키가 아니다(worker_key_missing).", schema: errorResponseSchema },
     },
   },
   // The Shortcut's route: the share key is its only credential, and every answer carries the message the Shortcut shows.
