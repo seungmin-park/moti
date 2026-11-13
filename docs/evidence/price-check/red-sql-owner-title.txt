@@ -1,0 +1,62 @@
+# Red (injected defect): owner_title. A price settle that also clears owner_title (diff below, removed afterwards) cannot
+# run: moti_worker has no grant on owner_title, so every confirmed settle fails with 42501 and writes nothing, and the
+# three tests that confirm a price fail. The fence is the role's grants, not the function's care.
+# Command: npm run test:database -- -t "가격 확인 결과" (other tests filtered out, so the runner exits 1 on skips).
+#
+# 153c153
+# <         price_checked_at = now(), price_check_code = null
+# ---
+# >         price_checked_at = now(), price_check_code = null, owner_title = null
+ ❯ tests/persistence/worker-price.test.ts (23 tests | 3 failed | 7 skipped) 4608ms
+     × 같은 통화의 가격은 마지막 확인 가격과 시각을 바꾸고 셈한다. 이름·소유자 이름·revision·수집 단계·사진은 그대로다 360ms
+     × 저장한 가격이 없으면 확인한 가격을 처음으로 저장한다 285ms
+     ✓ 다른 통화의 가격은 이전 가격과 시각을 지키고 other_currency로 남기며 유지와 이유로 센다 282ms
+     ✓ 확인하지 못한 이유는 상품에 남기고 이전 가격과 시각을 지키며 이유별로 센다 299ms
+     ✓ 집은 뒤 구매완료로 옮긴 상품의 정산은 stale이고 아무것도 쓰지 않는다 288ms
+     × 한 확인은 한 번만 정산한다. 다른 확인 시각이나 다른 상품의 정산은 stale이다 288ms
+     ✓ 가격과 이유를 함께 보낸 정산은 M0002이고 아무것도 쓰지 않는다 280ms
+     ✓ 가격도 이유도 없는 정산은 M0002이고 아무것도 쓰지 않는다 278ms
+     ✓ 통화 없는 가격의 정산은 M0002이고 아무것도 쓰지 않는다 281ms
+     ✓ 가격 없는 통화의 정산은 M0002이고 아무것도 쓰지 않는다 280ms
+     ✓ 0원의 정산은 M0002이고 아무것도 쓰지 않는다 281ms
+     ✓ 소문자 통화의 정산은 M0002이고 아무것도 쓰지 않는다 276ms
+     ✓ 작업자가 정하지 않는 other_currency의 정산은 M0002이고 아무것도 쓰지 않는다 279ms
+     ✓ 수집에만 있는 attempts_exhausted의 정산은 M0002이고 아무것도 쓰지 않는다 279ms
+     ✓ 목록에 없는 이유의 정산은 M0002이고 아무것도 쓰지 않는다 279ms
+     ✓ 실행 중에 키를 폐기하면 정산은 M0012이고, 닫힌 실행의 정산은 M0013이다 293ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 결과 > 같은 통화의 가격은 마지막 확인 가격과 시각을 바꾸고 셈한다. 이름·소유자 이름·revision·수집 단계·사진은 그대로다
+AssertionError: expected { data: null, code: '42501' } to deeply equal { code: null, …(1) }
+- Expected
++ Received
+-   "code": null,
+-   "data": {
+-     "kind": "applied",
+-   },
++   "code": "42501",
++   "data": null,
+ ❯ tests/persistence/worker-price.test.ts:196:72
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 결과 > 저장한 가격이 없으면 확인한 가격을 처음으로 저장한다
+AssertionError: expected { title: '새로 담은 상품', …(15) } to match object { …(3) }
+- Expected
++ Received
+-   "last_success_amount_minor": "1999",
+-   "last_success_currency": "USD",
+-   "priced_now": true,
++   "last_success_amount_minor": null,
++   "last_success_currency": null,
++   "priced_now": null,
+ ❯ tests/persistence/worker-price.test.ts:213:39
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 결과 > 한 확인은 한 번만 정산한다. 다른 확인 시각이나 다른 상품의 정산은 stale이다
+AssertionError: expected { data: null, code: '42501' } to deeply equal { code: null, …(1) }
+- Expected
++ Received
+-   "code": null,
+-   "data": {
+-     "kind": "applied",
+-   },
++   "code": "42501",
++   "data": null,
+ ❯ tests/persistence/worker-price.test.ts:278:72
+ Test Files  1 failed | 20 skipped (21)
+      Tests  3 failed | 13 passed | 294 skipped (310)

@@ -1,0 +1,13 @@
+# Red: the price check's closed lists in SQL (step 2). Without 20261118000000_price_check.sql neither the product column's
+# list nor the worker's accepted list exists, so both checks that pin them to TypeScript's priceCheckCodes fail. The
+# retry-list check, now reading the latest definition across migrations, still passes on 5a's list.
+# Command: npx vitest run src/features/metadata/domain/collection-error.test.ts (migration moved out of the folder)
+     × 상품 열이 받는 목록은 TypeScript의 가격 확인 이유와 같다 3ms
+     × 작업자가 보낼 수 있는 목록은 거기서 DB만 정하는 other_currency를 뺀 것이다 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/metadata/domain/collection-error.test.ts > 가격 확인이 이전 가격을 지킨 이유 > 상품 열이 받는 목록은 TypeScript의 가격 확인 이유와 같다
+AssertionError: expected [] to deeply equal [ 'blocked_address', …(14) ]
+ FAIL  src/features/metadata/domain/collection-error.test.ts > 가격 확인이 이전 가격을 지킨 이유 > 작업자가 보낼 수 있는 목록은 거기서 DB만 정하는 other_currency를 뺀 것이다
+AssertionError: expected [] to deeply equal [ 'blocked_address', …(13) ]
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)

@@ -1,0 +1,97 @@
+# Red: the daily price check in SQL (step 2). Without 20261118000000_price_check.sql the product has no check columns and
+# moti_worker_next has no price branch (it answers none once collections are done), and moti_worker_price does not exist.
+# 27 tests fail: 23 in tests/persistence/worker-price.test.ts (no price pick: 'none'; no column: 42703 from the fixture
+# queries) and the 4 catalog checks that pin the worker's functions and grants and the anon-executable list. The one
+# that passes refuses statements outside the worker's grants, which holds before and after.
+# Command: npm run test:database -- -t "가격 확인|오늘의 가격 확인|작업 역할의 권한|익명으로 실행할 수 있는|FORCE RLS"
+# (migration moved out of the folder; other persistence/service tests filtered out, so the runner exits 1 on skips).
+ ❯ tests/persistence/worker-price.test.ts (23 tests | 23 failed) 6520ms
+     × 남은 수집을 먼저 집고, 그다음 수집이 끝난 위시 상품의 가격 확인을 집어 상품 id·확인 시각·링크만 돌려준다 350ms
+     × 서울 날짜로 오늘 확인했거나 오늘 가격을 얻은 상품, 구매완료, 수집이 끝나지 않은 상품은 집지 않는다. 어제 늦게 확인한 상품은 집는다 283ms
+     × 확인한 적 없는 상품부터, 그다음 가장 오래전에 확인한 상품부터 집는다 313ms
+     × 다른 요청이 잠근 상품은 건너뛴다 282ms
+     × 같은 통화의 가격은 마지막 확인 가격과 시각을 바꾸고 셈한다. 이름·소유자 이름·revision·수집 단계·사진은 그대로다 284ms
+     × 저장한 가격이 없으면 확인한 가격을 처음으로 저장한다 281ms
+     × 다른 통화의 가격은 이전 가격과 시각을 지키고 other_currency로 남기며 유지와 이유로 센다 281ms
+     × 확인하지 못한 이유는 상품에 남기고 이전 가격과 시각을 지키며 이유별로 센다 285ms
+     × 집은 뒤 구매완료로 옮긴 상품의 정산은 stale이고 아무것도 쓰지 않는다 275ms
+     × 한 확인은 한 번만 정산한다. 다른 확인 시각이나 다른 상품의 정산은 stale이다 276ms
+     × 가격과 이유를 함께 보낸 정산은 M0002이고 아무것도 쓰지 않는다 279ms
+     × 가격도 이유도 없는 정산은 M0002이고 아무것도 쓰지 않는다 276ms
+     × 통화 없는 가격의 정산은 M0002이고 아무것도 쓰지 않는다 282ms
+     × 가격 없는 통화의 정산은 M0002이고 아무것도 쓰지 않는다 274ms
+     × 0원의 정산은 M0002이고 아무것도 쓰지 않는다 274ms
+     × 소문자 통화의 정산은 M0002이고 아무것도 쓰지 않는다 276ms
+     × 작업자가 정하지 않는 other_currency의 정산은 M0002이고 아무것도 쓰지 않는다 275ms
+     × 수집에만 있는 attempts_exhausted의 정산은 M0002이고 아무것도 쓰지 않는다 275ms
+     × 목록에 없는 이유의 정산은 M0002이고 아무것도 쓰지 않는다 272ms
+     × 실행 중에 키를 폐기하면 정산은 M0012이고, 닫힌 실행의 정산은 M0013이다 274ms
+     × 수집이 같은 통화의 가격을 쓰면 오늘 확인한 것으로 남기고, 같은 날 그 상품의 가격 확인을 다시 집지 않는다 281ms
+     × 수집한 가격이 다른 통화면 other_currency, 하나의 가격이 없으면 no_single_price로 오늘 확인한 것으로 남긴다 288ms
+     × 수집 중에 구매완료로 옮긴 상품은 가격 확인 열도 그대로다 282ms
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ❯ tests/persistence/share-add.test.ts (20 tests | 1 failed | 19 skipped) 307ms
+     × 익명으로 실행할 수 있는 moti 함수는 moti_share가 소유한 moti_share_add와 moti_worker가 소유한 작업 단계뿐이고 로그인 세션은 실행하지 못한다 306ms
+ ↓ tests/persistence/worker-collect.test.ts (19 tests | 19 skipped)
+ ❯ tests/persistence/library-security.test.ts (19 tests | 1 failed | 18 skipped) 306ms
+     × 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다 305ms
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (14 tests | 14 skipped)
+ ❯ tests/persistence/worker-runs.test.ts (13 tests | 2 failed | 10 skipped) 859ms
+     × moti_worker는 로그인할 수 없고 상속·RLS 우회가 없으며 구성원은 postgres뿐이다. 소유한 것은 익명이 실행하는 작업 함수뿐이다 303ms
+     × moti_worker 역할에 직접 준 권한과 정책은 작업에 필요한 것뿐이다 271ms
+     ✓ moti_worker 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다 284ms
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (12 tests | 12 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/service/scheduled-run.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+⎯⎯⎯⎯⎯⎯ Failed Tests 27 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [ 'moti_backup', …(27) ] to deeply equal [ 'moti_backup', …(28) ]
+ ❯ tests/persistence/library-security.test.ts:79:65
+AssertionError: expected [ { …(5) }, { …(5) }, { …(5) }, …(3) ] to deeply equal [ { …(5) }, { …(5) }, { …(5) }, …(4) ]
+ ❯ tests/persistence/share-add.test.ts:259:18
+Error: 확인할 가격이 없습니다: none
+ ❯ tests/persistence/worker-price.test.ts:116:18
+error: column "price_checked_at" of relation "products" does not exist
+ ❯ tests/persistence/worker-price.test.ts:128:5
+error: column "price_checked_at" of relation "products" does not exist
+ ❯ tests/persistence/worker-price.test.ts:157:5
+Error: 확인할 가격이 없습니다: none
+ ❯ tests/persistence/worker-price.test.ts:175:15
+error: column "price_checked_at" does not exist
+ ❯ tests/persistence/worker-price.test.ts:193:20
+Error: 확인할 가격이 없습니다: none
+ ❯ tests/persistence/worker-price.test.ts:212:23
+error: column "price_checked_at" does not exist
+ ❯ tests/persistence/worker-price.test.ts:220:20
+error: column "price_checked_at" does not exist
+ ❯ tests/persistence/worker-price.test.ts:236:20
+Error: 확인할 가격이 없습니다: none
+ ❯ tests/persistence/worker-price.test.ts:258:18
+Error: 확인할 가격이 없습니다: none
+ ❯ tests/persistence/worker-price.test.ts:273:18
+Error: 확인할 가격이 없습니다: none
+ ❯ tests/persistence/worker-price.test.ts:298:18
+Error: 확인할 가격이 없습니다: none
+ ❯ tests/persistence/worker-price.test.ts:308:18
+error: column "price_checked_at" does not exist
+ ❯ tests/persistence/worker-price.test.ts:336:12
+error: column "price_checked_at" does not exist
+ ❯ tests/persistence/worker-price.test.ts:348:12
+error: column "price_checked_at" does not exist
+ ❯ tests/persistence/worker-price.test.ts:364:12
+AssertionError: expected [ { …(5) }, { …(5) }, { …(5) }, …(2) ] to deeply equal [ { …(5) }, { …(5) }, { …(5) }, …(3) ]
+ ❯ tests/persistence/worker-runs.test.ts:248:24
+AssertionError: expected [ …(65) ] to deeply equal [ …(72) ]
+ ❯ tests/persistence/worker-runs.test.ts:268:53
+ Test Files  4 failed | 17 skipped (21)
+      Tests  27 failed | 1 passed | 282 skipped (310)
