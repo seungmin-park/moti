@@ -10,6 +10,7 @@ export default defineConfig([
       "src/features/wishlist/model.ts",
       "src/features/wishlist/link.ts",
       "src/features/wishlist/collection-name.ts",
+      "src/features/wishlist/product-fields.ts",
       "src/features/*/domain/**/*.ts",
     ],
     ignores: ["**/*.test.ts"],
@@ -66,7 +67,7 @@ export default defineConfig([
         { regex: "/presentation/(?!(library-dto|login-error)$)", message: "공개 계약만 가져온다." },
         { regex: "(^@/app/|/_server/)", message: "조립 위치(Route Handler)에 의존하지 않는다." },
         {
-          regex: "/wishlist/(?!(link|collection-name|CollectionPicker|Dialog)$)",
+          regex: "/wishlist/(?!(link|collection-name|product-fields|CollectionPicker|Dialog)$)",
           message: "목업 상태·예시 데이터·예시 가격을 실제 화면에 들이지 않는다.",
         },
       ] }],
