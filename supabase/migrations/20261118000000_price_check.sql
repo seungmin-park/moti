@@ -15,7 +15,7 @@ alter table moti.products
   )),
   add constraint products_price_check_time check (price_check_code is null or price_checked_at is not null);
 
-comment on column moti.products.price_checked_at is 'Latest daily price check, and the fence its settle must show. Only the worker writes it.';
+comment on column moti.products.price_checked_at is 'Latest daily price check, and the fence its settle must show. Only the worker''s functions write it; moti_rpc could, and no owner function does.';
 comment on column moti.products.price_check_code is 'Why the latest settled daily check kept the previous price; null when it confirmed one.';
 
 create or replace function moti.product_json(p moti.products) returns jsonb
