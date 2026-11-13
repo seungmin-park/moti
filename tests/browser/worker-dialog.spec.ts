@@ -207,12 +207,17 @@ const seoulDate = (value: Date) =>
   new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Seoul" }).format(value);
 
 test("예약 실행이 가격을 확인하면 자동 확인은 가격 셈과 이유를 보이고, 상세는 이전 가격을 보여준다고 서울 날짜와 이유로 말한다", async ({ page, context }) => {
-  await collectedLamp();
+  const lamp = await collectedLamp();
   const { data: issued, error } = await fixture().owner.client.rpc("moti_worker_key_issue", { p_replaces: null });
   expect(error).toBeNull();
   const run = await scheduled(issued.secret);
   expect(run.status).toBe(200);
   expect(await run.json()).toMatchObject({ stop: "done", prices: { confirmed: 0, kept: 1 }, failures: { blocked_address: 1 } });
+  // The dates the screen shows, from the stored times: a clock read here could fall on the other side of Seoul midnight.
+  const { rows: [stored] } = await fixture().admin.query<{ priced: Date; checked: Date }>(
+    "select last_success_at as priced, price_checked_at as checked from moti.products where id = $1",
+    [lamp.id],
+  );
   await signIn(context);
   await page.goto("/");
 
@@ -224,10 +229,9 @@ test("예약 실행이 가격을 확인하면 자동 확인은 가격 셈과 이
   await page.getByRole("button", { name: /^책상 조명, / }).click();
   const detail = page.getByRole("dialog", { name: "담아둔 물건" });
   await expect(detail.locator(".detail-price strong")).toHaveText("₩9,000");
-  const twoDaysAgo = seoulDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000));
-  await expect(detail.locator(".detail-price")).toContainText(`마지막 확인 ${twoDaysAgo}`);
+  await expect(detail.locator(".detail-price")).toContainText(`마지막 확인 ${seoulDate(stored.priced)}`);
   const kept = detail.locator(".price-kept");
-  await expect(kept).toHaveText(`${seoulDate(new Date())}에 가격을 다시 확인하지 못해 이전 가격을 보여줘요. 안전을 위해 열지 않는 주소예요.`);
+  await expect(kept).toHaveText(`${seoulDate(stored.checked)}에 가격을 다시 확인하지 못해 이전 가격을 보여줘요. 안전을 위해 열지 않는 주소예요.`);
   await expectNeutral(kept, ["color"]);
   expect(await analyze(page)).toEqual([]);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
