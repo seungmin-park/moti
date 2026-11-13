@@ -64,6 +64,7 @@ const failures: Record<Endpoint, Mapping> = {
     identity_conflict: readFailed,
     product_missing: readFailed,
     metadata_not_retryable: readFailed,
+    revision_conflict: readFailed,
     picture_missing: readFailed,
   },
   "link.save": {
@@ -81,6 +82,7 @@ const failures: Record<Endpoint, Mapping> = {
     identity_conflict: unavailable("같은 링크를 확인하지 못했어요. 다시 시도해 주세요."),
     product_missing: retryLater,
     metadata_not_retryable: retryLater,
+    revision_conflict: retryLater,
     picture_missing: retryLater,
   },
   "collection.create": {
@@ -99,6 +101,7 @@ const failures: Record<Endpoint, Mapping> = {
     identity_conflict: retryLater,
     product_missing: retryLater,
     metadata_not_retryable: retryLater,
+    revision_conflict: retryLater,
     picture_missing: retryLater,
   },
   "metadata.retry": {
@@ -113,6 +116,7 @@ const failures: Record<Endpoint, Mapping> = {
     identity_conflict: retryLater,
     product_missing: stale("상품을 찾을 수 없어요. 목록을 새로 불러왔어요."),
     metadata_not_retryable: stale("상품 상태가 바뀌었어요. 목록을 새로 불러왔어요."),
+    revision_conflict: retryLater,
     picture_missing: retryLater,
   },
 };

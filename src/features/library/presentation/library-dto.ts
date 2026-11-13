@@ -103,6 +103,7 @@ export const errorCodes = [
   "identity_conflict",
   "product_missing",
   "metadata_not_retryable",
+  "revision_conflict",
   "picture_missing",
   "storage_unavailable",
 ] as const;

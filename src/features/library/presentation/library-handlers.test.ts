@@ -47,6 +47,8 @@ function given(access: Access) {
     saveLink: vi.fn(async () => ({ kind: "added" as const, product })),
     createCollection: vi.fn(async () => collection),
     openPicture: vi.fn(async (): Promise<PictureViewResult> => ({ kind: "found", url: signedUrl })),
+    changeProduct: vi.fn(async (): Promise<Product> => product),
+    renameCollection: vi.fn(async (): Promise<Collection> => collection),
   };
   const signOut = vi.fn(async () => {});
   // collect is a mock: scheduling the collection is itself the requirement, its work happens after the response.

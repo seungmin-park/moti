@@ -46,6 +46,7 @@ const status: Record<ErrorCode, number> = {
   identity_conflict: 409,
   product_missing: 404,
   metadata_not_retryable: 409,
+  revision_conflict: 409,
   picture_missing: 404,
   storage_unavailable: 503,
 };
@@ -69,6 +70,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: readFailed },
     product_missing: { kind: "unavailable", message: readFailed },
     metadata_not_retryable: { kind: "unavailable", message: readFailed },
+    revision_conflict: { kind: "unavailable", message: readFailed },
     picture_missing: { kind: "unavailable", message: readFailed },
   },
   "link.save": {
@@ -83,6 +85,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요." },
     product_missing: { kind: "unavailable", message: retryLater },
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.create": {
@@ -97,6 +100,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: retryLater },
     product_missing: { kind: "unavailable", message: retryLater },
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
   },
   "metadata.retry": {
@@ -111,6 +115,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: retryLater },
     product_missing: { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." },
     metadata_not_retryable: { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." },
+    revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
   },
 };

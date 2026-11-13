@@ -40,6 +40,7 @@ const errorStatus: Record<ErrorCode, number> = {
   identity_conflict: 409,
   product_missing: 404,
   metadata_not_retryable: 409,
+  revision_conflict: 409,
   picture_missing: 404,
   storage_unavailable: 503,
 };
@@ -57,6 +58,7 @@ const errorMessages: Record<ErrorCode, string> = {
   identity_conflict: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요.",
   product_missing: "상품을 찾을 수 없어요.",
   metadata_not_retryable: "지금은 정보를 다시 가져올 수 없어요.",
+  revision_conflict: "다른 곳에서 먼저 바뀌었어요. 최신 내용을 확인해 주세요.",
   picture_missing: "보여줄 사진이 없어요.",
   storage_unavailable: "잠시 뒤 다시 시도해 주세요.",
 };
@@ -69,6 +71,7 @@ const fromLibraryError: Record<LibraryErrorCode, ErrorCode> = {
   identity_conflict: "identity_conflict",
   product_missing: "product_missing",
   metadata_not_retryable: "metadata_not_retryable",
+  revision_conflict: "revision_conflict",
   storage_unavailable: "storage_unavailable",
 };
 

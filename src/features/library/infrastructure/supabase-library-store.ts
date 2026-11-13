@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
+import type { ProductChange } from "../application/commands";
 import type { LibraryStore } from "../application/library-store";
 import { PICTURE_BUCKET, PICTURE_LINK_SECONDS, pictureObjectSchema } from "./product-pictures";
 import {
@@ -146,11 +147,34 @@ const databaseErrors: Record<string, LibraryErrorCode> = {
   M0005: "identity_conflict",
   M0006: "product_missing",
   M0007: "metadata_not_retryable",
+  M0008: "revision_conflict",
   "42501": "unauthorized",
   "23514": "invalid_input",
   "22023": "invalid_input",
   "22P02": "invalid_input",
+  "22003": "invalid_input",
+  "22007": "invalid_input",
+  "22008": "invalid_input",
 };
+
+type RpcCall = { name: string; parameters: Record<string, unknown> };
+// The RPC that applies each owner change, and what it sends besides the product and the revision the screen saw.
+const productChanges: { [Type in ProductChange["type"]]: (change: Extract<ProductChange, { type: Type }>) => RpcCall } = {
+  details: ({ title, note, collectionIds }) => ({
+    name: "moti_edit_product",
+    parameters: { p_title: title, p_note: note, p_collection_ids: collectionIds },
+  }),
+  purchase: () => ({ name: "moti_purchase_product", parameters: {} }),
+  "purchase.record": ({ date, price }) => ({
+    name: "moti_record_purchase",
+    parameters: { p_date: date, p_amount_minor: price?.amountMinor ?? null, p_currency: price?.currency ?? null },
+  }),
+  wish: () => ({ name: "moti_return_to_wish", parameters: {} }),
+};
+
+function productChangeCall(change: ProductChange): RpcCall {
+  return (productChanges[change.type] as (change: ProductChange) => RpcCall)(change);
+}
 
 export async function callRpc(client: SupabaseClient, name: string, parameters?: Record<string, unknown>): Promise<unknown> {
   const { data, error } = await client.rpc(name, parameters);
@@ -204,6 +228,21 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
       if (!error) return { kind: "found", url: data.signedUrl };
       if ("statusCode" in error && error.statusCode === "404") return { kind: "missing" };
       throw new LibraryError("storage_unavailable", "사진을 열지 못했어요.");
+    },
+    async changeProduct({ productId, revision, change }) {
+      const { name, parameters } = productChangeCall(change);
+      return toProduct(readResponse(productRowSchema, await rpc(name, {
+        p_product_id: productId,
+        p_revision: revision,
+        ...parameters,
+      })));
+    },
+    async renameCollection({ collectionId, revision, name }) {
+      return toCollection(readResponse(collectionRowSchema, await rpc("moti_rename_collection", {
+        p_collection_id: collectionId,
+        p_revision: revision,
+        p_name: name,
+      })));
     },
   };
 }

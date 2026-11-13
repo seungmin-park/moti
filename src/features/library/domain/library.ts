@@ -48,6 +48,7 @@ export type LibraryErrorCode =
   | "identity_conflict"
   | "product_missing"
   | "metadata_not_retryable"
+  | "revision_conflict"
   | "storage_unavailable";
 
 export class LibraryError extends Error {
