@@ -246,15 +246,21 @@ describe("저장 키로 링크 담기", () => {
 });
 
 describe("저장 키 역할의 권한", () => {
-  it("익명으로 실행할 수 있는 moti 함수는 moti_share 역할이 소유한 moti_share_add 하나이고 로그인 세션은 실행하지 못한다", async () => {
+  it("익명으로 실행할 수 있는 moti 함수는 moti_share가 소유한 moti_share_add와 moti_worker가 소유한 작업 단계뿐이고 로그인 세션은 실행하지 못한다", async () => {
     const { rows } = await fixture.admin.query<{ proname: string; owner: string; prosecdef: boolean; authenticated: boolean; service: boolean }>(
       `select p.proname, r.rolname as owner, p.prosecdef,
          has_function_privilege('authenticated', p.oid, 'execute') as authenticated,
          has_function_privilege('service_role', p.oid, 'execute') as service
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace join pg_roles r on r.oid = p.proowner
-       where n.nspname in ('public', 'moti', 'moti_storage') and has_function_privilege('anon', p.oid, 'execute')`,
+       where n.nspname in ('public', 'moti', 'moti_storage') and has_function_privilege('anon', p.oid, 'execute')
+       order by p.proname`,
     );
-    expect(rows).toEqual([{ proname: "moti_share_add", owner: "moti_share", prosecdef: true, authenticated: false, service: false }]);
+    const keyOnly = (proname: string, owner: string) => ({ proname, owner, prosecdef: true, authenticated: false, service: false });
+    expect(rows).toEqual([
+      keyOnly("moti_share_add", "moti_share"),
+      keyOnly("moti_worker_begin", "moti_worker"),
+      keyOnly("moti_worker_finish", "moti_worker"),
+    ]);
     const role = await fixture.admin.query(
       `select rolsuper, rolbypassrls, rolinherit, rolcanlogin, rolcreaterole, rolcreatedb,
          (select count(*)::int from pg_auth_members m where m.member = r.oid) as member_of

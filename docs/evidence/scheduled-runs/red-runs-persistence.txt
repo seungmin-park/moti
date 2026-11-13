@@ -1,0 +1,233 @@
+# Red: the worker's role and run lease (step 3). The tests call moti_worker_begin/finish as anon and inspect the moti_worker role; neither exists yet (PGRST202, role does not exist).
+# The one passing test (a worker key sent to moti_share_add is M0009) is a guard that already holds.
+# Command: npm run test:database -- -t "작업 실행의 시작과 끝|작업 역할의 권한" (other persistence/service tests filtered out).
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/share-add.test.ts (20 tests | 20 skipped)
+ ❯ tests/persistence/worker-runs.test.ts (12 tests | 11 failed) 3288ms
+   ❯ 작업 실행의 시작과 끝 (9)
+     × 작업 키로 시작하면 90초 임대의 열린 실행 하나를 만들고 키를 마지막으로 쓴 때를 남긴다 328ms
+     × 형식이 다르거나 모르거나 폐기했거나 공유 키이거나 소유자 설정이 바뀐 키는 모두 같은 M0012이고 아무것도 쓰지 않는다 280ms
+     × 열린 실행이 있으면 다음 시작은 M0014다. 임대가 끝난 실행은 임대가 끝난 때 cut으로 닫고 새 실행을 시작한다 268ms
+     × 24시간 안에 8번 시작했으면 9번째는 M0015이고 아무것도 쓰지 않는다. 30일이 지난 기록은 시작할 때 지운다 273ms
+     × 끝내면 done이나 deadline으로 닫고 셈을 돌려준다. 다른 임대·닫힌 실행·다른 키는 M0013·M0012이고 다른 끝은 M0002다 267ms
+     × 임대가 끝난 실행의 다음 단계는 M0013이다 266ms
+     × 실행 중에 키를 폐기하면 다음 단계는 M0012이고 실행은 revoked로 읽는다 266ms
+     × 로그인 세션은 작업 함수를 실행하지 못하고, PostgREST에 작업 키를 Bearer로 보내면 세션이 아니라서 거절한다 268ms
+     ✓ 공유 키 함수에 작업 키를 보내면 M0009다 267ms
+   ❯ 작업 역할의 권한 (3)
+     × moti_worker는 로그인할 수 없고 상속·RLS 우회가 없으며 구성원은 postgres뿐이다. 소유한 것은 익명이 실행하는 작업 함수뿐이다 264ms
+     × moti_worker 역할에 직접 준 권한과 정책은 작업에 필요한 것뿐이다 266ms
+     × moti_worker 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다 272ms
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (11 tests | 11 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (8 tests | 8 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 작업 키로 시작하면 90초 임대의 열린 실행 하나를 만들고 키를 마지막으로 쓴 때를 남긴다
+Error: moti_worker_begin 실패: PGRST202
+ ❯ begin tests/persistence/worker-runs.test.ts:30:19
+     28| async function begin(secret: string): Promise<Begun> {
+     29|   const { data, code } = await rpc<Begun>("moti_worker_begin", { p_key…
+     30|   if (code) throw new Error(`moti_worker_begin 실패: ${code}`);
+       |                   ^
+     31|   return data;
+     32| }
+ ❯ tests/persistence/worker-runs.test.ts:76:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 형식이 다르거나 모르거나 폐기했거나 공유 키이거나 소유자 설정이 바뀐 키는 모두 같은 M0012이고 아무것도 쓰지 않는다
+AssertionError: null: expected { data: null, code: 'PGRST202', …(1) } to match object { code: 'M0012', …(1) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "code": "M0012",
+-   "message": "worker key rejected",
++   "code": "PGRST202",
++   "message": "Could not find the function public.moti_worker_begin(p_key) in the schema cache",
+  }
+
+ ❯ tests/persistence/worker-runs.test.ts:94:75
+     92|     ];
+     93|     for (const key of refused) {
+     94|       expect(await rpc("moti_worker_begin", { p_key: key }), String(ke…
+       |                                                                           ^
+     95|     }
+     96|     await fixture.admin.query("delete from auth.identities where user_…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 열린 실행이 있으면 다음 시작은 M0014다. 임대가 끝난 실행은 임대가 끝난 때 cut으로 닫고 새 실행을 시작한다
+Error: moti_worker_begin 실패: PGRST202
+ ❯ begin tests/persistence/worker-runs.test.ts:30:19
+     28| async function begin(secret: string): Promise<Begun> {
+     29|   const { data, code } = await rpc<Begun>("moti_worker_begin", { p_key…
+     30|   if (code) throw new Error(`moti_worker_begin 실패: ${code}`);
+       |                   ^
+     31|   return data;
+     32| }
+ ❯ tests/persistence/worker-runs.test.ts:107:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 24시간 안에 8번 시작했으면 9번째는 M0015이고 아무것도 쓰지 않는다. 30일이 지난 기록은 시작할 때 지운다
+AssertionError: expected { data: null, code: 'PGRST202', …(1) } to match object { code: 'M0015', …(1) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "code": "M0015",
+-   "message": "worker run limit",
++   "code": "PGRST202",
++   "message": "Could not find the function public.moti_worker_begin(p_key) in the schema cache",
+  }
+
+ ❯ tests/persistence/worker-runs.test.ts:126:63
+    124|     await pastRuns(key.id, ["31 days", "25 hours", "23 hours", "20 hou…
+    125|     const before = await runs();
+    126|     expect(await rpc("moti_worker_begin", { p_key: secret })).toMatchO…
+       |                                                               ^
+    127|     expect(await runs()).toEqual(before);
+    128|     expect(await lastUsed(key.id)).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 끝내면 done이나 deadline으로 닫고 셈을 돌려준다. 다른 임대·닫힌 실행·다른 키는 M0013·M0012이고 다른 끝은 M0002다
+Error: moti_worker_begin 실패: PGRST202
+ ❯ begin tests/persistence/worker-runs.test.ts:30:19
+     28| async function begin(secret: string): Promise<Begun> {
+     29|   const { data, code } = await rpc<Begun>("moti_worker_begin", { p_key…
+     30|   if (code) throw new Error(`moti_worker_begin 실패: ${code}`);
+       |                   ^
+     31|   return data;
+     32| }
+ ❯ tests/persistence/worker-runs.test.ts:140:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 임대가 끝난 실행의 다음 단계는 M0013이다
+Error: moti_worker_begin 실패: PGRST202
+ ❯ begin tests/persistence/worker-runs.test.ts:30:19
+     28| async function begin(secret: string): Promise<Begun> {
+     29|   const { data, code } = await rpc<Begun>("moti_worker_begin", { p_key…
+     30|   if (code) throw new Error(`moti_worker_begin 실패: ${code}`);
+       |                   ^
+     31|   return data;
+     32| }
+ ❯ tests/persistence/worker-runs.test.ts:159:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 실행 중에 키를 폐기하면 다음 단계는 M0012이고 실행은 revoked로 읽는다
+Error: moti_worker_begin 실패: PGRST202
+ ❯ begin tests/persistence/worker-runs.test.ts:30:19
+     28| async function begin(secret: string): Promise<Begun> {
+     29|   const { data, code } = await rpc<Begun>("moti_worker_begin", { p_key…
+     30|   if (code) throw new Error(`moti_worker_begin 실패: ${code}`);
+       |                   ^
+     31|   return data;
+     32| }
+ ❯ tests/persistence/worker-runs.test.ts:166:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 실행의 시작과 끝 > 로그인 세션은 작업 함수를 실행하지 못하고, PostgREST에 작업 키를 Bearer로 보내면 세션이 아니라서 거절한다
+AssertionError: expected 'PGRST202' to be '42501' // Object.is equality
+
+Expected: "42501"
+Received: "PGRST202"
+
+ ❯ tests/persistence/worker-runs.test.ts:175:92
+    173|   it("로그인 세션은 작업 함수를 실행하지 못하고, PostgREST에 작업 키를 Bearer로 보내면 세션이 아니라서 거…
+    174|     const { secret } = await issue();
+    175|     expect((await rpc("moti_worker_begin", { p_key: secret }, fixture.…
+       |                                                                                            ^
+    176|     expect((await rpc("moti_worker_finish", { p_key: secret, p_run: ra…
+    177|       .toBe("42501");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 역할의 권한 > moti_worker는 로그인할 수 없고 상속·RLS 우회가 없으며 구성원은 postgres뿐이다. 소유한 것은 익명이 실행하는 작업 함수뿐이다
+AssertionError: expected [] to deeply equal [ { rolsuper: false, …(6) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "member_of": 0,
+-     "rolbypassrls": false,
+-     "rolcanlogin": false,
+-     "rolcreatedb": false,
+-     "rolcreaterole": false,
+-     "rolinherit": false,
+-     "rolsuper": false,
+-   },
+- ]
++ []
+
+ ❯ tests/persistence/worker-runs.test.ts:206:23
+    204|        from pg_roles r where rolname = 'moti_worker'`,
+    205|     );
+    206|     expect(role.rows).toEqual([{
+       |                       ^
+    207|       rolsuper: false, rolbypassrls: false, rolinherit: false, rolcanl…
+    208|     }]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 역할의 권한 > moti_worker 역할에 직접 준 권한과 정책은 작업에 필요한 것뿐이다
+error: role "moti_worker" does not exist
+ ❯ node_modules/pg-pool/index.js:45:11
+ ❯ tests/persistence/worker-runs.test.ts:226:22
+    224|
+    225|   it("moti_worker 역할에 직접 준 권한과 정책은 작업에 필요한 것뿐이다", async () => {
+    226|     const { rows } = await fixture.admin.query<{ grant: string }>(
+       |                      ^
+    227|       `with worker as (select 'moti_worker'::regrole::oid as oid)
+    228|        select g.grant from (
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  tests/persistence/worker-runs.test.ts > 작업 역할의 권한 > moti_worker 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다
+error: role "moti_worker" does not exist
+ ❯ node_modules/pg/lib/client.js:694:17
+ ❯ tests/persistence/worker-runs.test.ts:291:7
+    289|     ];
+    290|     try {
+    291|       await connection.query("set role moti_worker");
+       |       ^
+    292|       for (const statement of refused) {
+    293|         await expect(connection.query(statement), statement).rejects.t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  1 failed | 17 skipped (18)
+      Tests  11 failed | 1 passed | 245 skipped (257)
+   Start at  00:06:04
+   Duration  5.57s (tests 73%, import 26%, transform 1%, worker 1%)
+
+    Isolate  18 workers spawned · ~55ms startup each (spawn + environment, per file)
+             at least ~936ms faster with isolate: false — reuses workers across files instead of one per file
+

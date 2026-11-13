@@ -190,3 +190,140 @@ revoke all on function public.moti_worker_key_revoke(uuid) from public, anon, au
 grant execute on function public.moti_worker_read() to authenticated;
 grant execute on function public.moti_worker_key_issue(uuid) to authenticated;
 grant execute on function public.moti_worker_key_revoke(uuid) to authenticated;
+
+-- The worker's role. It owns the functions anon may run with a worker key, and its grants are all it can do: read the
+-- configured owner, find and mark its own active key, and keep its own run rows. A catalog test pins the list.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'moti_worker') then
+    create role moti_worker nologin noinherit nosuperuser nobypassrls;
+  end if;
+end
+$$;
+
+grant moti_worker to postgres;
+grant usage on schema moti, extensions to moti_worker;
+grant select (owner_id, google_subject) on moti.owner_config to moti_worker;
+grant select (id, owner_id, token_hash, revoked_at), update (last_used_at) on moti.worker_keys to moti_worker;
+grant select, insert (owner_id, key_id, lease_token, lease_until),
+  update (lease_token, lease_until, finished_at, stop_reason, collected, collect_failed, failures), delete
+  on moti.worker_runs to moti_worker;
+grant execute on function moti.has_google_identity(uuid, text) to moti_worker;
+
+create policy worker_reads_owner on moti.owner_config for select to moti_worker using (true);
+create policy worker_finds_active_key on moti.worker_keys for select to moti_worker using (revoked_at is null);
+create policy worker_marks_use on moti.worker_keys for update to moti_worker
+  using (revoked_at is null) with check (revoked_at is null);
+create policy worker_keeps_runs on moti.worker_runs for all to moti_worker
+  using (owner_id = (select c.owner_id from moti.owner_config c))
+  with check (owner_id = (select c.owner_id from moti.owner_config c));
+
+-- Every worker step after begin starts here. It checks, in order, the key's format, an active key of the configured
+-- owner, then the run: that key's, still open, the same lease and the lease not yet over. A key failure is M0012 and a
+-- run failure M0013, so a revoke mid-run stops the next step. It locks the run row, so a revoke waits for the step in
+-- progress and the worker's steps take the same order as revoke (key, then run) and settle (run, then job, then product).
+create function moti.worker_run_owner(p_key text, p_run uuid, p_lease uuid) returns uuid
+language plpgsql set search_path = '' as $$
+declare
+  v_key uuid;
+  v_owner uuid;
+begin
+  if p_key is null or char_length(p_key) <> 51 or p_key !~ '^moti_wk_[A-Za-z0-9_-]{43}$' then
+    raise exception using errcode = 'M0012', message = 'worker key rejected';
+  end if;
+  select k.id, k.owner_id into v_key, v_owner from moti.worker_keys k
+  where k.token_hash = extensions.digest(p_key, 'sha256') and k.revoked_at is null
+    and exists (
+      select 1 from moti.owner_config c
+      where c.owner_id = k.owner_id and moti.has_google_identity(c.owner_id, c.google_subject)
+    );
+  if v_key is null then
+    raise exception using errcode = 'M0012', message = 'worker key rejected';
+  end if;
+  perform 1 from moti.worker_runs r
+  where r.id = p_run and r.key_id = v_key and r.finished_at is null and r.lease_token = p_lease and r.lease_until > now()
+  for update;
+  if not found then
+    raise exception using errcode = 'M0013', message = 'worker run lost';
+  end if;
+  return v_owner;
+end
+$$;
+
+revoke all on function moti.worker_run_owner(text, uuid, uuid) from public;
+grant execute on function moti.worker_run_owner(text, uuid, uuid) to moti_worker;
+
+-- Starts a run. Unknown, malformed and revoked keys, and keys of an owner who is no longer configured, take the same
+-- path to the same error. A run whose lease ended without finish is closed as cut at that time, runs older than 30 days
+-- are deleted, at most 8 runs start in 24 hours, and an open run with a live lease makes this one wait (M0014). The
+-- 90 s lease outlasts the route's 60 s, so a run never loses it while its request lives. A refused begin rolls back,
+-- so it neither records a run nor moves last_used_at.
+create function public.moti_worker_begin(p_key text) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_key uuid;
+  v_owner uuid;
+  v_run uuid;
+  v_lease uuid := gen_random_uuid();
+begin
+  if p_key is null or char_length(p_key) <> 51 or p_key !~ '^moti_wk_[A-Za-z0-9_-]{43}$' then
+    raise exception using errcode = 'M0012', message = 'worker key rejected';
+  end if;
+  update moti.worker_keys k set last_used_at = now()
+  where k.token_hash = extensions.digest(p_key, 'sha256') and k.revoked_at is null
+    and exists (
+      select 1 from moti.owner_config c
+      where c.owner_id = k.owner_id and moti.has_google_identity(c.owner_id, c.google_subject)
+    )
+  returning k.id, k.owner_id into v_key, v_owner;
+  if v_key is null then
+    raise exception using errcode = 'M0012', message = 'worker key rejected';
+  end if;
+
+  update moti.worker_runs r
+  set finished_at = r.lease_until, stop_reason = 'cut', lease_token = null, lease_until = null
+  where r.owner_id = v_owner and r.finished_at is null and r.lease_until <= now();
+  delete from moti.worker_runs r where r.owner_id = v_owner and r.started_at < now() - interval '30 days';
+  if (select count(*) from moti.worker_runs r where r.owner_id = v_owner and r.started_at > now() - interval '24 hours') >= 8 then
+    raise exception using errcode = 'M0015', message = 'worker run limit';
+  end if;
+
+  insert into moti.worker_runs (owner_id, key_id, lease_token, lease_until)
+  values (v_owner, v_key, v_lease, now() + interval '90 seconds')
+  returning id into v_run;
+  return jsonb_build_object('run', v_run, 'lease', v_lease);
+exception when unique_violation then
+  raise exception using errcode = 'M0014', message = 'worker run busy';
+end
+$$;
+
+-- Closes the run as done (nothing was left to pick) or deadline (the run stopped picking first) and returns its counts.
+create function public.moti_worker_finish(p_key text, p_run uuid, p_lease uuid, p_stop text) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_owner uuid := moti.worker_run_owner(p_key, p_run, p_lease);
+  v_counts jsonb;
+begin
+  if p_stop is null or p_stop not in ('done', 'deadline') then
+    raise exception using errcode = 'M0002', message = 'invalid run stop';
+  end if;
+  update moti.worker_runs r
+  set finished_at = now(), stop_reason = p_stop, lease_token = null, lease_until = null
+  where r.id = p_run and r.owner_id = v_owner
+  returning jsonb_build_object(
+    'stop', r.stop_reason, 'collected', r.collected, 'collect_failed', r.collect_failed,
+    'prices_confirmed', r.prices_confirmed, 'prices_kept', r.prices_kept, 'failures', r.failures
+  ) into v_counts;
+  return v_counts;
+end
+$$;
+
+grant usage, create on schema public to moti_worker;
+alter function public.moti_worker_begin(text) owner to moti_worker;
+alter function public.moti_worker_finish(text, uuid, uuid, text) owner to moti_worker;
+revoke usage, create on schema public from moti_worker;
+
+revoke all on function public.moti_worker_begin(text) from public, anon, authenticated, service_role;
+revoke all on function public.moti_worker_finish(text, uuid, uuid, text) from public, anon, authenticated, service_role;
+grant execute on function public.moti_worker_begin(text) to anon;
+grant execute on function public.moti_worker_finish(text, uuid, uuid, text) to anon;
