@@ -57,11 +57,29 @@ describe("최근 실행 표시", () => {
     expect(workerRunView(run)).toEqual({
       id: run.id,
       when: "11월 13일 오후 2:17",
-      counts: "수집 3 · 실패 2",
+      counts: "수집 3 · 실패 2 · 가격 확인 0",
       state: "할 일을 모두 마쳤어요.",
       failed: false,
       failures: ["1건 · 쇼핑몰이 자동 확인을 막았어요.", "1건 · 쇼핑몰이 제때 응답하지 않았어요."],
     });
+  });
+
+  it("Given 가격을 확인한 실행 When 보이면 Then 확인한 가격 수와 이전 가격을 지킨 수를 보이고 가격 이유도 이유별로 센다", () => {
+    const priced: WorkerRunResponse = {
+      ...run,
+      collections: { collected: 3, failed: 1 },
+      prices: { confirmed: 10, kept: 2 },
+      failures: { timeout: 1, no_single_price: 1, other_currency: 1 },
+    };
+    expect(workerRunView(priced)).toMatchObject({
+      counts: "수집 3 · 실패 1 · 가격 확인 12 (이전 가격 유지 2)",
+      failures: [
+        "1건 · 페이지에서 가격을 하나로 정하지 못했어요.",
+        "1건 · 페이지의 가격이 저장한 가격과 다른 통화예요.",
+        "1건 · 쇼핑몰이 제때 응답하지 않았어요.",
+      ],
+    });
+    expect(workerRunView({ ...priced, prices: { confirmed: 5, kept: 0 } }).counts).toBe("수집 3 · 실패 1 · 가격 확인 5");
   });
 
   it.each([

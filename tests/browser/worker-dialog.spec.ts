@@ -183,3 +183,53 @@ test("자동 확인은 키가 없을 때와 보일 때 접근성 검사를 통�
   expect(overflow).toBeLessThanOrEqual(0);
   await expect(claimsDone(page)).toHaveCount(0);
 });
+
+// A product the worker collected two days ago at ₩9,000, so today's run checks its price. Its link is a loopback the
+// app's fetch policy refuses, so the check keeps the price without leaving the machine.
+async function collectedLamp() {
+  const { product } = await createSupabaseLibraryStore(fixture().owner.client)
+    .saveLink(toLinkSaveCommand({ url: blockedLink, option: "", collectionIds: [] }));
+  await fixture().admin.query(
+    `with job as (
+       update moti.metadata_jobs set status = 'succeeded', attempts = 1, finished_at = now() - interval '2 days' where product_id = $1
+       returning product_id
+     )
+     update moti.products set title = '책상 조명', metadata_phase = 'ready', metadata_attempts = 1,
+       metadata_completed_at = now() - interval '2 days', metadata_image = 'absent',
+       last_success_amount_minor = 9000, last_success_currency = 'KRW', last_success_at = now() - interval '2 days'
+     where id in (select product_id from job)`,
+    [product.id],
+  );
+  return product;
+}
+
+const seoulDate = (value: Date) =>
+  new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Seoul" }).format(value);
+
+test("예약 실행이 가격을 확인하면 자동 확인은 가격 셈과 이유를 보이고, 상세는 이전 가격을 보여준다고 서울 날짜와 이유로 말한다", async ({ page, context }) => {
+  await collectedLamp();
+  const { data: issued, error } = await fixture().owner.client.rpc("moti_worker_key_issue", { p_replaces: null });
+  expect(error).toBeNull();
+  const run = await scheduled(issued.secret);
+  expect(run.status).toBe(200);
+  expect(await run.json()).toMatchObject({ stop: "done", prices: { confirmed: 0, kept: 1 }, failures: { blocked_address: 1 } });
+  await signIn(context);
+  await page.goto("/");
+
+  await openWorker(page);
+  await expect(record(page)).toContainText("수집 0 · 실패 0 · 가격 확인 1 (이전 가격 유지 1)");
+  await expect(record(page)).toContainText("1건 · 안전을 위해 열지 않는 주소예요.");
+  await closeWorker(page);
+
+  await page.getByRole("button", { name: /^책상 조명, / }).click();
+  const detail = page.getByRole("dialog", { name: "담아둔 물건" });
+  await expect(detail.locator(".detail-price strong")).toHaveText("₩9,000");
+  const twoDaysAgo = seoulDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000));
+  await expect(detail.locator(".detail-price")).toContainText(`마지막 확인 ${twoDaysAgo}`);
+  const kept = detail.locator(".price-kept");
+  await expect(kept).toHaveText(`${seoulDate(new Date())}에 가격을 다시 확인하지 못해 이전 가격을 보여줘요. 안전을 위해 열지 않는 주소예요.`);
+  await expectNeutral(kept, ["color"]);
+  expect(await analyze(page)).toEqual([]);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

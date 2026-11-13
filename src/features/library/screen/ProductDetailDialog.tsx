@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, LoaderCircle, RotateCcw } from "lucide-react";
+import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Info, LoaderCircle, RotateCcw } from "lucide-react";
 import { Dialog } from "../../wishlist/Dialog";
 import { EARLIEST_PURCHASE_DATE, seoulToday } from "../../wishlist/product-fields";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
@@ -92,6 +92,12 @@ export function ProductDetailDialog({
           <div className="detail-price">
             <strong>{view.price.value}</strong>
             {view.price.checked && <p>{view.price.checked}</p>}
+            {view.priceKept && (
+              <p className="price-kept">
+                <Info size={14} aria-hidden="true" />
+                {view.priceKept}
+              </p>
+            )}
           </div>
           <div className={`metadata-status ${view.canRetry ? "failed" : phase}`}>
             {view.canRetry ? (

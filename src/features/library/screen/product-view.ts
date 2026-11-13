@@ -28,6 +28,8 @@ export type ProductDetailView = {
   arrival: string | null;
   canRetry: boolean;
   picture: PictureView;
+  // The daily check could not confirm the shown price: when, and why.
+  priceKept: string | null;
 };
 
 const seoulDate = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Seoul" });
@@ -62,9 +64,16 @@ const failureReasons: Record<FailureCode, string> = {
   internal: "정보를 가져오는 중에 문제가 생겼어요.",
 };
 
-// Why a collection ended without product data, in the words the detail view uses.
-export function collectionFailureReason(code: FailureCode): string {
-  return failureReasons[code];
+type PriceCheckCode = NonNullable<NonNullable<ProductResponse["priceCheck"]>["code"]>;
+// The page was read, so the reason is about its price. Read failures share the collection's words.
+const priceReasons: Record<Exclude<PriceCheckCode, FailureCode>, string> = {
+  no_single_price: "페이지에서 가격을 하나로 정하지 못했어요.",
+  other_currency: "페이지의 가격이 저장한 가격과 다른 통화예요.",
+};
+
+// Why a collection ended without product data or a daily check kept the previous price, in the detail view's words.
+export function failureReason(code: FailureCode | PriceCheckCode): string {
+  return Object.hasOwn(priceReasons, code) ? priceReasons[code as keyof typeof priceReasons] : failureReasons[code as FailureCode];
 }
 
 const imageFailureReasons: Record<ImageFailureCode, string> = {
@@ -134,6 +143,15 @@ function statusOf(metadata: Metadata): ProductDetailView["status"] {
   }
 }
 
+// A wish's daily check that kept an earlier price says so, so the earlier price never reads as today's. An owner's
+// collection that priced the product after that check settles it, and a purchased product is no longer checked.
+function keptPriceOf(product: ProductResponse): string | null {
+  const { priceCheck, lastSuccessfulPrice } = product;
+  if (product.purchase.status !== "wish" || priceCheck?.code == null || lastSuccessfulPrice === null) return null;
+  if (Date.parse(priceCheck.checkedAt) <= Date.parse(lastSuccessfulPrice.checkedAt)) return null;
+  return `${onSeoulDate(priceCheck.checkedAt)}에 가격을 다시 확인하지 못해 이전 가격을 보여줘요. ${failureReason(priceCheck.code)}`;
+}
+
 function openableUrl(value: string): string | null {
   try {
     return ["http:", "https:"].includes(new URL(value).protocol) ? value : null;
@@ -188,5 +206,6 @@ export function toProductDetailView(product: ProductResponse, arrival: "added" |
     arrival: arrival && arrivals[arrival],
     canRetry: canRetry(product),
     picture: pictureOf(product, `${product.title} 사진`),
+    priceKept: keptPriceOf(product),
   };
 }

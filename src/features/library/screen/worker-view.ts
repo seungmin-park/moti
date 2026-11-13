@@ -1,6 +1,6 @@
 import type { WorkerKeyResponse, WorkerRunResponse } from "../../worker/presentation/worker-dto";
 import type { KeyConfirm } from "./key-panel-state";
-import { collectionFailureReason } from "./product-view";
+import { failureReason } from "./product-view";
 
 const day = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 const moment = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -48,18 +48,20 @@ const stateLines: Record<WorkerRunResponse["state"], string> = {
 
 export type WorkerRunView = { id: string; when: string; counts: string; state: string; failed: boolean; failures: string[] };
 
-// One line per run: when, what it collected, how it stopped, and why items failed. Only `cut` reads as an error.
+// One line per run: when, what it collected and how many prices it checked (and kept), how it stopped, and why items
+// failed or kept their price. Only `cut` reads as an error.
 export function workerRunView(run: WorkerRunResponse): WorkerRunView {
   const { collected, failed } = run.collections;
+  const { confirmed, kept } = run.prices;
   return {
     id: run.id,
     when: moment.format(new Date(run.startedAt)),
-    counts: `수집 ${collected} · 실패 ${failed}`,
+    counts: `수집 ${collected} · 실패 ${failed} · 가격 확인 ${confirmed + kept}${kept > 0 ? ` (이전 가격 유지 ${kept})` : ""}`,
     state: stateLines[run.state],
     failed: run.state === "cut",
     failures: Object.entries(run.failures)
       .toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-      .map(([code, count]) => `${count}건 · ${collectionFailureReason(code as Parameters<typeof collectionFailureReason>[0])}`),
+      .map(([code, count]) => `${count}건 · ${failureReason(code as keyof typeof run.failures)}`),
   };
 }
 
