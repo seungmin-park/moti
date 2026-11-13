@@ -24,6 +24,7 @@ const product: ProductResponse = {
   purchase: { status: "wish" },
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
+  picture: null,
 };
 const link = { url: "https://example.com/item", option: "", collectionIds: [collection.id] };
 
@@ -45,6 +46,7 @@ const status: Record<ErrorCode, number> = {
   identity_conflict: 409,
   product_missing: 404,
   metadata_not_retryable: 409,
+  picture_missing: 404,
   storage_unavailable: 503,
 };
 
@@ -67,6 +69,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: readFailed },
     product_missing: { kind: "unavailable", message: readFailed },
     metadata_not_retryable: { kind: "unavailable", message: readFailed },
+    picture_missing: { kind: "unavailable", message: readFailed },
   },
   "link.save": {
     ...signedIn,
@@ -80,6 +83,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: "같은 링크를 확인하지 못했어요. 다시 시도해 주세요." },
     product_missing: { kind: "unavailable", message: retryLater },
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    picture_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.create": {
     ...signedIn,
@@ -93,6 +97,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: retryLater },
     product_missing: { kind: "unavailable", message: retryLater },
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    picture_missing: { kind: "unavailable", message: retryLater },
   },
   "metadata.retry": {
     ...signedIn,
@@ -106,6 +111,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     identity_conflict: { kind: "unavailable", message: retryLater },
     product_missing: { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." },
     metadata_not_retryable: { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." },
+    picture_missing: { kind: "unavailable", message: retryLater },
   },
 };
 

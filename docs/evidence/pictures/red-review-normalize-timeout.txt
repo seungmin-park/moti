@@ -1,0 +1,43 @@
+# Red: review finding N2, normalisation had no time limit
+# 2026-11-13T07:43:44Z a9c34c4+working tree (only the normalizer test changed)
+# A real overrun depends on machine speed, so the test injects libvips's timeout error where sharp raises it (sharp.prototype.toBuffer rejects once)
+# and checks that the pipeline sets sharp's timeout. The message format was taken from a one-off real run: sharp(25 MP noise PNG).timeout({ seconds: 1 }).blur(300)
+# rejected after 1159 ms with the message `timeout: 2% complete` + newline + `VipsImage: killed for image "temp-60"`. Before the fix the error mapped to unreadable_image.
+
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/metadata/infrastructure/sharp-normalizer.test.ts (11 tests | 1 failed) 122ms
+   ❯ 사진 정규화 (11)
+     × Given 시간 제한 안에 끝나지 않는 처리 When 정규화하면 Then 시간 초과로 끝낸다 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/metadata/infrastructure/sharp-normalizer.test.ts > 사진 정규화 > Given 시간 제한 안에 끝나지 않는 처리 When 정규화하면 Then 시간 초과로 끝낸다
+AssertionError: expected { ok: false, code: 'unreadable_image' } to deeply equal { ok: false, code: 'timeout' }
+
+- Expected
++ Received
+
+  {
+-   "code": "timeout",
++   "code": "unreadable_image",
+    "ok": false,
+  }
+
+ ❯ src/features/metadata/infrastructure/sharp-normalizer.test.ts:131:50
+    129|     const encode = vi.spyOn(sharp.prototype, "toBuffer").mockRejectedV…
+    130|     try {
+    131|       expect(await normalizePicture(png, "png")).toEqual({ ok: false, …
+       |                                                  ^
+    132|       expect(limit).toHaveBeenCalledExactlyOnceWith({ seconds: picture…
+    133|       expect(encode).toHaveBeenCalledOnce();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 passed (11)
+   Start at  16:42:56
+   Duration  232ms (tests 72%, import 17%, transform 10%, worker 1%)
+

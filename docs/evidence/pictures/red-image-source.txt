@@ -1,0 +1,25 @@
+# Red: tests/fetcher/safe-image.test.ts with createSafeImageSource still a stub whose read throws
+# 2026-11-12T12:44:04Z 6e1c4b8+working tree
+
+     × Given 사진 응답 When 읽으면 Then 바이트를 그대로 돌려준다 2ms
+     × Given 형식을 밝히지 않은 /octet When 읽으면 Then 바이트로 받고 판단은 뒤로 미룬다 0ms
+     × Given 형식을 밝히지 않은 /binary When 읽으면 Then 바이트로 받고 판단은 뒤로 미룬다 0ms
+     × Given 형식을 밝히지 않은 /untyped When 읽으면 Then 바이트로 받고 판단은 뒤로 미룬다 0ms
+     × Given 페이지 한도보다 큰 3 MiB 사진 When 읽으면 Then 사진 한도 안이라 받는다 0ms
+     × Given /html 응답 When 읽으면 Then 지원하지 않는 형식이다 0ms
+     × Given /svg 응답 When 읽으면 Then 지원하지 않는 형식이다 0ms
+     × Given 8 MiB를 넘는 /declared-large When 읽으면 Then 너무 크다 0ms
+     × Given 8 MiB를 넘는 /endless When 읽으면 Then 너무 크다 0ms
+     × Given 8 MiB를 넘는 /gzip-bomb When 읽으면 Then 너무 크다 0ms
+     × Given 사설 주소로 이동 When 읽으면 Then 연결하지 않고 막는다 0ms
+     × Given 운영 정책 When 로컬 서버의 사진을 읽으면 Then 루프백이라 막는다 0ms
+     × Given 상품 페이지 주소 When 사진을 요청하면 Then 출처만 Referer로 보내고 쿠키·인증 없이 사진을 요청한다 0ms
+     × Given 호출한 쪽이 기다림을 그만둠 When 느린 사진을 읽으면 Then 바로 시간 초과다 1ms
+     × Given 전체 시간 한도 When 느린 사진을 읽으면 Then 시간 초과다 0ms
+     × Given 403 응답 When 읽으면 Then blocked_by_site다 0ms
+     × Given 404 응답 When 읽으면 Then http_status다 0ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  17 failed (17)
+
+every failure: Error: not implemented

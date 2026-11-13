@@ -27,13 +27,14 @@ const queued: ProductResponse = {
   purchase: { status: "wish" },
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
+  picture: null,
 };
 
 const everyPhase: ProductResponse["metadata"][] = [
   { phase: "queued", generation: 1, attempts: 0, stalled: false },
   { phase: "running", generation: 1, attempts: 1, stalled: false },
   { phase: "failed", generation: 1, attempts: 3, errorCode: "blocked_address" },
-  { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
+  { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image: { outcome: "absent" } },
 ];
 
 describe("상품 카드 문구", () => {
@@ -46,6 +47,7 @@ describe("상품 카드 문구", () => {
       purchased: false,
       price: { value: "가격 확인 전", checked: null },
       collection: { filed: false, text: "아직 분류하지 않았어요" },
+      picture: { kind: "placeholder", icon: "waiting", text: "사진을 가져오는 중" },
     });
   });
 
@@ -102,6 +104,7 @@ describe("상품 상세 문구", () => {
       note: null,
       arrival: null,
       canRetry: false,
+      picture: { kind: "placeholder", icon: "waiting", text: "사진을 가져오는 중" },
     });
   });
 
@@ -180,7 +183,7 @@ describe("수집 결과와 다시 가져오기", () => {
     const ready: ProductResponse = {
       ...queued,
       title: "무선 헤드폰 블랙",
-      metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
+      metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image: { outcome: "absent" } },
       lastSuccessfulPrice: { amountMinor: 289000, currency: "KRW", checkedAt: "2026-11-11T00:00:00.000Z" },
     };
     expect(toProductCardView(ready, [])).toMatchObject({ title: "무선 헤드폰 블랙", status: null, price: { value: "₩289,000" } });
@@ -201,5 +204,49 @@ describe("실제 데이터만 말하기", () => {
         }
       }
     }
+  });
+});
+
+describe("상품 사진", () => {
+  const src = "/api/products/22222222-2222-4222-8222-222222222222/picture?v=77777777-7777-4777-8777-777777777777";
+  type Image = Extract<ProductResponse["metadata"], { phase: "ready" }>["image"];
+  const ready = (image: Image, picture: ProductResponse["picture"] = null): ProductResponse => ({
+    ...queued,
+    title: "무선 헤드폰",
+    metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image },
+    picture,
+  });
+  const failed = everyPhase.find((item) => item.phase === "failed")!;
+  const running = everyPhase.find((item) => item.phase === "running")!;
+
+  it("Given 사본이 있는 상품 When 카드와 상세로 보이면 Then 같은 출처 주소로 사진을 보이고 상세는 이름을 대체 글로 쓴다", () => {
+    const product = ready({ outcome: "copied" }, { src });
+    expect(toProductCardView(product, []).picture).toEqual({ kind: "photo", src, alt: "" });
+    expect(toProductDetailView(product, [], null).picture).toEqual({ kind: "photo", src, alt: "무선 헤드폰 사진" });
+  });
+
+  it.each<[string, ProductResponse, string, string]>([
+    ["사진이 없는 페이지", ready({ outcome: "absent" }), "link", "링크를 담아두었어요"],
+    ["수집 대기", queued, "waiting", "사진을 가져오는 중"],
+    ["수집 중", { ...queued, metadata: running }, "waiting", "사진을 가져오는 중"],
+    ["사진만 실패", ready({ outcome: "failed", errorCode: "blocked_by_site" }), "off", "사진을 가져오지 못했어요"],
+    ["페이지 실패", { ...queued, metadata: failed }, "link", "링크를 담아두었어요"],
+    ["멈춘 수집", { ...queued, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } }, "link", "링크를 담아두었어요"],
+  ])("Given %s이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다", (_, product, icon, text) => {
+    expect(toProductCardView(product, []).picture).toEqual({ kind: "placeholder", icon, text });
+    expect(toProductDetailView(product, [], null).picture).toEqual({ kind: "placeholder", icon, text });
+  });
+
+  it("Given 이전 사본이 있고 이번 사진은 실패 When 보이면 Then 이전 사본을 계속 보인다", () => {
+    expect(toProductCardView(ready({ outcome: "failed", errorCode: "timeout" }, { src }), []).picture).toEqual({ kind: "photo", src, alt: "" });
+  });
+
+  it("Given 사진을 가져오지 못한 상품 When 상세로 보이면 Then 이유와 이름·가격은 가져왔다는 말을 하고 다시 가져올 수 있다", () => {
+    const view = toProductDetailView(ready({ outcome: "failed", errorCode: "blocked_by_site" }), [], null);
+    expect(view.status).toEqual({ title: "사진을 가져오지 못했어요", detail: "쇼핑몰이 사진 요청을 막았어요. 이름과 가격은 가져왔어요." });
+    expect(view.canRetry).toBe(true);
+    expect(toProductCardView(ready({ outcome: "failed", errorCode: "blocked_by_site" }), []).status).toBeNull();
+    expect(canRetry(ready({ outcome: "copied" }, { src }))).toBe(false);
+    expect(canRetry(ready({ outcome: "absent" }))).toBe(false);
   });
 });

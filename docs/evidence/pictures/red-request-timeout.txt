@@ -1,0 +1,8 @@
+# Red: src/features/auth/infrastructure/supabase-auth.test.ts while createAccessTokenClient ignores requestTimeoutMs
+# 2026-11-12T12:50:06Z a5b2692+working tree
+
+     × Given 응답하지 않는 Supabase When RPC와 Storage를 부르면 Then 정한 시간 안에 오류로 끝난다 4012ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+Error: Test timed out in 4000ms.
+ Test Files  1 failed (1)
+      Tests  1 failed (1)

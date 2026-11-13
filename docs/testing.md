@@ -5,10 +5,10 @@
 | 계층 | 검증 방식 | 책임과 정리 |
 | --- | --- | --- |
 | Domain | Vitest 순수 단위 테스트 | DB, 네트워크, React와 Next.js 없이 상태 전환과 규칙을 검증한다. 정상·실패·경계 조건에서 관찰 가능한 결과를 단언한다. |
-| Persistence | 실제 테스트용 PostgreSQL/Supabase를 사용하는 저장소 통합 테스트 | 전체 웹 서버를 시작하지 않는다. 필요한 DB·저장 어댑터만 구성해 쿼리, 매핑, 제약조건, 마이그레이션과 적용 대상 권한 정책을 검증한다. |
-| Service | 실제 저장소와 연결한 서비스 통합 테스트 | 테스트 전체를 트랜잭션으로 감싸 자동 롤백하지 않는다. 실제 저장 결과를 확인하고 `afterEach`에서 테스트 데이터를 삭제한다. 외부 쇼핑몰 등 독립 시스템은 명시적인 경계에서 대체한다. 정보 수집은 `PageSource` 포트에서 쇼핑몰만 바꾼다. |
+| Persistence | 실제 테스트용 PostgreSQL/Supabase를 사용하는 저장소 통합 테스트 | 전체 웹 서버를 시작하지 않는다. 필요한 DB·저장 어댑터만 구성해 쿼리, 매핑, 제약조건, 마이그레이션과 적용 대상 권한 정책을 검증한다. Storage 정책은 소유자·다른 계정·익명 토큰으로 실제 업로드·서명·삭제를 시도해 허용과 거절을 모두 단언한다. |
+| Service | 실제 저장소와 연결한 서비스 통합 테스트 | 테스트 전체를 트랜잭션으로 감싸 자동 롤백하지 않는다. 실제 저장 결과를 확인하고 `afterEach`에서 테스트 데이터를 삭제한다. 외부 쇼핑몰 등 독립 시스템은 명시적인 경계에서 대체한다. 정보 수집은 `PageSource`·`ImageSource` 포트에서 쇼핑몰만 바꾸고 DB·Storage·sharp는 실제를 쓴다. 사진은 `afterEach`에서 Storage API로 먼저 지운다. |
 | 요청 처리 경계 | Vitest Mock 테스트, Given–When–Then | 서비스를 대체하고 요청 파싱, 검증, 인증 결과 처리, 응답 상태·본문과 오류 매핑을 검증한다. |
-| 외부 페이지 가져오기 | `tests/fetcher`의 로컬 HTTP 서버 통합 테스트(`npm test`에 포함) | 차단 주소·리다이렉트·DNS 재바인딩·크기·압축 폭탄·시간 제한을 실제 소켓으로 확인한다. 테스트 전용 주소 정책은 `tests/support`에만 있고 운영 코드는 엄격한 정책 하나만 쓴다. 실제 쇼핑몰은 `scripts/check-real-pages.mjs`로 따로 확인하고 CI에 넣지 않는다. |
+| 외부 페이지·사진 가져오기 | `tests/fetcher`의 로컬 HTTP 서버 통합 테스트(`npm test`에 포함) | 차단 주소·리다이렉트·DNS 재바인딩·크기·압축 폭탄·시간 제한, 사진의 형식 게이트·Referer를 실제 소켓으로 확인한다. sharp 정규화는 실제 sharp와 테스트 안에서 만든 사진으로 확인한다. 테스트 전용 주소 정책은 `tests/support`에만 있고 운영 코드는 엄격한 정책 하나만 쓴다. 실제 쇼핑몰은 `scripts/check-real-pages.mjs`로 따로 확인하고 CI에 넣지 않는다. |
 | HTTP API | 실행 중인 테스트 API에 실제 HTTP 요청 | 계약과 통합 동작을 검증한다. API 문서와 요청·응답 계약의 일치를 CI에서 검사한다. |
 | 사용자 흐름 | Playwright | 브라우저 조작에서 화면 결과까지 PC와 모바일 크기에서 확인한다. 목업(`/demo`), `/login`과 설정 누락은 Supabase 없이 `tests/ui`(`npm run test:ui`, CI `app`)로 실행한다. 실제 보관함(`/`)은 `tests/browser`(`npm run test:database`, CI `database`)가 실행 중인 테스트 Supabase와 실제 세션 쿠키로 저장·새로고침·새 세션 유지까지 확인한다. |
 

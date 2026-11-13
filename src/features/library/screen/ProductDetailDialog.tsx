@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Link2, LoaderCircle, RotateCcw } from "lucide-react";
+import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, LoaderCircle, RotateCcw } from "lucide-react";
 import { Dialog } from "../../wishlist/Dialog";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
+import { ProductPicture } from "./ProductPicture";
 import { toProductDetailView } from "./product-view";
 
 export function ProductDetailDialog({
@@ -35,10 +36,7 @@ export function ProductDetailDialog({
       <div className="detail-body">
         <div className="detail-visual">
           <div className="detail-picture">
-            <div className="picture-placeholder">
-              <Link2 size={40} aria-hidden="true" />
-              <span>원본 링크를 보관했어요</span>
-            </div>
+            <ProductPicture view={view.picture} sizes="(max-width: 640px) 90vw, 400px" iconSize={40} />
           </div>
           {view.openUrl && (
             <a className="button secondary original-link" href={view.openUrl} target="_blank" rel="noopener noreferrer">

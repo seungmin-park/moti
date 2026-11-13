@@ -1,0 +1,15 @@
+# Red: GET /api/products/{productId}/picture handler cases while getPicture is a stub that answers storage_unavailable
+# 2026-11-12T12:54:40Z e2df390+working tree
+# Cases that pass already cover access checks the shared handle() gives every route; they must keep passing.
+
+     × Given 소유자와 저장한 사본 When 브라우저가 사진을 요청하면 Then 짧게 서명한 주소로 보내고 개인 캐시에만 50분 둔다 15ms
+     × Given 사본이 없는 상품 When 사진을 요청하면 Then 404이고 캐시하지 않는다 1ms
+     × Given UUID가 아닌 상품 When 사진을 요청하면 Then 400이고 저장소를 부르지 않는다 0ms
+     × Given 저장소가 product_missing로 답함 When 사진을 요청하면 Then 404이다 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected 503 to be 302 // Object.is equality
+AssertionError: expected 503 to be 404 // Object.is equality
+AssertionError: expected 503 to be 400 // Object.is equality
+AssertionError: expected 503 to be 404 // Object.is equality
+ Test Files  1 failed (1)
+      Tests  4 failed | 5 passed | 57 skipped (66)

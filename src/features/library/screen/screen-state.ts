@@ -107,7 +107,7 @@ function withProgress(products: ProductResponse[], polled: ProductResponse[]): P
   return products.map((product) => {
     const next = latest.get(product.id);
     if (!next || !isLater(next.metadata, product.metadata)) return product;
-    return { ...product, title: next.title, metadata: next.metadata, lastSuccessfulPrice: next.lastSuccessfulPrice };
+    return { ...product, title: next.title, metadata: next.metadata, lastSuccessfulPrice: next.lastSuccessfulPrice, picture: next.picture };
   });
 }
 

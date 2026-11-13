@@ -5,8 +5,11 @@ import { toLinkSaveCommand } from "../../src/features/library/application/comman
 import type { Product } from "../../src/features/library/domain/library";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import { createCollectionRunner, type PageRead, type PageSource } from "../../src/features/metadata/application/collection";
+import { createPictureCopier, type ImageSource } from "../../src/features/metadata/application/picture-copy";
 import type { CollectionErrorCode } from "../../src/features/metadata/domain/collection-error";
+import { createPictureStore } from "../../src/features/library/infrastructure/product-pictures";
 import { readProductPage } from "../../src/features/metadata/infrastructure/html-reader";
+import { normalizePicture } from "../../src/features/metadata/infrastructure/sharp-normalizer";
 import { createSupabaseCollectionStore } from "../../src/features/metadata/infrastructure/supabase-collection-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
@@ -28,7 +31,14 @@ function shop(answer: (url: string) => Promise<PageRead> | PageRead) {
 
 const library = () => createSupabaseLibraryStore(fixture.owner.client);
 const jobs = () => createSupabaseCollectionStore(fixture.owner.client);
-const runner = (source: PageSource) => createCollectionRunner({ store: jobs(), source, read: readProductPage });
+// The shop's image server answers that it refuses: picture copies are covered in picture-copy.test.ts.
+const noImages: ImageSource = { read: async () => ({ ok: false, code: "blocked_by_site" }) };
+const runner = (source: PageSource) => createCollectionRunner({
+  store: jobs(),
+  source,
+  read: readProductPage,
+  copier: createPictureCopier({ source: noImages, normalize: normalizePicture, pictures: createPictureStore(fixture.owner.client) }),
+});
 
 async function saved(): Promise<Product> {
   return (await library().saveLink(toLinkSaveCommand({ url: sourceUrl, option: "", collectionIds: [] }))).product;

@@ -1,10 +1,13 @@
 import { parseCollectionName } from "../../wishlist/collection-name";
 import { parseLink, type SavedLink } from "../../wishlist/link";
-import { LibraryError, type CollectionId, type Product } from "../domain/library";
+import { LibraryError, type CollectionId, type Product, type ProductId } from "../domain/library";
 
 export type LinkSaveCommand = SavedLink & { collectionIds: CollectionId[] };
 export type LinkSaveResult = { kind: "added" | "duplicate"; product: Product };
 export type CollectionCreateCommand = { name: string };
+export type PictureViewCommand = { productId: ProductId };
+// A short-lived link to the product's current private copy, or nothing to show.
+export type PictureViewResult = { kind: "found"; url: string } | { kind: "missing" };
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -34,4 +37,11 @@ export function toCollectionCreateCommand(input: unknown): CollectionCreateComma
   const parsed = parseCollectionName(input);
   if (!parsed.ok) throw new LibraryError("invalid_input", parsed.message, "collection");
   return { name: parsed.name };
+}
+
+export function toPictureViewCommand(productId: unknown): PictureViewCommand {
+  if (typeof productId !== "string" || !uuid.test(productId)) {
+    throw new LibraryError("invalid_input", "상품을 다시 선택해 주세요.");
+  }
+  return { productId: productId.toLowerCase() as ProductId };
 }

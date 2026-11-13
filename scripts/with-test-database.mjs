@@ -53,7 +53,7 @@ process.exitCode = await withTermination(async (signal) => {
     }
     console.log("Starting an isolated native Supabase database with committed migrations.");
     started = true;
-    await supabase(["start", "--runtime", "native", "--eager", "--frozen", "--exclude", "realtime,storage,functions,studio,mail,analytics,pooler"], signal);
+    await supabase(["start", "--runtime", "native", "--eager", "--frozen", "--exclude", "realtime,functions,studio,mail,analytics,pooler"], signal);
     const state = await readNativeTestState(supabaseHome, project, stack);
     const connection = databaseConfigSchema.parse({
       runId,
@@ -87,7 +87,7 @@ process.exitCode = await withTermination(async (signal) => {
       return { exitCode, report: exitCode === 0 ? JSON.parse(await readFile(report, "utf8")) : null };
     };
 
-    console.log("Running persistence and service checks against real PostgREST and PostgreSQL without Next.");
+    console.log("Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.");
     const slice = await vitest("database", ["tests/persistence", "tests/service", ...process.argv.slice(2)]);
     if (slice.exitCode !== 0) return slice.exitCode;
     const counts = assertDatabaseReport(slice.report);

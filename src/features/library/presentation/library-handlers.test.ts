@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Access } from "../../auth/domain/access";
-import { toLinkSaveCommand } from "../application/commands";
-import { LibraryError, type Collection, type CollectionId, type Product, type ProductId } from "../domain/library";
+import { toLinkSaveCommand, type PictureViewResult } from "../application/commands";
+import { LibraryError, type Collection, type CollectionId, type Library, type Product, type ProductId } from "../domain/library";
 import type { CollectionRequest } from "../../metadata/application/collection";
 import type { MetadataRetryCommand, MetadataRetryResult } from "../../metadata/application/commands";
 import { createLibraryHandlers } from "./library-handlers";
@@ -14,6 +14,7 @@ import {
 } from "./library-dto";
 
 const origin = "https://moti.test";
+const signedUrl = "https://project.supabase.test/storage/v1/object/sign/product-pictures/a/b/c-1.webp?token=signed";
 const allowed: Access = { kind: "allowed", userId: "user-1" };
 const collection = {
   id: "11111111-1111-4111-8111-111111111111" as CollectionId,
@@ -37,13 +38,15 @@ const product = {
   purchase: { status: "wish" },
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
+  picture: null,
 } satisfies Product;
 
 function given(access: Access) {
   const service = {
-    snapshot: vi.fn(async () => ({ products: [product], collections: [collection] })),
+    snapshot: vi.fn(async (): Promise<Library> => ({ products: [product], collections: [collection] })),
     saveLink: vi.fn(async () => ({ kind: "added" as const, product })),
     createCollection: vi.fn(async () => collection),
+    openPicture: vi.fn(async (): Promise<PictureViewResult> => ({ kind: "found", url: signedUrl })),
   };
   const signOut = vi.fn(async () => {});
   // collect is a mock: scheduling the collection is itself the requirement, its work happens after the response.
@@ -77,6 +80,39 @@ describe("GET /api/library", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(libraryReadResponseSchema.parse(await response.json())).toEqual({ products: [product], collections: [collection] });
     expect(service.snapshot).toHaveBeenCalledOnce();
+  });
+
+  it("Given 사진 사본이 있는 상품 When 보관함을 읽으면 Then 같은 출처의 사진 주소와 이번 사진 결과만 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    const version = "33333333-3333-4333-8333-333333333333";
+    service.snapshot.mockResolvedValueOnce({
+      products: [{
+        ...product,
+        metadata: {
+          phase: "ready", generation: 2, attempts: 1, completedAt: "2026-11-12T00:00:00.000Z",
+          image: { outcome: "failed", errorCode: "upload_failed" },
+        },
+        picture: { version },
+      }],
+      collections: [],
+    });
+
+    const body = libraryReadResponseSchema.parse(await (await handlers.getLibrary(get())).json());
+
+    expect(body.products[0]).toMatchObject({
+      metadata: { phase: "ready", image: { outcome: "failed", errorCode: "upload_failed" } },
+      picture: { src: `/api/products/${product.id}/picture?v=${version}` },
+    });
+  });
+
+  it.each([
+    { src: "https://cdn.shop.example/a.jpg" },
+    { src: "/storage/v1/object/sign/product-pictures/a/b/c-1.webp?token=x" },
+    { src: "//evil.example/api/products/22222222-2222-4222-8222-222222222222/picture?v=33333333-3333-4333-8333-333333333333" },
+    { src: "/api/products/22222222-2222-4222-8222-222222222222/picture?v=33333333-3333-4333-8333-333333333333", url: "x" },
+  ])("Given 같은 출처 사진 경로가 아닌 $src When 계약으로 검증하면 Then 거절한다", (picture) => {
+    const body = { products: [{ ...JSON.parse(JSON.stringify(product)), picture }], collections: [] };
+    expect(libraryReadResponseSchema.safeParse(body).success).toBe(false);
   });
 
   it("Given 세션 없음 When 보관함을 읽으면 Then 401이고 서비스를 호출하지 않는다", async () => {
@@ -146,7 +182,7 @@ describe("POST /api/links", () => {
   });
 
   it.each<Product["metadata"]>([
-    { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z" },
+    { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image: { outcome: "absent" } },
     { phase: "failed", generation: 1, attempts: 1, errorCode: "timeout" },
     { phase: "running", generation: 1, attempts: 1, stalled: false },
   ])("Given 수집 단계가 $phase인 중복 상품 When 다시 저장하면 Then 수집을 예약하지 않는다", async (metadata) => {
@@ -405,5 +441,69 @@ describe("세션 종료 실패", () => {
     signOut.mockRejectedValueOnce(new Error("auth down"));
     const response = await handlers.getLibrary(get());
     expect(response.status).toBe(403);
+  });
+});
+
+describe("GET /api/products/{productId}/picture", () => {
+  const productId = product.id;
+  const pictureRequest = (id: string = productId) =>
+    [new Request(`${origin}/api/products/${id}/picture?v=33333333-3333-4333-8333-333333333333`),
+      { params: Promise.resolve({ productId: id }) }] as const;
+
+  it("Given 소유자와 저장한 사본 When 브라우저가 사진을 요청하면 Then 짧게 서명한 주소로 보내고 개인 캐시에만 50분 둔다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.getPicture(...pictureRequest(productId.toUpperCase()));
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(signedUrl);
+    expect(response.headers.get("cache-control")).toBe("private, max-age=3000");
+    expect(await response.text()).toBe("");
+    expect(service.openPicture).toHaveBeenCalledExactlyOnceWith({ productId });
+  });
+
+  it("Given 사본이 없는 상품 When 사진을 요청하면 Then 404이고 캐시하지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    service.openPicture.mockResolvedValueOnce({ kind: "missing" });
+    const response = await handlers.getPicture(...pictureRequest());
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect((await errorOf(response)).error).toBe("picture_missing");
+  });
+
+  it("Given UUID가 아닌 상품 When 사진을 요청하면 Then 400이고 저장소를 부르지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.getPicture(...pictureRequest("not-a-uuid"));
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).error).toBe("invalid_input");
+    expect(service.openPicture).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["product_missing", 404],
+    ["storage_unavailable", 503],
+  ] as const)("Given 저장소가 %s로 답함 When 사진을 요청하면 Then %i이다", async (code, status) => {
+    const { handlers, service } = given(allowed);
+    service.openPicture.mockRejectedValueOnce(new LibraryError(code, "거절"));
+    const response = await handlers.getPicture(...pictureRequest());
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+  });
+
+  it.each([
+    [{ kind: "signed_out" } as Access, 401, "signed_out"],
+    [{ kind: "unconfigured" } as Access, 503, "unconfigured"],
+  ])("Given 접근 결과 $kind When 사진을 요청하면 Then %i이고 저장소를 부르지 않는다", async (access, status, code) => {
+    const { handlers, service } = given(access);
+    const response = await handlers.getPicture(...pictureRequest());
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(service.openPicture).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 Google 계정 When 사진을 요청하면 Then 403이고 세션을 한 번 종료한다", async () => {
+    const { handlers, service, signOut } = given({ kind: "forbidden" });
+    const response = await handlers.getPicture(...pictureRequest());
+    expect(response.status).toBe(403);
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(service.openPicture).not.toHaveBeenCalled();
   });
 });

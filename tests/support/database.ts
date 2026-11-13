@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Pool } from "pg";
+import { PICTURE_BUCKET } from "../../src/features/library/infrastructure/product-pictures";
 import { readDatabaseConfig } from "./database-config";
 
 type TestUser = { id: string; email: string; password: string; googleSubject: string; client: SupabaseClient };
@@ -27,8 +28,20 @@ export async function createDatabaseFixture(options: { ownerGoogleSubject?: stri
     }
   }
 
+  // Storage refuses direct SQL deletes of objects, so the test's pictures leave through the Storage API first.
+  async function removePictures() {
+    const { rows } = await admin.query<{ name: string }>(
+      "select name from storage.objects where bucket_id = $1 and split_part(name, '/', 1) = any($2::text[])",
+      [PICTURE_BUCKET, users],
+    );
+    if (rows.length === 0) return;
+    const removed = await administration.storage.from(PICTURE_BUCKET).remove(rows.map((row) => row.name));
+    if (removed.error) throw new Error(`테스트 사진을 지우지 못했습니다. ${removed.error.message}`);
+  }
+
   async function cleanup() {
     await verifyRun();
+    await removePictures();
     await admin.query("delete from auth.users where id = any($1::uuid[])", [users]);
   }
 

@@ -7,7 +7,9 @@ import type { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { createBrotliDecompress, createGunzip, createInflate } from "node:zlib";
 import type { PageRead, PageSource } from "../application/collection";
-import type { CollectionErrorCode } from "../domain/collection-error";
+import type { ImageSource } from "../application/picture-copy";
+import type { FetchErrorCode } from "../domain/collection-error";
+import { pictureLimits } from "../domain/picture";
 import { toFetchTarget, type FetchPolicy, type FetchTarget } from "./address-policy";
 
 export type FetchLimits = {
@@ -21,16 +23,23 @@ export type ResolvedAddress = { address: string; family: number };
 export type Resolve = (host: string) => Promise<ResolvedAddress[]>;
 
 const MiB = 1024 * 1024;
-const defaultLimits: FetchLimits = {
+const pageLimits: FetchLimits = {
   connectMs: 5_000,
   totalMs: 15_000,
   maxEncodedBytes: 2 * MiB,
   maxDecodedBytes: 4 * MiB,
   maxRedirects: 5,
 };
+const imageLimits: FetchLimits = {
+  ...pageLimits,
+  totalMs: 10_000,
+  maxEncodedBytes: pictureLimits.maxSourceBytes,
+  maxDecodedBytes: pictureLimits.maxSourceBytes,
+};
 const redirects = new Set([301, 302, 303, 307, 308]);
 const refusals = new Set([401, 403, 429, 451]);
 const htmlTypes = new Set(["text/html", "application/xhtml+xml"]);
+const untypedBinary = new Set(["", "application/octet-stream", "binary/octet-stream"]);
 const decoders: Record<string, (() => Transform) | null> = {
   identity: null,
   gzip: createGunzip,
@@ -39,17 +48,22 @@ const decoders: Record<string, (() => Transform) | null> = {
   br: createBrotliDecompress,
 };
 const dnsErrors = new Set(["ENOTFOUND", "EAI_AGAIN", "EAI_NONAME", "EAI_FAIL", "EAI_NODATA", "ENODATA"]);
-const headers = {
+const baseHeaders = {
   "user-agent": "Mozilla/5.0 (compatible; moti/0.1; +https://github.com/seungmin-park/moti)",
-  accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",
   "accept-language": "ko-KR,ko;q=0.9,en;q=0.5",
   "accept-encoding": "gzip, deflate, br",
 };
 
-class FetchFailure extends Error {
-  readonly code: CollectionErrorCode;
+// What one kind of response may be: the Accept header sent, the media types let through, and the limits.
+type BodyKind = { accept: string; admits(mediaType: string): boolean; limits: FetchLimits };
+type Fetched =
+  | { ok: true; bytes: Buffer; contentType: string | undefined; url: string; status: number }
+  | { ok: false; code: FetchErrorCode; status: number | null };
 
-  constructor(code: CollectionErrorCode) {
+class FetchFailure extends Error {
+  readonly code: FetchErrorCode;
+
+  constructor(code: FetchErrorCode) {
     super(code);
     this.code = code;
   }
@@ -57,7 +71,7 @@ class FetchFailure extends Error {
 
 const systemResolve: Resolve = (host) => systemLookup(host, { all: true, verbatim: true });
 
-function classify(error: unknown, signal: AbortSignal): CollectionErrorCode {
+function classify(error: unknown, signal: AbortSignal): FetchErrorCode {
   if (error instanceof FetchFailure) return error.code;
   if (signal.aborted) return "timeout";
   const code = (error as { code?: unknown } | null)?.code;
@@ -78,13 +92,9 @@ function decodeText(bytes: Buffer, contentType: string | undefined): string {
   }
 }
 
-export function createSafePageSource({ policy, resolve = systemResolve, limits: overrides = {} }: {
-  policy: FetchPolicy;
-  resolve?: Resolve;
-  limits?: Partial<FetchLimits>;
-}): PageSource {
-  const limits = { ...defaultLimits, ...overrides };
-
+// The only way out to a shop. It stays private to this module, so every request goes through the same pinned
+// lookup, address policy, redirect checks and size limits; the exported sources differ only in their BodyKind.
+function createSafeFetcher({ policy, resolve }: { policy: FetchPolicy; resolve: Resolve }) {
   // Answers Node's lookup with addresses that already passed the policy, so the socket connects to exactly
   // what was checked; a resolver that changes its answer later cannot slip a private address in.
   function pinnedLookup(hostname: string, options: LookupOneOptions & { all?: boolean },
@@ -97,7 +107,8 @@ export function createSafePageSource({ policy, resolve = systemResolve, limits: 
     }).catch((error: Error) => callback(error, ""));
   }
 
-  function request(url: URL, target: FetchTarget & { ok: true }, signal: AbortSignal): Promise<IncomingMessage> {
+  function request(url: URL, target: FetchTarget & { ok: true }, headers: Record<string, string>, limits: FetchLimits,
+    signal: AbortSignal): Promise<IncomingMessage> {
     const secure = url.protocol === "https:";
     const options: RequestOptions = {
       host: target.address ?? target.host,
@@ -130,7 +141,7 @@ export function createSafePageSource({ policy, resolve = systemResolve, limits: 
     });
   }
 
-  async function body(response: IncomingMessage, signal: AbortSignal): Promise<Buffer> {
+  async function body(response: IncomingMessage, limits: FetchLimits, signal: AbortSignal): Promise<Buffer> {
     const encoding = (response.headers["content-encoding"] ?? "identity").trim().toLowerCase() || "identity";
     if (!Object.hasOwn(decoders, encoding)) throw new FetchFailure("unsupported_content");
     const declared = Number(response.headers["content-length"]);
@@ -166,55 +177,96 @@ export function createSafePageSource({ policy, resolve = systemResolve, limits: 
     return Buffer.concat(chunks);
   }
 
+  return async function get(address: string, kind: BodyKind,
+    options: { headers?: Record<string, string>; signal?: AbortSignal } = {}): Promise<Fetched> {
+    const deadline = new AbortController();
+    const timer = setTimeout(() => deadline.abort(), kind.limits.totalMs);
+    const signal = options.signal ? AbortSignal.any([deadline.signal, options.signal]) : deadline.signal;
+    const headers = { ...baseHeaders, accept: kind.accept, ...options.headers };
+    let status: number | null = null;
+    try {
+      let url: URL;
+      try {
+        url = new URL(address);
+      } catch {
+        return { ok: false, code: "invalid_url", status };
+      }
+      for (let hops = 0; ; hops += 1) {
+        const target = toFetchTarget(url, policy);
+        if (!target.ok) return { ok: false, code: target.code, status };
+        const response = await request(url, target, headers, kind.limits, signal);
+        status = response.statusCode ?? 0;
+        const location = response.headers.location;
+        if (redirects.has(status) && location) {
+          response.destroy();
+          if (hops >= kind.limits.maxRedirects) return { ok: false, code: "too_many_redirects", status };
+          try {
+            url = new URL(location, url);
+          } catch {
+            return { ok: false, code: "invalid_url", status };
+          }
+          continue;
+        }
+        if (status < 200 || status >= 300) {
+          response.destroy();
+          return { ok: false, code: refusals.has(status) ? "blocked_by_site" : "http_status", status };
+        }
+        const contentType = response.headers["content-type"];
+        if (!kind.admits(contentType?.split(";")[0].trim().toLowerCase() ?? "")) {
+          response.destroy();
+          return { ok: false, code: "unsupported_content", status };
+        }
+        try {
+          return { ok: true, bytes: await body(response, kind.limits, signal), contentType, url: url.href, status };
+        } finally {
+          response.destroy();
+        }
+      }
+    } catch (error) {
+      return { ok: false, code: classify(error, signal), status };
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+}
+
+export function createSafePageSource({ policy, resolve = systemResolve, limits = {} }: {
+  policy: FetchPolicy;
+  resolve?: Resolve;
+  limits?: Partial<FetchLimits>;
+}): PageSource {
+  const get = createSafeFetcher({ policy, resolve });
+  const kind: BodyKind = {
+    accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",
+    admits: (mediaType) => htmlTypes.has(mediaType),
+    limits: { ...pageLimits, ...limits },
+  };
   return {
     async read(address: string): Promise<PageRead> {
-      const deadline = new AbortController();
-      const timer = setTimeout(() => deadline.abort(), limits.totalMs);
-      let status: number | null = null;
-      try {
-        let url: URL;
-        try {
-          url = new URL(address);
-        } catch {
-          return { ok: false, code: "invalid_url", status };
-        }
-        for (let hops = 0; ; hops += 1) {
-          const target = toFetchTarget(url, policy);
-          if (!target.ok) return { ok: false, code: target.code, status };
-          const response = await request(url, target, deadline.signal);
-          status = response.statusCode ?? 0;
-          const location = response.headers.location;
-          if (redirects.has(status) && location) {
-            response.destroy();
-            if (hops >= limits.maxRedirects) return { ok: false, code: "too_many_redirects", status };
-            try {
-              url = new URL(location, url);
-            } catch {
-              return { ok: false, code: "invalid_url", status };
-            }
-            continue;
-          }
-          if (status < 200 || status >= 300) {
-            response.destroy();
-            return { ok: false, code: refusals.has(status) ? "blocked_by_site" : "http_status", status };
-          }
-          const contentType = response.headers["content-type"];
-          if (!htmlTypes.has(contentType?.split(";")[0].trim().toLowerCase() ?? "")) {
-            response.destroy();
-            return { ok: false, code: "unsupported_content", status };
-          }
-          try {
-            const bytes = await body(response, deadline.signal);
-            return { ok: true, page: { html: decodeText(bytes, contentType), url: url.href, status } };
-          } finally {
-            response.destroy();
-          }
-        }
-      } catch (error) {
-        return { ok: false, code: classify(error, deadline.signal), status };
-      } finally {
-        clearTimeout(timer);
-      }
+      const fetched = await get(address, kind);
+      if (!fetched.ok) return fetched;
+      return { ok: true, page: { html: decodeText(fetched.bytes, fetched.contentType), url: fetched.url, status: fetched.status } };
+    },
+  };
+}
+
+// Bytes only: what they are is decided later from the bytes themselves, so a missing or generic type passes here.
+export function createSafeImageSource({ policy, resolve = systemResolve, limits = {} }: {
+  policy: FetchPolicy;
+  resolve?: Resolve;
+  limits?: Partial<FetchLimits>;
+}): ImageSource {
+  const get = createSafeFetcher({ policy, resolve });
+  const kind: BodyKind = {
+    accept: "image/avif,image/webp,image/png,image/jpeg,image/gif;q=0.9,*/*;q=0.1",
+    admits: (mediaType) => untypedBinary.has(mediaType) || (mediaType.startsWith("image/") && mediaType !== "image/svg+xml"),
+    limits: { ...imageLimits, ...limits },
+  };
+  return {
+    async read(address, { pageUrl, signal }) {
+      // The shop's origin satisfies most hotlink checks; the owner's page path and query never travel.
+      const fetched = await get(address, kind, { headers: { referer: `${new URL(pageUrl).origin}/` }, signal });
+      return fetched.ok ? { ok: true, bytes: new Uint8Array(fetched.bytes) } : { ok: false, code: fetched.code };
     },
   };
 }

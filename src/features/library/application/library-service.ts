@@ -1,4 +1,4 @@
-import type { CollectionCreateCommand, LinkSaveCommand } from "./commands";
+import type { CollectionCreateCommand, LinkSaveCommand, PictureViewCommand } from "./commands";
 import type { LibraryStore } from "./library-store";
 
 export function createLibraryService(store: LibraryStore) {
@@ -6,6 +6,7 @@ export function createLibraryService(store: LibraryStore) {
     snapshot: () => store.snapshot(),
     saveLink: (command: LinkSaveCommand) => store.saveLink(command),
     createCollection: (command: CollectionCreateCommand) => store.createCollection(command),
+    openPicture: (command: PictureViewCommand) => store.openPicture(command),
   };
 }
 

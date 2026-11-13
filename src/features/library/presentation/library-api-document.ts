@@ -15,9 +15,9 @@ type Route = {
   method: "get" | "post";
   path: string;
   summary: string;
-  parameters?: { name: string; description: string; schema: z.ZodType }[];
+  parameters?: { name: string; in?: "path" | "query"; description: string; schema: z.ZodType }[];
   request?: z.ZodType;
-  responses: Record<number, { description: string; schema: z.ZodType }>;
+  responses: Record<number, { description: string; schema?: z.ZodType; headers?: Record<string, string> }>;
 };
 
 const denied = {
@@ -78,6 +78,24 @@ export const libraryRoutes: Route[] = [
       409: { description: "화면의 세대가 다르거나 이미 수집 중·대기 중·완료 상태다.", schema: errorResponseSchema },
     },
   },
+  {
+    method: "get",
+    path: "/api/products/{productId}/picture",
+    summary: "상품의 현재 사진 사본으로 보낸다. 화면의 이미지 주소이며 요청마다 비공개 사본의 1시간짜리 서명 주소를 새로 만든다.",
+    parameters: [
+      { name: "productId", in: "path", description: "상품 ID", schema: z.uuid() },
+      { name: "v", in: "query", description: "사본 버전. 캐시 키로만 쓰고 서버는 언제나 현재 사본으로 보낸다.", schema: z.uuid() },
+    ],
+    responses: {
+      302: {
+        description: "본문 없이 서명한 Storage 주소로 이동한다.",
+        headers: { Location: "서명한 Storage 주소. 1시간 뒤 만료한다.", "Cache-Control": "private, max-age=3000" },
+      },
+      400: { description: "상품 ID가 UUID가 아니다.", schema: errorResponseSchema },
+      ...denied,
+      404: { description: "상품이 없거나(product_missing) 보여줄 사본이 없다(picture_missing).", schema: errorResponseSchema },
+    },
+  },
 ];
 
 export function buildApiDocument() {
@@ -89,8 +107,8 @@ export function buildApiDocument() {
       ...(route.parameters && {
         parameters: route.parameters.map((parameter) => ({
           name: parameter.name,
-          in: "path",
-          required: true,
+          in: parameter.in ?? "path",
+          required: (parameter.in ?? "path") === "path",
           description: parameter.description,
           schema: z.toJSONSchema(parameter.schema),
         })),
@@ -105,7 +123,11 @@ export function buildApiDocument() {
         .toSorted(([a], [b]) => Number(a) - Number(b))
         .map(([status, response]) => [status, {
           description: response.description,
-          content: { "application/json": { schema: z.toJSONSchema(response.schema) } },
+          ...(response.headers && {
+            headers: Object.fromEntries(Object.entries(response.headers)
+              .map(([name, description]) => [name, { description, schema: { type: "string" } }])),
+          }),
+          ...(response.schema && { content: { "application/json": { schema: z.toJSONSchema(response.schema) } } }),
         }])),
     };
   }

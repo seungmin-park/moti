@@ -42,8 +42,14 @@ export function createSupabaseServerClient(config: AuthConfig, cookies: CookieJa
 }
 
 // For work that outlives the request: it cannot write cookies, so it cannot refresh and only uses this token.
-export function createAccessTokenClient(config: AuthConfig, accessToken: string): SupabaseClient {
-  return createClient(config.supabaseUrl, config.supabaseKey, { accessToken: async () => accessToken });
+// Every call is bounded because Storage uploads take no abort signal and a hung call would outlive the job's lease.
+export function createAccessTokenClient(config: AuthConfig, accessToken: string,
+  { requestTimeoutMs }: { requestTimeoutMs: number }): SupabaseClient {
+  const bounded: typeof fetch = (input, init) => {
+    const timeout = AbortSignal.timeout(requestTimeoutMs);
+    return fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout });
+  };
+  return createClient(config.supabaseUrl, config.supabaseKey, { accessToken: async () => accessToken, global: { fetch: bounded } });
 }
 
 // Call after readGoogleSession: that call validated the session and already refreshed an expiring token.
