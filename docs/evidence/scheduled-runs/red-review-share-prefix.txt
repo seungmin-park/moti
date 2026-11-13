@@ -1,0 +1,37 @@
+# Red (review): the share route must refuse a worker key by its prefix, before the store. With SHARE_SECRET_PATTERN
+# widened to `^moti_(?:sk|wk)_…` in share-key.ts (restored afterwards), the new handler case fails.
+# Command: npx vitest run src/features/share/presentation/share-handlers.test.ts -t "저장 키"
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/share/presentation/share-handlers.test.ts (29 tests | 1 failed | 21 skipped) 21ms
+   ❯ POST /api/share/links: 저장 키 (8)
+     × Given 작업 키 When 링크를 공유하면 Then 401이고 본문을 읽지 않으며 저장소를 부르지 않는다 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: 저장 키 > Given 작업 키 When 링크를 공유하면 Then 401이고 본문을 읽지 않으며 저장소를 부르지 않는다
+AssertionError: expected 201 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 201
+
+ ❯ src/features/share/presentation/share-handlers.test.ts:58:29
+     56|     const response = await handlers.postShareLink(request);
+     57|
+     58|     expect(response.status).toBe(401);
+       |                             ^
+     59|     expect(response.headers.get("www-authenticate")).toBe("Bearer");
+     60|     expect(await errorOf(response)).toEqual({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed | 21 skipped (29)
+   Start at  01:50:22
+   Duration  144ms (import 39%, transform 32%, tests 27%, worker 2%)
+

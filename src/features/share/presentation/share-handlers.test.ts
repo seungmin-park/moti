@@ -42,6 +42,7 @@ describe("POST /api/share/links: 저장 키", () => {
     ["Authorization 없음", {}],
     ["Basic 인증", { authorization: `Basic ${secret}` }],
     ["형식이 다른 키", { authorization: "Bearer moti_sk_short" }],
+    ["작업 키", { authorization: `Bearer ${secret.replace("moti_sk_", "moti_wk_")}` }],
     ["두 Authorization 값", { authorization: `Bearer ${secret}, Bearer ${secret}` }],
     ["소유자 쿠키만", { cookie: "sb-127-auth-token=base64-eyJhY2Nlc3NfdG9rZW4iOiJ4In0" }],
   ])("Given %s When 링크를 공유하면 Then 401이고 본문을 읽지 않으며 저장소를 부르지 않는다", async (_name, headers) => {
