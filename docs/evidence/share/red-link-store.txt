@@ -1,0 +1,120 @@
+# Red: the Shortcut route (step 4), adapter and service. createSupabaseShareLinkStore was a stub whose add throws, and toShareLinkAddCommand threw.
+# Command: npm run test:database -- -t "공유 담기 어댑터|공유 담기 서비스" (other persistence/service tests filtered out).
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ❯ tests/persistence/share-add.test.ts (20 tests | 3 failed | 17 skipped) 866ms
+   ↓ 저장 키로 링크 담기 (14)
+     ↓ 키로 담으면 소유자가 저장한 것과 같은 상품과 첫 수집 작업을 만들고 결과의 종류만 돌려준다
+     ↓ 이미 담은 링크는 duplicate만 알리고 아무것도 더 쓰지 않는다
+     ↓ 모르는 키, 한 글자 틀린 키, 형식이 다른 키와 폐기한 키는 모두 같은 M0009와 같은 메시지로 거절하고 아무것도 쓰지 않는다
+     ↓ 소유자 세션은 저장 키 함수를 실행하지 못하고, 익명은 다른 moti 함수를 실행하지 못한다
+     ↓ PostgREST에 비밀을 Bearer로 보내면 세션이 아니라서 거절한다
+     ↓ 소유자 설정이 다른 계정으로 바뀌거나 Google 연결이 없어지면 이전 키는 M0009다
+     ↓ 한 키로 한 시간에 30번까지 담고 31번째는 M0010이며 아무것도 쓰지 않는다. 한 시간이 지나면 다시 담는다
+     ↓ Next를 거치지 않은 javascript 링크도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+     ↓ Next를 거치지 않은 계정이 든 링크도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+     ↓ Next를 거치지 않은 빈 정체성도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+     ↓ Next를 거치지 않은 긴 옵션도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+     ↓ Next를 거치지 않은 빈 쇼핑몰도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+     ↓ 검사를 지난 값을 테이블이 거절해도 행 내용 없이 M0002로 바꾼다
+     ↓ 폐기는 진행 중인 담기가 끝나기를 기다리고, 폐기 뒤의 담기는 M0009다
+   ↓ 저장 키 역할의 권한 (3)
+     ↓ 익명으로 실행할 수 있는 moti 함수는 moti_share 역할이 소유한 moti_share_add 하나이고 로그인 세션은 실행하지 못한다
+     ↓ moti_share 역할에 직접 준 권한은 추가에 필요한 것뿐이다
+     ↓ moti_share 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다
+   ❯ 공유 담기 어댑터 (3)
+     × 익명 클라이언트로 담은 결과를 종류로 돌려준다 326ms
+     × 거절한 키·한도·잘못된 링크를 ShareError 코드로 바꾸고 메시지에 DB 문구를 싣지 않는다 271ms
+     × 소유자 세션 클라이언트로 부르면 저장소를 쓸 수 없다고 끝내고 아무것도 담지 않는다 269ms
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/persistence/share-keys.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+ ❯ tests/service/share-links.test.ts (2 tests | 2 failed) 570ms
+   ❯ 실제 저장소를 쓰는 공유 담기 서비스 (2)
+     × 키로 담은 링크는 소유자 보관함에서 수집을 기다리는 새 상품이고, 다시 담으면 duplicate만 알린다 300ms
+     × 폐기한 키는 key_rejected이고 보관함은 그대로다 270ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 공유 담기 어댑터 > 익명 클라이언트로 담은 결과를 종류로 돌려준다
+Error: not implemented
+ ❯ toShareLinkAddCommand src/features/share/application/commands.ts:5:105
+      3| export type ShareLinkAddCommand = { secret: ShareSecret; link: SavedLi…
+      4| export type ShareLinkAddResult = { kind: "added" | "duplicate" };
+      5| export function toShareLinkAddCommand(_secret: ShareSecret, _url: unkn…
+       |                                                                                                         ^
+      6|
+ ❯ command tests/persistence/share-add.test.ts:379:74
+ ❯ tests/persistence/share-add.test.ts:383:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 공유 담기 어댑터 > 거절한 키·한도·잘못된 링크를 ShareError 코드로 바꾸고 메시지에 DB 문구를 싣지 않는다
+Error: not implemented
+ ❯ toShareLinkAddCommand src/features/share/application/commands.ts:5:105
+      3| export type ShareLinkAddCommand = { secret: ShareSecret; link: SavedLi…
+      4| export type ShareLinkAddResult = { kind: "added" | "duplicate" };
+      5| export function toShareLinkAddCommand(_secret: ShareSecret, _url: unkn…
+       |                                                                                                         ^
+      6|
+ ❯ command tests/persistence/share-add.test.ts:379:74
+ ❯ tests/persistence/share-add.test.ts:390:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 공유 담기 어댑터 > 소유자 세션 클라이언트로 부르면 저장소를 쓸 수 없다고 끝내고 아무것도 담지 않는다
+Error: not implemented
+ ❯ toShareLinkAddCommand src/features/share/application/commands.ts:5:105
+      3| export type ShareLinkAddCommand = { secret: ShareSecret; link: SavedLi…
+      4| export type ShareLinkAddResult = { kind: "added" | "duplicate" };
+      5| export function toShareLinkAddCommand(_secret: ShareSecret, _url: unkn…
+       |                                                                                                         ^
+      6|
+ ❯ command tests/persistence/share-add.test.ts:379:74
+ ❯ tests/persistence/share-add.test.ts:405:73
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/service/share-links.test.ts > 실제 저장소를 쓰는 공유 담기 서비스 > 키로 담은 링크는 소유자 보관함에서 수집을 기다리는 새 상품이고, 다시 담으면 duplicate만 알린다
+Error: not implemented
+ ❯ toShareLinkAddCommand src/features/share/application/commands.ts:5:105
+      3| export type ShareLinkAddCommand = { secret: ShareSecret; link: SavedLi…
+      4| export type ShareLinkAddResult = { kind: "added" | "duplicate" };
+      5| export function toShareLinkAddCommand(_secret: ShareSecret, _url: unkn…
+       |                                                                                                         ^
+      6|
+ ❯ tests/service/share-links.test.ts:30:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/service/share-links.test.ts > 실제 저장소를 쓰는 공유 담기 서비스 > 폐기한 키는 key_rejected이고 보관함은 그대로다
+Error: not implemented
+ ❯ toShareLinkAddCommand src/features/share/application/commands.ts:5:105
+      3| export type ShareLinkAddCommand = { secret: ShareSecret; link: SavedLi…
+      4| export type ShareLinkAddResult = { kind: "added" | "duplicate" };
+      5| export function toShareLinkAddCommand(_secret: ShareSecret, _url: unkn…
+       |                                                                                                         ^
+      6|
+ ❯ tests/service/share-links.test.ts:50:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed | 13 skipped (15)
+      Tests  5 failed | 217 skipped (222)
+   Start at  21:45:25
+   Duration  3.37s (tests 58%, import 39%, transform 2%, worker 1%)
+
+    Isolate  15 workers spawned · ~55ms startup each (spawn + environment, per file)
+             at least ~771ms faster with isolate: false — reuses workers across files instead of one per file
+

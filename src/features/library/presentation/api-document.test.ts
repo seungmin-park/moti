@@ -69,4 +69,19 @@ describe("API 문서", () => {
     expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "413", "415", "503"]));
     expect(operation.responses["413"].description).toContain("4194304");
   });
+
+  it("단축어 경로는 Bearer 키로만 받는 POST로 결과·거절 응답을 문서에 남기고 소유자 경로는 쿠키 세션을 쓴다", () => {
+    const document = buildApiDocument();
+    const operation = document.paths["/api/share/links"]?.post as {
+      security: unknown;
+      requestBody: { content: Record<string, { schema: { properties?: Record<string, unknown> } }> };
+      responses: Record<string, { headers?: Record<string, unknown> }>;
+    };
+    expect(operation.security).toEqual([{ shareKey: [] }]);
+    expect(document.components.securitySchemes.shareKey).toMatchObject({ type: "http", scheme: "bearer" });
+    expect(Object.keys(operation.requestBody.content["application/json"].schema.properties ?? {})).toEqual(["url"]);
+    expect(Object.keys(operation.responses)).toEqual(["200", "201", "400", "401", "409", "413", "415", "429", "503"]);
+    expect(Object.keys(operation.responses["401"].headers ?? {})).toEqual(["WWW-Authenticate"]);
+    expect(document.paths["/api/library"]?.get).not.toHaveProperty("security");
+  });
 });

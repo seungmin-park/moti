@@ -74,6 +74,17 @@ export default defineConfig([
     },
   },
   {
+    files: ["src/app/_server/share-context.ts", "src/app/api/share/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [
+        {
+          group: ["next/headers", "@supabase/ssr", "**/_server/context", "./context"],
+          message: "단축어 요청은 쿠키를 읽지도 쓰지도 않는다. 키만 인증이다.",
+        },
+      ] }],
+    },
+  },
+  {
     files: ["src/app/**/page.tsx"],
     rules: {
       "no-restricted-imports": ["error", { patterns: [

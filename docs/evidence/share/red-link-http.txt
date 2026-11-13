@@ -1,0 +1,133 @@
+# Red: the Shortcut route (step 4), real HTTP. The app was built before src/app/api/share/links/route.ts existed; persistence (175) and service (47) passed with the real adapter, then the HTTP phase:
+# The passing case 'the key is not a session' is a guard that already holds: owner routes answer 401 signed_out to a bearer key with no cookie.
+# Command: npm run test:database (with the earlier build)
+Starting the built app on 127.0.0.1:3180 against the isolated Supabase stack.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/http/library-api.test.ts (10 tests) 3273ms
+   ✓ 실제 HTTP 보관함 API (6)
+     ✓ 허용한 Google 계정은 저장한 컬렉션과 링크를 다시 로그인한 새 세션에서도 읽는다 459ms
+     ✓ 다른 Google 계정의 세션은 403이고 쿠키와 서버 세션을 폐기해 이후 쓰기도 저장하지 않는다 336ms
+     ✓ 다른 출처의 쓰기 요청은 소유자 세션이어도 403이고 저장하지 않는다 325ms
+     ✓ 업무 규칙에 맞지 않는 링크는 필드와 함께 400이고 저장하지 않는다 326ms
+     ✓ 없는 컬렉션을 지정하면 422이고 저장하지 않는다 330ms
+   ✓ 실제 HTTP 로그인 경로 (3)
+     ✓ 같은 출처의 로그아웃은 인증 쿠키를 지운다 330ms
+   ✓ 실제 HTTP 세션 갱신 (1)
+     ✓ 접근 토큰이 만료된 세션의 조회는 Route Handler가 refresh token으로 갱신하고 새 인증 쿠키를 내려준다 341ms
+ ✓ tests/http/library-backup.test.ts (7 tests) 2793ms
+   ✓ 실제 HTTP 백업 내려받기 (2)
+     ✓ 소유자는 서울 시각 이름의 첨부 파일로 저장한 링크와 컬렉션을 담은 백업을 받는다 384ms
+     ✓ 세션이 없으면 첨부 파일 대신 401 JSON 오류다 327ms
+   ✓ 실제 HTTP 복원 (5)
+     ✓ 소유자는 내려받은 파일로 바뀐 보관함을 되돌리고 같은 파일을 다시 내려받는다 395ms
+     ✓ 4MiB를 넘는 선언한 길이은 413이고 보관함을 바꾸지 않는다 366ms
+     ✓ 4MiB를 넘는 길이 없이 흘려보낸 본문은 413이고 보관함을 바꾸지 않는다 371ms
+     ✓ 다른 출처·JSON이 아닌 형식·바뀐 파일·세션 없음은 거절하고 보관함을 바꾸지 않는다 370ms
+     ✓ 복원한 뒤 응답 밖에서 파일에 없는 상품의 사진 사본을 버린다 579ms
+ ❯ tests/http/share-links.test.ts (5 tests | 4 failed) 1726ms
+   ❯ 실제 HTTP 단축어 경로 (5)
+     × 소유자가 만든 키로 단축어처럼 담으면 201이고 보관함에는 수집을 기다리는 상품으로 보이며, 다시 담으면 200이다 376ms
+     × 폐기한 키, 모르는 키와 형식이 틀린 키는 바이트까지 같은 401이고 아무것도 담지 않는다 341ms
+     ✓ 키는 세션이 아니다: 같은 출처 Origin과 키만으로 소유자 경로를 부르면 모두 401 signed_out이고 DB는 그대로다 348ms
+     × 쿠키는 이 경로의 인증이 아니다: 소유자 쿠키만으로는 401이고, 만료된 세션 쿠키와 키를 함께 보내면 키로 담고 쿠키를 건드리지 않는다 329ms
+     × 다른 사이트의 사전 요청과 요청에는 CORS 허용 헤더를 주지 않는다 331ms
+ ✓ tests/http/library-organize.test.ts (5 tests) 1954ms
+   ✓ 실제 HTTP 상품 정리 (4)
+     ✓ 소유자는 실제 요청으로 이름·메모·컬렉션을 고치고 구매·기록·되돌리기를 하며 새 세션에서도 같은 값을 읽는다 486ms
+     ✓ 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 고치면 계약에 맞는 409 revision_conflict이고 저장은 그대로다 352ms
+     ✓ 업무 규칙에 맞지 않는 구매일은 필드와 함께 400이고 저장하지 않는다 352ms
+     ✓ 다른 출처의 PATCH는 소유자 세션이어도 403이고 상품과 컬렉션을 바꾸지 않는다 343ms
+   ✓ 실제 HTTP 컬렉션 이름 바꾸기 (1)
+     ✓ 이름을 바꾸면 200이고 새 세션에서도 소속 상품과 함께 새 이름을 읽으며, 다른 컬렉션과 대소문자만 다른 이름은 409다 421ms
+ ✓ tests/http/metadata-collection.test.ts (4 tests) 1628ms
+   ✓ 실제 HTTP 정보 수집 (4)
+     ✓ 저장은 바로 대기 상태로 응답하고, 응답 뒤 수집이 막힌 주소를 기록해도 링크는 남는다 370ms
+     ✓ 실패한 상품을 다시 가져오면 202와 다음 세대로 응답하고 다시 수집해 같은 이유로 실패한다 573ms
+     ✓ 막 담겨 대기 중인 상품을 다시 가져오면 409이고 작업을 늘리지 않는다 346ms
+     ✓ 없는 상품, 잘못된 경로·본문과 다른 출처의 다시 가져오기는 계약대로 거절한다 338ms
+ ✓ tests/http/product-pictures.test.ts (4 tests) 1636ms
+   ✓ 실제 HTTP 사진 사본 (4)
+     ✓ 보관함은 같은 출처의 사진 주소만 주고 그 주소는 서명한 비공개 사본으로 보낸다 417ms
+     ✓ 사본이 없거나 상품이 없으면 404로 답하고 사진 주소가 UUID가 아니면 400이다 349ms
+     ✓ 로그인하지 않았거나 허용하지 않은 계정에는 사진을 보내지 않는다 419ms
+     ✓ 사진을 가져오지 못한 상품은 다시 가져오기가 202이고 다시 읽어도 링크·이름·가격은 남는다 445ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/http/share-links.test.ts > 실제 HTTP 단축어 경로 > 소유자가 만든 키로 단축어처럼 담으면 201이고 보관함에는 수집을 기다리는 상품으로 보이며, 다시 담으면 200이다
+AssertionError: expected 404 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 404
+
+ ❯ tests/http/share-links.test.ts:73:26
+     71|     const added = await shortcut(secret);
+     72|
+     73|     expect(added.status).toBe(201);
+       |                          ^
+     74|     expectNoSession(added);
+     75|     expect(shareLinkAddResponseSchema.parse(await added.json())).toEqu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/http/share-links.test.ts > 실제 HTTP 단축어 경로 > 폐기한 키, 모르는 키와 형식이 틀린 키는 바이트까지 같은 401이고 아무것도 담지 않는다
+AssertionError: expected 404 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 404
+
+ ❯ tests/http/share-links.test.ts:107:31
+    105|     const bodies = await Promise.all(responses.map((response) => respo…
+    106|     for (const response of responses) {
+    107|       expect(response.status).toBe(401);
+       |                               ^
+    108|       expect(response.headers.get("www-authenticate")).toBe("Bearer");
+    109|       expectNoSession(response);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/http/share-links.test.ts > 실제 HTTP 단축어 경로 > 쿠키는 이 경로의 인증이 아니다: 소유자 쿠키만으로는 401이고, 만료된 세션 쿠키와 키를 함께 보내면 키로 담고 쿠키를 건드리지 않는다
+AssertionError: expected 404 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 404
+
+ ❯ tests/http/share-links.test.ts:153:31
+    151|       body: JSON.stringify({ url: "https://shop.example/lamp" }),
+    152|     });
+    153|     expect(cookieOnly.status).toBe(401);
+       |                               ^
+    154|     expect(shareLinkErrorResponseSchema.parse(await cookieOnly.json())…
+    155|     expect((await stored()).products).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/http/share-links.test.ts > 실제 HTTP 단축어 경로 > 다른 사이트의 사전 요청과 요청에는 CORS 허용 헤더를 주지 않는다
+AssertionError: the given combination of arguments (null and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/http/share-links.test.ts:176:44
+    174|     expect(preflight.headers.get("access-control-allow-origin")).toBeN…
+    175|     expect(preflight.headers.get("access-control-allow-headers")).toBe…
+    176|     expect(preflight.headers.get("allow")).toContain("POST");
+       |                                            ^
+    177|
+    178|     const crossSite = await shortcut(secret, { url: "https://shop.exam…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed | 5 passed (6)
+      Tests  4 failed | 31 passed (35)
+   Start at  21:47:26
+   Duration  13.85s (tests 97%, import 3%)
+

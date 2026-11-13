@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import type { Product } from "../../src/features/library/domain/library";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
+import { toShareLinkAddCommand } from "../../src/features/share/application/commands";
+import { ShareError, parseShareSecret, type ShareSecret } from "../../src/features/share/domain/share-key";
+import { createSupabaseShareLinkStore } from "../../src/features/share/infrastructure/supabase-share-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 import { readDatabaseConfig } from "../support/database-config";
 
@@ -55,7 +58,8 @@ async function keyRow(id: string) {
   return rows[0];
 }
 
-const ownerView = ({ id: _id, sourceUrl: _source, identityUrl: _identity, addedAt: _added, updatedAt: _updated, ...rest }: Product) => rest;
+const ownerView = (product: Product) =>
+  ({ ...product, id: undefined, sourceUrl: undefined, identityUrl: undefined, addedAt: undefined, updatedAt: undefined });
 
 describe("저장 키로 링크 담기", () => {
   it("키로 담으면 소유자가 저장한 것과 같은 상품과 첫 수집 작업을 만들고 결과의 종류만 돌려준다", async () => {
@@ -367,5 +371,38 @@ describe("저장 키 역할의 권한", () => {
       connection.release();
     }
     expect((await library().snapshot()).products).toEqual([product]);
+  });
+});
+
+describe("공유 담기 어댑터", () => {
+  const store = () => createSupabaseShareLinkStore(fixture.anonymous);
+  const command = (secret: string, url = "https://shop.example/lamp") => toShareLinkAddCommand(secret as ShareSecret, url);
+
+  it("익명 클라이언트로 담은 결과를 종류로 돌려준다", async () => {
+    const secret = parseShareSecret((await issue()).secret)!;
+    expect(await store().add(command(secret))).toEqual({ kind: "added" });
+    expect(await store().add(command(secret, "https://shop.example/lamp?utm_source=again"))).toEqual({ kind: "duplicate" });
+    expect(await counts()).toEqual({ products: 1, jobs: 1 });
+  });
+
+  it("거절한 키·한도·잘못된 링크를 ShareError 코드로 바꾸고 메시지에 DB 문구를 싣지 않는다", async () => {
+    const issued = await issue();
+    await expect(store().add(command(wellFormed()))).rejects.toMatchObject({ code: "key_rejected" });
+    await fixture.admin.query(
+      "update moti.share_keys set window_uses = 30, window_started_at = now() where id = $1", [issued.key.id],
+    );
+    await expect(store().add(command(issued.secret))).rejects.toMatchObject({ code: "key_busy" });
+    await fixture.admin.query("update moti.share_keys set window_uses = 0 where id = $1", [issued.key.id]);
+    const forged = { secret: issued.secret as ShareSecret, link: { sourceUrl: "javascript:alert(1)", identityUrl: "javascript:alert(1)", option: "", shop: "x" } };
+    const refused = await store().add(forged).catch((error: unknown) => error);
+    expect(refused).toBeInstanceOf(ShareError);
+    expect(refused).toMatchObject({ code: "invalid_input" });
+    expect((refused as Error).message).not.toMatch(/M000|invalid link input/);
+  });
+
+  it("소유자 세션 클라이언트로 부르면 저장소를 쓸 수 없다고 끝내고 아무것도 담지 않는다", async () => {
+    const secret = (await issue()).secret;
+    await expect(createSupabaseShareLinkStore(fixture.owner.client).add(command(secret))).rejects.toMatchObject({ code: "storage_unavailable" });
+    expect(await counts()).toEqual({ products: 0, jobs: 0 });
   });
 });

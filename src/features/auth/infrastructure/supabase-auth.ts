@@ -41,15 +41,30 @@ export function createSupabaseServerClient(config: AuthConfig, cookies: CookieJa
   });
 }
 
+function boundedFetch(requestTimeoutMs: number): typeof fetch {
+  return (input, init) => {
+    const timeout = AbortSignal.timeout(requestTimeoutMs);
+    return fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout });
+  };
+}
+
 // For work that outlives the request: it cannot write cookies, so it cannot refresh and only uses this token.
 // Every call is bounded because Storage uploads take no abort signal and a hung call would outlive the job's lease.
 export function createAccessTokenClient(config: AuthConfig, accessToken: string,
   { requestTimeoutMs }: { requestTimeoutMs: number }): SupabaseClient {
-  const bounded: typeof fetch = (input, init) => {
-    const timeout = AbortSignal.timeout(requestTimeoutMs);
-    return fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout });
-  };
-  return createClient(config.supabaseUrl, config.supabaseKey, { accessToken: async () => accessToken, global: { fetch: bounded } });
+  return createClient(config.supabaseUrl, config.supabaseKey, {
+    accessToken: async () => accessToken,
+    global: { fetch: boundedFetch(requestTimeoutMs) },
+  });
+}
+
+// For a request that carries no session, such as the share Shortcut's: it never reads or keeps one, so the database
+// always sees anon.
+export function createAnonymousClient(config: AuthConfig, { requestTimeoutMs }: { requestTimeoutMs: number }): SupabaseClient {
+  return createClient(config.supabaseUrl, config.supabaseKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: boundedFetch(requestTimeoutMs) },
+  });
 }
 
 // Call after readGoogleSession: that call validated the session and already refreshed an expiring token.
