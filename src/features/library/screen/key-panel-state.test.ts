@@ -74,6 +74,7 @@ describe("저장 키 만들기", () => {
   it("Given 만드는 중 When 비밀을 받으면 Then 새 키와 비밀을 한 번 보여주고, 붙여 넣었다고 하면 비밀을 지운다", () => {
     const shown = onKeyPanel(ready({ key: null, busy: true }), { type: "key.issue.settled", endpoint: "share", outcome: { ok: true, value: { key: next, secret } } }, true);
     expect(shown.panel).toEqual(ready({ key: next, secret }));
+    expect(shown.call).toEqual({ type: "key.read", endpoint: "share" });
     expect(onKeyPanel(shown.panel, { type: "key.pasted", endpoint: "share" }, true).panel).toEqual(ready({ key: next }));
   });
 

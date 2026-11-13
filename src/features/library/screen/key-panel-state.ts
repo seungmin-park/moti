@@ -132,8 +132,10 @@ export function onKeyPanel(panel: KeyPanel, event: KeyEvent, visible: boolean): 
     case "key.issue.settled":
       if (!panel.busy) return stay(panel);
       if (event.outcome.ok) {
+        // A rotation also stops what ran with the old key (the worker's open run): read what the server has now. The
+        // read keeps the secret on screen.
         const { key, secret } = event.outcome.value;
-        return stay({ ...settled(key), secret: visible ? secret : null });
+        return { panel: { ...settled(key), secret: visible ? secret : null }, call: { type: "key.read", endpoint }, leave: null };
       }
       return failedWrite(panel, endpoint, event.outcome.failure, panel.key);
     case "key.revoke.settled":

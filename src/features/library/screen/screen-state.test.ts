@@ -1197,6 +1197,21 @@ describe("자동 확인", () => {
     expect((state as Ready).worker.panel).toEqual({ ...shown, secret: null });
   });
 
+  it("Given 실행 중인 기록이 보이는 자동 확인에서 바꾸기를 확인함 When 새 키가 오면 Then 비밀을 보이고 기록을 다시 읽어 멈춘 실행을 보인다", () => {
+    const running: WorkerRunResponse = { ...workerRun, finishedAt: null, state: "running" };
+    const issued = transition(opened({ ...shown, secret: null, busy: true }, [running]), {
+      type: "key.issue.settled", endpoint: "worker", outcome: { ok: true, value: { key: workerKey, secret: workerSecret } },
+    });
+    expect(issued.call).toEqual({ type: "key.read", endpoint: "worker" });
+    expect((issued.state as Ready).worker).toEqual({ panel: shown, runs: [running] });
+
+    const stopped: WorkerRunResponse = { ...workerRun, state: "revoked" };
+    const { state } = transition(issued.state, {
+      type: "key.read.settled", endpoint: "worker", outcome: { ok: true, value: { key: workerKey, runs: [stopped] } },
+    });
+    expect((state as Ready).worker).toEqual({ panel: shown, runs: [stopped] });
+  });
+
   it("Given 공유 저장 보기와 자동 확인 When 작업 키 사건이 오면 Then 공유 키 패널은 그대로다", () => {
     const share = { ...shown, key: shareKey, secret: null };
     const { state, call } = transition(ready({ view: "share", share, dialog: { kind: "worker" }, worker: { panel: { ...shown, secret: null }, runs: [] } }),
