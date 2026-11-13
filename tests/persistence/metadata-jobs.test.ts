@@ -298,6 +298,7 @@ describe("수집 작업 저장소", () => {
       }],
       ["moti_metadata_fail", { p_job_id: job.id, p_lease: job.leaseToken, p_error_code: "timeout" }],
       ["moti_metadata_retry", { p_product_id: product.id, p_expected_generation: 1 }],
+      ["moti_metadata_wake", { p_limit: 8 }],
     ] as const;
     for (const [name, parameters] of calls) {
       expect((await fixture.stranger.client.rpc(name, parameters)).error?.code).toBe("M0001");
@@ -311,7 +312,7 @@ describe("수집 작업 저장소", () => {
        where n.nspname = 'moti' and p.proname like 'metadata_%'`,
     );
     expect(internal.rows.map((row) => row.proname).toSorted()).toEqual([
-      "metadata_claim", "metadata_complete", "metadata_fail", "metadata_retry",
+      "metadata_claim", "metadata_complete", "metadata_fail", "metadata_retry", "metadata_wake",
     ]);
     expect(internal.rows.every((row) => !row.authenticated_execute && !row.anon_execute)).toBe(true);
   });

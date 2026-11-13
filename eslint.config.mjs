@@ -64,11 +64,22 @@ export default defineConfig([
           message: "화면은 API 계약만 쓰는 HTTP 클라이언트다.",
         },
         { regex: "(^|/)(application|domain|infrastructure)(/|$)", message: "화면은 내부 계층을 가져오지 않는다." },
-        { regex: "/presentation/(?!(library-dto|library-backup|login-error)$)", message: "공개 계약만 가져온다." },
+        { regex: "/presentation/(?!(library-dto|library-backup|login-error|share-dto)$)", message: "공개 계약만 가져온다." },
         { regex: "(^@/app/|/_server/)", message: "조립 위치(Route Handler)에 의존하지 않는다." },
         {
           regex: "/wishlist/(?!(link|collection-name|product-fields|CollectionPicker|Dialog)$)",
           message: "목업 상태·예시 데이터·예시 가격을 실제 화면에 들이지 않는다.",
+        },
+      ] }],
+    },
+  },
+  {
+    files: ["src/app/_server/share-context.ts", "src/app/api/share/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [
+        {
+          group: ["next/headers", "@supabase/ssr", "**/_server/context", "./context"],
+          message: "단축어 요청은 쿠키를 읽지도 쓰지도 않는다. 키만 인증이다.",
         },
       ] }],
     },

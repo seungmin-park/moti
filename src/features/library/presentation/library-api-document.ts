@@ -1,5 +1,16 @@
 import { z } from "zod";
 import { MAX_JSON_BYTES } from "../../shared/presentation/http";
+import {
+  MAX_SHARE_BYTES,
+  SHARE_LINKS_PATH,
+  shareLinkAddRequestSchema,
+  shareLinkAddResponseSchema,
+  shareKeyIssueRequestSchema,
+  shareKeyIssueResponseSchema,
+  shareKeyReadResponseSchema,
+  shareKeyRevokeResponseSchema,
+  shareLinkErrorResponseSchema,
+} from "../../share/presentation/share-dto";
 import { MAX_BACKUP_BYTES, libraryBackupSchema } from "./library-backup";
 import {
   collectionCreateRequestSchema,
@@ -12,14 +23,18 @@ import {
   linkSaveResponseSchema,
   metadataRetryRequestSchema,
   metadataRetryResponseSchema,
+  metadataWakeRequestSchema,
+  metadataWakeResponseSchema,
   productChangeRequestSchema,
   productChangeResponseSchema,
 } from "./library-dto";
 
 type Route = {
-  method: "get" | "post" | "patch";
+  method: "get" | "post" | "patch" | "delete";
   path: string;
   summary: string;
+  // Routes without it use the owner's cookie session.
+  security?: "shareKey";
   parameters?: { name: string; in?: "path" | "query"; description: string; schema: z.ZodType }[];
   request?: z.ZodType;
   responses: Record<number, { description: string; schema?: z.ZodType; headers?: Record<string, string> }>;
@@ -139,6 +154,17 @@ export const libraryRoutes: Route[] = [
     },
   },
   {
+    method: "post",
+    path: "/api/library/metadata",
+    summary: "아직 한 번도 시작하지 않은 수집(저장 키로 담은 상품, 복원 뒤 시간 안에 못 끝낸 상품 등)을 깨운다. 지금 세대에서 대기 중이고 시도가 0인 작업을 최신 상품부터 8개까지 다시 대기열 앞에 두고 응답 뒤에 수집한다. 다른 요청이 잡고 있는 작업은 건너뛴다.",
+    request: metadataWakeRequestSchema,
+    responses: {
+      202: { description: "MetadataWakeResponse. 깨운 상품. 없으면 빈 목록이다.", schema: metadataWakeResponseSchema },
+      ...writeFailures,
+      ...denied,
+    },
+  },
+  {
     method: "get",
     path: "/api/products/{productId}/picture",
     summary: "상품의 현재 사진 사본으로 보낸다. 화면의 이미지 주소이며 요청마다 비공개 사본의 1시간짜리 서명 주소를 새로 만든다.",
@@ -156,6 +182,59 @@ export const libraryRoutes: Route[] = [
       404: { description: "상품이 없거나(product_missing) 보여줄 사본이 없다(picture_missing).", schema: errorResponseSchema },
     },
   },
+  {
+    method: "get",
+    path: "/api/share-keys",
+    summary: "공유 저장 키를 읽는다. 활성 키가 있으면 그것을, 없으면 마지막으로 폐기한 키를, 키를 만든 적이 없으면 null을 돌려준다. 끝 네 글자와 만든·마지막으로 담은·폐기한 시각만 보이고 비밀이나 해시는 보이지 않는다.",
+    responses: { 200: { description: "ShareKeyReadResponse", schema: shareKeyReadResponseSchema }, ...denied },
+  },
+  {
+    method: "post",
+    path: "/api/share-keys",
+    summary: "새 저장 키를 만든다. replaces는 화면이 본 활성 키(없었으면 null)이며, 그 키를 폐기하고 새 키를 한 트랜잭션에서 만든다. 비밀은 이 응답에만 한 번 담긴다.",
+    request: shareKeyIssueRequestSchema,
+    responses: {
+      201: { description: "ShareKeyIssueResponse. secret은 moti_sk_ 뒤에 base64url 43자다.", schema: shareKeyIssueResponseSchema },
+      ...writeFailures,
+      ...denied,
+      409: { description: "화면이 본 뒤 다른 곳에서 키가 바뀌었다(revision_conflict). 아무것도 바꾸지 않는다.", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "delete",
+    path: "/api/share-keys/{keyId}",
+    summary: "저장 키를 폐기한다. 이미 폐기한 키는 처음 폐기한 시각 그대로 돌려준다. 폐기가 끝나면 그 키로는 담을 수 없다.",
+    parameters: [{ name: "keyId", description: "저장 키 ID", schema: z.uuid() }],
+    responses: {
+      200: { description: "ShareKeyRevokeResponse. revokedAt이 있다.", schema: shareKeyRevokeResponseSchema },
+      400: { description: "키 ID가 UUID가 아니다.", schema: errorResponseSchema },
+      ...denied,
+      404: { description: "소유자의 키가 아니다(share_key_missing).", schema: errorResponseSchema },
+    },
+  },
+  // The Shortcut's route: the share key is its only credential, and every answer carries the message the Shortcut shows.
+  {
+    method: "post",
+    path: SHARE_LINKS_PATH,
+    summary: "iPhone 공유 단축어가 저장 키로 링크 하나를 담는다. 쿠키 세션은 인증이 아니고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 응답은 결과와 단축어가 보여줄 message뿐이고 상품 정보는 돌려주지 않는다. 상품 정보 수집은 소유자가 moti를 열 때 시작한다.",
+    security: "shareKey",
+    request: shareLinkAddRequestSchema,
+    responses: {
+      201: { description: "ShareLinkAddResponse. 새로 담았다(added).", schema: shareLinkAddResponseSchema },
+      200: { description: "ShareLinkAddResponse. 이미 담겨 있다(duplicate). 아무것도 바꾸지 않는다.", schema: shareLinkAddResponseSchema },
+      400: { description: "본문이 url 하나만 담은 JSON 객체가 아니거나 상품 링크가 아니다(invalid_link).", schema: shareLinkErrorResponseSchema },
+      401: {
+        description: "키가 없거나 형식이 다르거나 모르는 키이거나 폐기한 키다. 모두 같은 본문이다(share_key_rejected).",
+        schema: shareLinkErrorResponseSchema,
+        headers: { "WWW-Authenticate": "Bearer" },
+      },
+      409: { description: "같은 링크인지 확인하지 못했다(identity_conflict).", schema: shareLinkErrorResponseSchema },
+      413: { description: `본문이 ${MAX_SHARE_BYTES}바이트를 넘는다(payload_too_large).`, schema: shareLinkErrorResponseSchema },
+      415: { description: "본문이 application/json이 아니다(unsupported_media_type).", schema: shareLinkErrorResponseSchema },
+      429: { description: "이 키로 지난 한 시간 동안 30번 담았다(share_key_busy). 이미 담은 링크도 센다.", schema: shareLinkErrorResponseSchema },
+      503: { description: "설정이 없거나(unconfigured) 저장소를 쓸 수 없다(unavailable).", schema: shareLinkErrorResponseSchema },
+    },
+  },
 ];
 
 export function buildApiDocument() {
@@ -164,6 +243,7 @@ export function buildApiDocument() {
     paths[route.path] ??= {};
     paths[route.path][route.method] = {
       summary: route.summary,
+      ...(route.security && { security: [{ [route.security]: [] }] }),
       ...(route.parameters && {
         parameters: route.parameters.map((parameter) => ({
           name: parameter.name,
@@ -191,5 +271,18 @@ export function buildApiDocument() {
         }])),
     };
   }
-  return { openapi: "3.1.0", info: { title: "moti library API", version: "1" }, paths };
+  return {
+    openapi: "3.1.0",
+    info: { title: "moti library API", version: "1" },
+    paths,
+    components: {
+      securitySchemes: {
+        shareKey: {
+          type: "http",
+          scheme: "bearer",
+          description: "공유 저장 화면에서 만든 추가 전용 키(moti_sk_ 뒤에 base64url 43자). 링크 추가에만 쓰고 세션이 되지 않는다.",
+        },
+      },
+    },
+  };
 }

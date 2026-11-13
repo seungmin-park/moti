@@ -118,3 +118,15 @@ claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트
 
 교체 규칙은 SQL에 있다. 입력 전체를 먼저 검사하고, 복원을 하나씩 실행하며, 수집 쓰기와 같은 순서로 행을 잠근다. 상품은 링크 판별 값, 컬렉션은 이름(대소문자 무시)으로 맞춰 맞은 행은 id·사진·수집 값을 지키고 revision을 올린다. 설계 비교와 검증은 [changes/backup.md](changes/backup.md)에 있다.
 
+## 공유 저장
+
+`src/features/share/`가 iPhone 공유 단축어를 소유한다. 도메인은 키 형식과 `Authorization` 읽기(`ShareSecret`, `readShareSecret`)와 `ShareError`, 응용 계층은 명령(`ShareLinkAddCommand`, `ShareKeyIssueCommand`, `ShareKeyRevokeCommand`)과 두 포트(`ShareLinkStore`, `ShareKeyStore`), 인프라는 `ShareLinkAddRow`·`ShareKeyRow`를 읽는 Supabase 어댑터, presentation은 계약(`share-dto.ts`)과 단축어 처리기다. 소유자 키 경로와 깨우기 경로는 보관함 처리기(`createLibraryHandlers`)에 붙어 같은 관문(같은 출처·세션·소유자)과 오류표를 쓴다.
+
+```text
+단축어: POST /api/share/links → 키 형식 → share-context(쿠키 없는 익명 클라이언트) → 본문 → parseLink → moti_share_add(moti_share 역할) → { kind } + message
+소유자: GET/POST /api/share-keys, DELETE /api/share-keys/{id} → 보관함 관문 → moti_share_key_*(moti_rpc)
+화면: 보관함을 받음 → 시도 0인 대기 상품 → POST /api/library/metadata → moti_metadata_wake → 응답 뒤 두 개씩 40초 수집
+```
+
+키의 힘은 함수 본문이 아니라 `moti_share` 역할의 열 단위 권한과 정책이 정하고, catalog 테스트가 목록을 고정한다. 키 검사·링크 검사·사용 창은 PostgREST로 직접 불러도 지켜지도록 SQL에 있다. `share-context.ts`와 단축어 경로는 ESLint가 `next/headers`·`@supabase/ssr`·쿠키 컨텍스트를 막는다. 설계 비교와 검증은 [changes/share.md](changes/share.md)에 있다.
+

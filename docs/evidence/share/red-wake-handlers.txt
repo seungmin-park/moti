@@ -1,0 +1,551 @@
+# Red: wake waiting collections (step 6), handler, screen and API client. Nothing for wake existed yet: no POST /api/library/metadata handler, no metadata.wake call or wake.settled event, no api.wake, no OpenAPI path.
+# The two passing wake cases (a failed or stale wake leaves the screen as it was) are guards an unknown event already satisfies.
+# Command: npx vitest run src/features/library src/features/metadata
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/presentation/api-document.test.ts (9 tests | 1 failed) 56ms
+   ❯ API 문서 (9)
+     × 깨우기 경로는 빈 본문의 POST로 202·400·401·403·413·415·503을 문서에 남긴다 5ms
+ ❯ src/features/library/screen/library-api.test.ts (174 tests | 17 failed) 89ms
+   ❯ API 오류 응답의 화면 결과 (149)
+     × Given metadata.wake의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 7ms
+     × Given metadata.wake의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+     × Given metadata.wake의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다 0ms
+   ❯ 보관함 API 클라이언트 (18)
+     × Given 화면을 연 뒤 깨우기 When 요청하면 Then 빈 JSON을 POST로 보내고 202 상품 목록을 돌려준다 0ms
+ ❯ src/features/library/presentation/library-handlers.test.ts (163 tests | 7 failed) 119ms
+   ❯ POST /api/library/metadata (7)
+     × Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집을 맡긴다 4ms
+     × Given 깨울 상품 없음 When 깨우면 Then 빈 목록이고 수집을 맡기지 않는다 0ms
+     × Given 다른 출처 When 깨우면 Then 거절하고 깨우지 않는다 0ms
+     × Given 다른 필드 When 깨우면 Then 거절하고 깨우지 않는다 0ms
+     × Given JSON이 아닌 형식 When 깨우면 Then 거절하고 깨우지 않는다 0ms
+     × Given 세션 없음 When 깨우면 Then 401이고 깨우지 않는다 0ms
+     × Given 저장소 오류 When 깨우면 Then 503이고 수집을 맡기지 않는다 0ms
+ ❯ src/features/library/screen/screen-state.test.ts (103 tests | 4 failed) 32ms
+   ❯ 보관함 불러오기 (5)
+     × Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다 5ms
+   ❯ 요청 실행 (1)
+     × Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다 3ms
+   ❯ 기다리는 수집 깨우기 (4)
+     × Given 멈춘 것으로 보이던 상품 When 깨운 결과가 오면 Then 그 상품만 대기로 바꾸고 나머지는 그대로다 2ms
+     × Given 로그인이 끝난 세션 When 깨우기 결과가 오면 Then 로그인으로 떠난다 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 29 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 깨우기 경로는 빈 본문의 POST로 202·400·401·403·413·415·503을 문서에 남긴다
+TypeError: Cannot read properties of undefined (reading 'requestBody')
+ ❯ src/features/library/presentation/api-document.test.ts:109:34
+    107|       responses: Record<string, unknown>;
+    108|     };
+    109|     expect(Object.keys(operation.requestBody.content["application/json…
+       |                                  ^
+    110|     expect(Object.keys(operation.responses)).toEqual(expect.arrayConta…
+    111|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/29]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/metadata > Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집을 맡긴다
+TypeError: handlers.postMetadataWake is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1076:37
+    1074|   it("Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집을…
+    1075|     const { handlers, wake, collectAll } = given(allowed);
+    1076|     const response = await handlers.postMetadataWake(post("/api/librar…
+       |                                     ^
+    1077|     expect(response.status).toBe(202);
+    1078|     expect(response.headers.get("cache-control")).toBe("no-store");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/29]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/metadata > Given 깨울 상품 없음 When 깨우면 Then 빈 목록이고 수집을 맡기지 않는다
+TypeError: handlers.postMetadataWake is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1087:37
+    1085|     const { handlers, wake, collectAll } = given(allowed);
+    1086|     wake.mockResolvedValueOnce({ products: [] });
+    1087|     const response = await handlers.postMetadataWake(post("/api/librar…
+       |                                     ^
+    1088|     expect(metadataWakeResponseSchema.parse(await response.json())).to…
+    1089|     expect(collectAll).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/29]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/metadata > Given 다른 출처 When 깨우면 Then 거절하고 깨우지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/metadata > Given 다른 필드 When 깨우면 Then 거절하고 깨우지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/metadata > Given JSON이 아닌 형식 When 깨우면 Then 거절하고 깨우지 않는다
+TypeError: handlers.postMetadataWake is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1098:37
+    1096|   ] as const)("Given %s When 깨우면 Then 거절하고 깨우지 않는다", async (_name, req…
+    1097|     const { handlers, wake, collectAll } = given(allowed);
+    1098|     const response = await handlers.postMetadataWake(request());
+       |                                     ^
+    1099|     expect(response.status).toBe(status);
+    1100|     expect((await errorOf(response)).error).toBe(code);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/29]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/metadata > Given 세션 없음 When 깨우면 Then 401이고 깨우지 않는다
+TypeError: handlers.postMetadataWake is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1107:28
+    1105|   it("Given 세션 없음 When 깨우면 Then 401이고 깨우지 않는다", async () => {
+    1106|     const { handlers, wake } = given({ kind: "signed_out" });
+    1107|     expect((await handlers.postMetadataWake(post("/api/library/metadat…
+       |                            ^
+    1108|     expect(wake).not.toHaveBeenCalled();
+    1109|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/29]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/metadata > Given 저장소 오류 When 깨우면 Then 503이고 수집을 맡기지 않는다
+TypeError: handlers.postMetadataWake is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1114:28
+    1112|     const { handlers, wake, collectAll } = given(allowed);
+    1113|     wake.mockRejectedValueOnce(new LibraryError("storage_unavailable",…
+    1114|     expect((await handlers.postMetadataWake(post("/api/library/metadat…
+       |                            ^
+    1115|     expect(collectAll).not.toHaveBeenCalled();
+    1116|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'signed_out')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'forbidden')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'unconfigured')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'storage_unavailable')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'cross_origin')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'unsupported_media_type')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'payload_too_large')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'invalid_input')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'collection_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'collection_duplicate')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'identity_conflict')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'product_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'metadata_not_retryable')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'revision_conflict')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'picture_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given metadata.wake의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'share_key_missing')
+ ❯ toApiFailure src/features/library/screen/library-api.ts:225:47
+    223| export function toApiFailure(endpoint: Endpoint, status: number, body:…
+    224|   const error = errorResponseSchema.safeParse(body);
+    225|   if (error.success) return failures[endpoint][error.data.error](error…
+       |                                               ^
+    226|   return status === 401 ? session.signed_out() : connection;
+    227| }
+ ❯ src/features/library/screen/library-api.test.ts:234:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/29]⎯
+
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 화면을 연 뒤 깨우기 When 요청하면 Then 빈 JSON을 POST로 보내고 202 상품 목록을 돌려준다
+TypeError: api.wake is not a function
+ ❯ src/features/library/screen/library-api.test.ts:328:22
+    326|   it("Given 화면을 연 뒤 깨우기 When 요청하면 Then 빈 JSON을 POST로 보내고 202 상품 목록을 돌려…
+    327|     const { fetcher, api } = respond({ products: [product] }, { status…
+    328|     await expect(api.wake()).resolves.toEqual({ ok: true, value: { pro…
+       |                      ^
+    329|     const [path, init] = fetcher.mock.calls[0];
+    330|     expect(path).toBe("/api/library/metadata");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/29]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 보관함 불러오기 > Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다
+AssertionError: expected null to deeply equal { type: 'metadata.wake' }
+
+- Expected:
+{
+  "type": "metadata.wake",
+}
+
++ Received:
+null
+
+ ❯ src/features/library/screen/screen-state.test.ts:93:18
+     91|     const { state, call } = transition({ phase: "loading" }, { type: "…
+     92|     expect(state).toEqual(ready());
+     93|     expect(call).toEqual({ type: "metadata.wake" });
+       |                  ^
+     94|   });
+     95|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/29]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 요청 실행 > Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다
+AssertionError: expected undefined to deeply equal { type: 'wake.settled', …(1) }
+
+- Expected:
+{
+  "outcome": {
+    "ok": true,
+    "value": {
+      "products": [
+        {
+          "addedAt": "2026-11-10T00:00:00.000Z",
+          "collectionIds": [
+            "11111111-1111-4111-8111-111111111111",
+          ],
+          "id": "22222222-2222-4222-8222-222222222222",
+          "identityUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+          "lastSuccessfulPrice": null,
+          "metadata": {
+            "attempts": 0,
+            "generation": 1,
+            "phase": "queued",
+            "stalled": false,
+          },
+          "note": "",
+          "option": "",
+          "picture": null,
+          "purchase": {
+            "status": "wish",
+          },
+          "revision": 1,
+          "shop": "example.com",
+          "sourceUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
+          "title": "새로 담은 상품",
+          "updatedAt": "2026-11-10T00:00:00.000Z",
+        },
+      ],
+    },
+  },
+  "type": "wake.settled",
+}
+
++ Received:
+undefined
+
+ ❯ src/features/library/screen/screen-state.test.ts:516:58
+    514|     await expect(perform(api, { type: "library.poll" })).resolves.toEq…
+    515|     expect(api.read).toHaveBeenCalledTimes(2);
+    516|     await expect(perform(api, { type: "metadata.wake" })).resolves.toE…
+       |                                                          ^
+    517|     expect(api.wake).toHaveBeenCalledOnce();
+    518|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/29]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 기다리는 수집 깨우기 > Given 멈춘 것으로 보이던 상품 When 깨운 결과가 오면 Then 그 상품만 대기로 바꾸고 나머지는 그대로다
+AssertionError: expected [ { …(15) }, { …(15) } ] to deeply equal [ { …(15) }, { …(15) } ]
+
+- Expected
++ Received
+
+@@ -9,11 +9,11 @@
+      "lastSuccessfulPrice": null,
+      "metadata": {
+        "attempts": 0,
+        "generation": 1,
+        "phase": "queued",
+-       "stalled": false,
++       "stalled": true,
+      },
+      "note": "",
+      "option": "",
+      "picture": null,
+      "purchase": {
+
+ ❯ src/features/library/screen/screen-state.test.ts:1051:31
+    1049|   it("Given 멈춘 것으로 보이던 상품 When 깨운 결과가 오면 Then 그 상품만 대기로 바꾸고 나머지는 그대로다"…
+    1050|     const { state, call } = transition(withProducts([stalledLamp, chai…
+    1051|     expect(productsOf(state)).toEqual([woken, chair]);
+       |                               ^
+    1052|     expect(call).toBeNull();
+    1053|     expect(pollDelay(state, 0)).not.toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/29]⎯
+
+ FAIL  src/features/library/screen/screen-state.test.ts > 기다리는 수집 깨우기 > Given 로그인이 끝난 세션 When 깨우기 결과가 오면 Then 로그인으로 떠난다
+AssertionError: expected { phase: 'ready', …(7) } to deeply equal { phase: 'leaving', to: '/login' }
+
+- Expected
++ Received
+
+  {
+-   "phase": "leaving",
+-   "to": "/login",
++   "collectionId": null,
++   "dialog": null,
++   "library": {
++     "collections": [
++       {
++         "createdAt": "2026-11-10T00:00:00.000Z",
++         "id": "11111111-1111-4111-8111-111111111111",
++         "name": "Desk",
++         "revision": 1,
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++       {
++         "createdAt": "2026-11-10T00:00:00.000Z",
++         "id": "33333333-3333-4333-8333-333333333333",
++         "name": "방",
++         "revision": 1,
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++     ],
++     "products": [
++       {
++         "addedAt": "2026-11-10T00:00:00.000Z",
++         "collectionIds": [
++           "11111111-1111-4111-8111-111111111111",
++         ],
++         "id": "22222222-2222-4222-8222-222222222222",
++         "identityUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
++         "lastSuccessfulPrice": null,
++         "metadata": {
++           "attempts": 0,
++           "generation": 1,
++           "phase": "queued",
++           "stalled": false,
++         },
++         "note": "",
++         "option": "",
++         "picture": null,
++         "purchase": {
++           "status": "wish",
++         },
++         "revision": 1,
++         "shop": "example.com",
++         "sourceUrl": "https://example.com/22222222-2222-4222-8222-222222222222",
++         "title": "새로 담은 상품",
++         "updatedAt": "2026-11-10T00:00:00.000Z",
++       },
++       {
++         "addedAt": "2026-11-11T00:00:00.000Z",
++         "collectionIds": [],
++         "id": "44444444-4444-4444-8444-444444444444",
++         "identityUrl": "https://example.com/44444444-4444-4444-8444-444444444444",
++         "lastSuccessfulPrice": null,
++         "metadata": {
++           "attempts": 0,
++           "generation": 1,
++           "phase": "queued",
++           "stalled": false,
++         },
++         "note": "",
++         "option": "",
++         "picture": null,
++         "purchase": {
++           "status": "wish",
++         },
++         "revision": 1,
++         "shop": "example.com",
++         "sourceUrl": "https://example.com/44444444-4444-4444-8444-444444444444",
++         "title": "새로 담은 상품",
++         "updatedAt": "2026-11-11T00:00:00.000Z",
++       },
++     ],
++   },
++   "phase": "ready",
++   "refreshing": false,
++   "toast": null,
++   "view": "wish",
++   "writing": null,
+  }
+
+ ❯ src/features/library/screen/screen-state.test.ts:1069:19
+    1067|   it("Given 로그인이 끝난 세션 When 깨우기 결과가 오면 Then 로그인으로 떠난다", () => {
+    1068|     const { state } = transition(ready(), { type: "wake.settled", outc…
+    1069|     expect(state).toEqual({ phase: "leaving", to: "/login" });
+       |                   ^
+    1070|   });
+    1071| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/29]⎯
+
+
+ Test Files  4 failed | 14 passed (18)
+      Tests  29 failed | 788 passed (817)
+   Start at  22:02:42
+   Duration  579ms (tests 37%, import 31%, transform 29%, worker 3%)
+

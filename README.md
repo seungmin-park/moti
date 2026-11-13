@@ -41,4 +41,4 @@ Domain·Persistence·Service·API의 검증 범위와 데이터 정리는 [테�
 
 ## 다음 단계
 
-실제 저장·단일 계정 인증·보관함 화면을 연결했습니다. 외부 쇼핑몰 정보 수집, 가격 추적, 실제 단축어 저장, 내보내기·복원은 아직 연결하지 않았습니다. 실제 Google 로그인과 운영 Supabase는 배포 전에 따로 확인합니다. [구현 순서](docs/backend-implementation.md)와 [체크포인트](docs/implementation-checkpoint.md)에 상태를 기록합니다. 배포는 별도 승인 후 진행합니다.
+실제 저장·단일 계정 인증·보관함 화면, 상품 정보와 사진 수집, 정리와 구매 기록, 백업과 복원, iPhone 공유 단축어의 추가 전용 저장 키를 연결했습니다. 정기 가격 추적은 아직 연결하지 않았습니다. 실제 iPhone 단축어, Google 로그인과 운영 Supabase는 배포 전에 따로 확인합니다. [구현 순서](docs/backend-implementation.md)와 [체크포인트](docs/implementation-checkpoint.md)에 상태를 기록합니다. 배포는 별도 승인 후 진행합니다.

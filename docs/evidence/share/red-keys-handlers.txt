@@ -1,0 +1,915 @@
+# Red: owner key routes (step 5), handler and OpenAPI. library-handlers.ts and library-api-document.ts were the previous commit's (no getShareKey/postShareKey/deleteShareKey, no share-keys paths); the DTO, commands and store types were in place.
+# Command: npx vitest run src/features/library/presentation
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ src/features/library/presentation/api-document.test.ts (8 tests | 2 failed) 38ms
+   ❯ API 문서 (8)
+     × 커밋한 OpenAPI 문서가 실행 계약에서 생성한 문서와 같다 17ms
+     × 저장 키 경로는 읽기 GET, 만들기 POST 201·409, 폐기 DELETE 200·404를 쿠키 세션으로 문서에 남긴다 2ms
+ ❯ src/features/library/presentation/library-handlers.test.ts (156 tests | 19 failed) 76ms
+   ❯ GET /api/share-keys (5)
+     × Given 허용한 Google 계정 When 저장 키를 읽으면 Then 200과 끝 네 글자·시각만 돌려주고 비밀은 없다 3ms
+     × Given 키를 만든 적 없음 When 읽으면 Then key는 null이다 0ms
+     × Given {"kind":"signed_out"} When 읽으면 Then 401 signed_out이고 키를 읽지 않는다 0ms
+     × Given {"kind":"forbidden"} When 읽으면 Then 403 forbidden이고 키를 읽지 않는다 0ms
+     × Given {"kind":"unconfigured"} When 읽으면 Then 503 unconfigured이고 키를 읽지 않는다 0ms
+   ❯ POST /api/share-keys (10)
+     × Given 같은 출처의 소유자 When 화면에 키가 없던 상태로 만들면 Then 201과 비밀을 한 번 돌려주고 캐시하지 않는다 0ms
+     × Given 화면이 본 활성 키 When 새 키로 바꾸면 Then 그 키 ID를 소문자로 넘긴다 0ms
+     × Given 다른 출처 When 키를 만들면 Then 403 cross_origin이고 키를 만들지 않는다 0ms
+     × Given Origin 없음 When 키를 만들면 Then 403 cross_origin이고 키를 만들지 않는다 0ms
+     × Given UUID가 아닌 replaces When 키를 만들면 Then 400이고 키를 만들지 않는다 0ms
+     × Given replaces 없음 When 키를 만들면 Then 400이고 키를 만들지 않는다 0ms
+     × Given 다른 필드 When 키를 만들면 Then 400이고 키를 만들지 않는다 0ms
+     × Given 숫자 replaces When 키를 만들면 Then 400이고 키를 만들지 않는다 0ms
+     × Given 다른 곳에서 키가 바뀜 When 오래된 화면으로 만들면 Then 409 revision_conflict다 0ms
+     × Given 세션 없음 When 키를 만들면 Then 401이고 키를 만들지 않는다 0ms
+   ❯ DELETE /api/share-keys/{keyId} (4)
+     × Given 같은 출처의 소유자 When 키를 폐기하면 Then 200과 폐기 시각이 있는 키를 돌려준다 0ms
+     × Given 다른 출처 When 키를 폐기하면 Then 403이고 폐기하지 않는다 0ms
+     × Given UUID가 아닌 키 ID When 폐기하면 Then 400이고 폐기하지 않는다 0ms
+     × Given 소유자에게 없는 키 When 폐기하면 Then 404 share_key_missing이다 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 커밋한 OpenAPI 문서가 실행 계약에서 생성한 문서와 같다
+AssertionError: npm run api:doc으로 문서를 다시 생성하세요.: expected '{\n  "openapi": "3.1.0",\n  "info": {…' to be '{\n  "openapi": "3.1.0",\n  "info": {…' // Object.is equality
+
+- Expected
++ Received
+
+@@ -451,11 +451,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -497,11 +496,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -543,11 +541,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -812,11 +809,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -858,11 +854,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -904,11 +899,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -1584,11 +1578,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -1630,11 +1623,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -1676,11 +1668,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -1722,11 +1713,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -1768,11 +1758,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -1814,11 +1803,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -2663,11 +2651,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -2709,11 +2696,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -2755,11 +2741,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -2801,11 +2786,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -2847,11 +2831,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -2893,11 +2876,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -2939,11 +2921,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -2985,11 +2966,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3104,11 +3084,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3150,11 +3129,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3196,11 +3174,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3242,11 +3219,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3288,11 +3264,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3334,11 +3309,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3380,11 +3354,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3519,11 +3492,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3565,11 +3537,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3611,11 +3582,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3657,11 +3627,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3703,11 +3672,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3749,11 +3717,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3795,11 +3762,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -3841,11 +3807,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4411,11 +4376,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4457,11 +4421,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4503,11 +4466,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4549,11 +4511,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4595,11 +4556,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4641,11 +4601,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4687,11 +4646,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4733,11 +4691,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -4779,11 +4736,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5242,11 +5198,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5288,11 +5243,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5334,11 +5288,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5380,11 +5333,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5426,11 +5378,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5472,11 +5423,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5518,11 +5468,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5564,11 +5513,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5660,11 +5608,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5706,11 +5653,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5752,11 +5698,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5798,11 +5743,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+@@ -5844,11 +5788,10 @@
+                          "identity_conflict",
+                          "product_missing",
+                          "metadata_not_retryable",
+                          "revision_conflict",
+                          "picture_missing",
+-                         "share_key_missing",
+                          "storage_unavailable"
+                        ]
+                      },
+                      "message": {
+                        "type": "string",
+
+ ❯ src/features/library/presentation/api-document.test.ts:12:75
+     10|     const generated = `${JSON.stringify(buildApiDocument(), null, 2)}\…
+     11|     if (process.env.UPDATE_API_DOC === "1") writeFileSync(file, genera…
+     12|     expect(readFileSync(file, "utf8"), "npm run api:doc으로 문서를 다시 생성하세요…
+       |                                                                           ^
+     13|   });
+     14|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/21]⎯
+
+ FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 저장 키 경로는 읽기 GET, 만들기 POST 201·409, 폐기 DELETE 200·404를 쿠키 세션으로 문서에 남긴다
+TypeError: Cannot convert undefined or null to object
+ ❯ src/features/library/presentation/api-document.test.ts:91:19
+     89|     const document = buildApiDocument();
+     90|     const keys = document.paths["/api/share-keys"] as Record<string, {…
+     91|     expect(Object.keys(keys).toSorted()).toEqual(["get", "post"]);
+       |                   ^
+     92|     expect(Object.keys(keys.get.responses)).toEqual(expect.arrayContai…
+     93|     expect(keys.post.requestBody).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/share-keys > Given 허용한 Google 계정 When 저장 키를 읽으면 Then 200과 끝 네 글자·시각만 돌려주고 비밀은 없다
+TypeError: handlers.getShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:940:37
+    938|   it("Given 허용한 Google 계정 When 저장 키를 읽으면 Then 200과 끝 네 글자·시각만 돌려주고 비밀은…
+    939|     const { handlers, shareKeys } = given(allowed);
+    940|     const response = await handlers.getShareKey(read());
+       |                                     ^
+    941|     expect(response.status).toBe(200);
+    942|     expect(response.headers.get("cache-control")).toBe("no-store");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/share-keys > Given 키를 만든 적 없음 When 읽으면 Then key는 null이다
+TypeError: handlers.getShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:952:67
+    950|     const { handlers, shareKeys } = given(allowed);
+    951|     shareKeys.read.mockResolvedValueOnce(null);
+    952|     expect(shareKeyReadResponseSchema.parse(await (await handlers.getS…
+       |                                                                   ^
+    953|   });
+    954|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/share-keys > Given {"kind":"signed_out"} When 읽으면 Then 401 signed_out이고 키를 읽지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/share-keys > Given {"kind":"forbidden"} When 읽으면 Then 403 forbidden이고 키를 읽지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/share-keys > Given {"kind":"unconfigured"} When 읽으면 Then 503 unconfigured이고 키를 읽지 않는다
+TypeError: handlers.getShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:961:37
+    959|   ])("Given %j When 읽으면 Then %i %s이고 키를 읽지 않는다", async (access, status…
+    960|     const { handlers, shareKeys, signOut } = given(access);
+    961|     const response = await handlers.getShareKey(read({ authorization: …
+       |                                     ^
+    962|     expect(response.status).toBe(status);
+    963|     expect((await errorOf(response)).error).toBe(code);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given 같은 출처의 소유자 When 화면에 키가 없던 상태로 만들면 Then 201과 비밀을 한 번 돌려주고 캐시하지 않는다
+TypeError: handlers.postShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:972:37
+    970|   it("Given 같은 출처의 소유자 When 화면에 키가 없던 상태로 만들면 Then 201과 비밀을 한 번 돌려주고 캐…
+    971|     const { handlers, shareKeys } = given(allowed);
+    972|     const response = await handlers.postShareKey(post("/api/share-keys…
+       |                                     ^
+    973|     expect(response.status).toBe(201);
+    974|     expect(response.headers.get("cache-control")).toBe("no-store");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given 화면이 본 활성 키 When 새 키로 바꾸면 Then 그 키 ID를 소문자로 넘긴다
+TypeError: handlers.postShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:981:20
+    979|   it("Given 화면이 본 활성 키 When 새 키로 바꾸면 Then 그 키 ID를 소문자로 넘긴다", async () …
+    980|     const { handlers, shareKeys } = given(allowed);
+    981|     await handlers.postShareKey(post("/api/share-keys", { replaces: sh…
+       |                    ^
+    982|     expect(shareKeys.issue).toHaveBeenCalledWith({ replaces: shareKey.…
+    983|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given 다른 출처 When 키를 만들면 Then 403 cross_origin이고 키를 만들지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given Origin 없음 When 키를 만들면 Then 403 cross_origin이고 키를 만들지 않는다
+TypeError: handlers.postShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:992:37
+    990|     const request = post("/api/share-keys", { replaces: null }, header…
+    991|     if (!headers.origin) request.headers.delete("origin");
+    992|     const response = await handlers.postShareKey(request);
+       |                                     ^
+    993|     expect(response.status).toBe(403);
+    994|     expect((await errorOf(response)).error).toBe("cross_origin");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given UUID가 아닌 replaces When 키를 만들면 Then 400이고 키를 만들지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given replaces 없음 When 키를 만들면 Then 400이고 키를 만들지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given 다른 필드 When 키를 만들면 Then 400이고 키를 만들지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given 숫자 replaces When 키를 만들면 Then 400이고 키를 만들지 않는다
+TypeError: handlers.postShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1005:37
+    1003|   ])("Given %s When 키를 만들면 Then 400이고 키를 만들지 않는다", async (_name, body)…
+    1004|     const { handlers, shareKeys } = given(allowed);
+    1005|     const response = await handlers.postShareKey(post("/api/share-keys…
+       |                                     ^
+    1006|     expect(response.status).toBe(400);
+    1007|     expect((await errorOf(response)).error).toBe("invalid_input");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given 다른 곳에서 키가 바뀜 When 오래된 화면으로 만들면 Then 409 revision_conflict다
+TypeError: handlers.postShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1014:37
+    1012|     const { handlers, shareKeys } = given(allowed);
+    1013|     shareKeys.issue.mockRejectedValueOnce(new LibraryError("revision_c…
+    1014|     const response = await handlers.postShareKey(post("/api/share-keys…
+       |                                     ^
+    1015|     expect(response.status).toBe(409);
+    1016|     expect((await errorOf(response)).error).toBe("revision_conflict");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/share-keys > Given 세션 없음 When 키를 만들면 Then 401이고 키를 만들지 않는다
+TypeError: handlers.postShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1021:37
+    1019|   it("Given 세션 없음 When 키를 만들면 Then 401이고 키를 만들지 않는다", async () => {
+    1020|     const { handlers, shareKeys } = given({ kind: "signed_out" });
+    1021|     const response = await handlers.postShareKey(post("/api/share-keys…
+       |                                     ^
+    1022|     expect(response.status).toBe(401);
+    1023|     expect(shareKeys.issue).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/share-keys/{keyId} > Given 같은 출처의 소유자 When 키를 폐기하면 Then 200과 폐기 시각이 있는 키를 돌려준다
+TypeError: handlers.deleteShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1034:37
+    1032|   it("Given 같은 출처의 소유자 When 키를 폐기하면 Then 200과 폐기 시각이 있는 키를 돌려준다", asyn…
+    1033|     const { handlers, shareKeys } = given(allowed);
+    1034|     const response = await handlers.deleteShareKey(revoke(shareKey.id)…
+       |                                     ^
+    1035|     expect(response.status).toBe(200);
+    1036|     expect(shareKeyRevokeResponseSchema.parse(await response.json())).…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/share-keys/{keyId} > Given 다른 출처 When 키를 폐기하면 Then 403이고 폐기하지 않는다
+TypeError: handlers.deleteShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1044:37
+    1042|   it("Given 다른 출처 When 키를 폐기하면 Then 403이고 폐기하지 않는다", async () => {
+    1043|     const { handlers, shareKeys } = given(allowed);
+    1044|     const response = await handlers.deleteShareKey(revoke(shareKey.id,…
+       |                                     ^
+    1045|     expect(response.status).toBe(403);
+    1046|     expect((await errorOf(response)).error).toBe("cross_origin");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/share-keys/{keyId} > Given UUID가 아닌 키 ID When 폐기하면 Then 400이고 폐기하지 않는다
+TypeError: handlers.deleteShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1052:37
+    1050|   it("Given UUID가 아닌 키 ID When 폐기하면 Then 400이고 폐기하지 않는다", async () => {
+    1051|     const { handlers, shareKeys } = given(allowed);
+    1052|     const response = await handlers.deleteShareKey(revoke("abc"), rout…
+       |                                     ^
+    1053|     expect(response.status).toBe(400);
+    1054|     expect(shareKeys.revoke).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/21]⎯
+
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/share-keys/{keyId} > Given 소유자에게 없는 키 When 폐기하면 Then 404 share_key_missing이다
+TypeError: handlers.deleteShareKey is not a function
+ ❯ src/features/library/presentation/library-handlers.test.ts:1060:37
+    1058|     const { handlers, shareKeys } = given(allowed);
+    1059|     shareKeys.revoke.mockRejectedValueOnce(new LibraryError("share_key…
+    1060|     const response = await handlers.deleteShareKey(revoke(shareKey.id)…
+       |                                     ^
+    1061|     expect(response.status).toBe(404);
+    1062|     expect(await errorOf(response)).toEqual({ error: "share_key_missin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/21]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  21 failed | 195 passed (216)
+   Start at  21:54:37
+   Duration  291ms (tests 37%, import 34%, transform 27%, worker 1%)
+

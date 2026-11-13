@@ -1,5 +1,14 @@
 import type { z } from "zod";
 import { loginPath } from "../../auth/presentation/login-error";
+import {
+  shareKeyIssueResponseSchema,
+  shareKeyReadResponseSchema,
+  shareKeyRevokeResponseSchema,
+  type ShareKeyIssueRequest,
+  type ShareKeyIssueResponse,
+  type ShareKeyReadResponse,
+  type ShareKeyRevokeResponse,
+} from "../../share/presentation/share-dto";
 import { MAX_BACKUP_BYTES, backupFileName, readLibraryBackup, type BackupCounts } from "../presentation/library-backup";
 import {
   collectionCreateResponseSchema,
@@ -8,6 +17,7 @@ import {
   libraryReadResponseSchema,
   linkSaveResponseSchema,
   metadataRetryResponseSchema,
+  metadataWakeResponseSchema,
   productChangeResponseSchema,
   type CollectionCreateRequest,
   type CollectionCreateResponse,
@@ -20,6 +30,7 @@ import {
   type LinkSaveResponse,
   type MetadataRetryRequest,
   type MetadataRetryResponse,
+  type MetadataWakeResponse,
   type ProductChangeRequest,
   type ProductChangeResponse,
 } from "../presentation/library-dto";
@@ -37,9 +48,13 @@ export type Endpoint =
   | "collection.create"
   | "collection.rename"
   | "metadata.retry"
+  | "metadata.wake"
   | "product.change"
   | "library.backup"
-  | "library.restore";
+  | "library.restore"
+  | "share.read"
+  | "share.issue"
+  | "share.revoke";
 // A backup the server made and the reader accepted, kept as the exact text the owner downloads.
 export type BackupFile = { name: string; text: string; counts: BackupCounts; restorable: boolean };
 export type LibraryApi = {
@@ -52,6 +67,10 @@ export type LibraryApi = {
   exportBackup(): Promise<ApiOutcome<BackupFile>>;
   // Sends the chosen file's text unchanged, so the server checks exactly what the screen checked.
   restore(text: string): Promise<ApiOutcome<LibraryReadResponse>>;
+  wake(): Promise<ApiOutcome<MetadataWakeResponse>>;
+  readShareKey(): Promise<ApiOutcome<ShareKeyReadResponse>>;
+  issueShareKey(body: ShareKeyIssueRequest): Promise<ApiOutcome<ShareKeyIssueResponse>>;
+  revokeShareKey(keyId: string): Promise<ApiOutcome<ShareKeyRevokeResponse>>;
 };
 
 const connection: ApiFailure = { kind: "unavailable", message: "연결을 확인하고 다시 시도해 주세요." };
@@ -81,22 +100,55 @@ const unchanged = (message: string) => (): ApiFailure => ({ kind: "invalid", fie
 // A commit can precede a lost answer, so the screen re-reads instead of saying nothing changed.
 const restoreUnknown = unavailable("복원을 마쳤는지 확인하지 못했어요.");
 
+const readFailures: Mapping = {
+  ...session,
+  storage_unavailable: readFailed,
+  cross_origin: readFailed,
+  unsupported_media_type: readFailed,
+  payload_too_large: readFailed,
+  invalid_input: readFailed,
+  collection_missing: readFailed,
+  collection_duplicate: readFailed,
+  identity_conflict: readFailed,
+  product_missing: readFailed,
+  metadata_not_retryable: readFailed,
+  revision_conflict: readFailed,
+  picture_missing: readFailed,
+  share_key_missing: readFailed,
+};
+
+const every = (failure: () => ApiFailure) => ({
+  storage_unavailable: failure,
+  cross_origin: failure,
+  unsupported_media_type: failure,
+  payload_too_large: failure,
+  invalid_input: failure,
+  collection_missing: failure,
+  collection_duplicate: failure,
+  identity_conflict: failure,
+  product_missing: failure,
+  metadata_not_retryable: failure,
+  revision_conflict: failure,
+  picture_missing: failure,
+  share_key_missing: failure,
+});
+const keyChanged = stale("다른 곳에서 키가 바뀌었어요. 최신 상태를 불러왔어요.");
+// A key write whose answer is lost may still have committed, so the panel re-reads after any of these.
+const keyWrite = (unknown: string): Mapping => ({
+  ...session,
+  ...every(unavailable(unknown)),
+  cross_origin: reload,
+  revision_conflict: keyChanged,
+  share_key_missing: keyChanged,
+});
+
 const failures: Record<Endpoint, Mapping> = {
-  "library.read": {
-    ...session,
-    storage_unavailable: readFailed,
-    cross_origin: readFailed,
-    unsupported_media_type: readFailed,
-    payload_too_large: readFailed,
-    invalid_input: readFailed,
-    collection_missing: readFailed,
-    collection_duplicate: readFailed,
-    identity_conflict: readFailed,
-    product_missing: readFailed,
-    metadata_not_retryable: readFailed,
-    revision_conflict: readFailed,
-    picture_missing: readFailed,
-  },
+  "share.read": { ...session, ...every(unavailable("저장 키를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.")) },
+  "share.issue": keyWrite("새 키를 받지 못했어요. 최신 상태를 불러왔어요."),
+  "share.revoke": keyWrite("키를 폐기했는지 확인하지 못했어요. 최신 상태를 불러왔어요."),
+  // The screen shows nothing when a wake fails: the library it read is still right, and the retry button remains.
+  "metadata.wake": readFailures,
+  "library.read": readFailures,
   "link.save": {
     ...session,
     storage_unavailable: retryLater,
@@ -111,6 +163,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: retryLater,
     revision_conflict: retryLater,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "collection.create": {
     ...session,
@@ -130,6 +183,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: retryLater,
     revision_conflict: retryLater,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "collection.rename": {
     ...session,
@@ -149,6 +203,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: retryLater,
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "metadata.retry": {
     ...session,
@@ -164,6 +219,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: stale("상품 상태가 바뀌었어요. 목록을 새로 불러왔어요."),
     revision_conflict: retryLater,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "product.change": {
     ...session,
@@ -179,6 +235,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: retryLater,
     revision_conflict: changedElsewhere,
     picture_missing: retryLater,
+    share_key_missing: retryLater,
   },
   "library.backup": {
     ...session,
@@ -194,6 +251,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: backupFailed,
     revision_conflict: backupFailed,
     picture_missing: backupFailed,
+    share_key_missing: backupFailed,
   },
   "library.restore": {
     ...session,
@@ -209,6 +267,7 @@ const failures: Record<Endpoint, Mapping> = {
     metadata_not_retryable: restoreUnknown,
     revision_conflict: restoreUnknown,
     picture_missing: restoreUnknown,
+    share_key_missing: restoreUnknown,
   },
 };
 
@@ -306,5 +365,18 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
       headers: { "content-type": "application/json", accept: "application/json" },
       body: text,
     }, [{ status: 200, parse: parsed(libraryReadResponseSchema) }], RESTORE_TIMEOUT_MS),
+    wake: () => request("metadata.wake", "/api/library/metadata", write("POST", {}), [
+      { status: 202, parse: parsed(metadataWakeResponseSchema) },
+    ]),
+    readShareKey: () => request("share.read", "/api/share-keys", { method: "GET", headers: { accept: "application/json" } }, [
+      { status: 200, parse: parsed(shareKeyReadResponseSchema) },
+    ]),
+    issueShareKey: (body) => request("share.issue", "/api/share-keys", write("POST", body), [
+      { status: 201, parse: parsed(shareKeyIssueResponseSchema) },
+    ]),
+    revokeShareKey: (keyId) => request("share.revoke", `/api/share-keys/${segment(keyId)}`, {
+      method: "DELETE",
+      headers: { accept: "application/json" },
+    }, [{ status: 200, parse: parsed(shareKeyRevokeResponseSchema) }]),
   };
 }

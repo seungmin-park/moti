@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_METADATA_GENERATION, type MetadataRetryResult } from "../../metadata/application/commands";
+import { MAX_METADATA_GENERATION, type MetadataRetryResult, type MetadataWakeResult } from "../../metadata/application/commands";
 import { MAX_REVISION, type LinkSaveResult } from "../application/commands";
 import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
 import type { Collection, Library, Picture, Product, ProductId } from "../domain/library";
@@ -88,6 +88,8 @@ export const linkSaveResponseSchema = z.object({
 export const collectionCreateRequestSchema = z.object({ name: z.string() }).strict();
 export const metadataRetryRequestSchema = z.object({ generation: z.number().int().min(1).max(MAX_METADATA_GENERATION) }).strict();
 export const metadataRetryResponseSchema = z.object({ product: productResponseSchema }).strict();
+export const metadataWakeRequestSchema = z.object({}).strict();
+export const metadataWakeResponseSchema = z.object({ products: z.array(productResponseSchema) }).strict();
 export const collectionCreateResponseSchema = collectionResponseSchema;
 
 const revisionSchema = z.number().int().min(1).max(MAX_REVISION);
@@ -129,6 +131,7 @@ export const errorCodes = [
   "metadata_not_retryable",
   "revision_conflict",
   "picture_missing",
+  "share_key_missing",
   "storage_unavailable",
 ] as const;
 export type ErrorCode = (typeof errorCodes)[number];
@@ -149,6 +152,8 @@ export type CollectionCreateRequest = z.infer<typeof collectionCreateRequestSche
 export type CollectionCreateResponse = z.infer<typeof collectionCreateResponseSchema>;
 export type MetadataRetryRequest = z.infer<typeof metadataRetryRequestSchema>;
 export type MetadataRetryResponse = z.infer<typeof metadataRetryResponseSchema>;
+export type MetadataWakeRequest = z.infer<typeof metadataWakeRequestSchema>;
+export type MetadataWakeResponse = z.infer<typeof metadataWakeResponseSchema>;
 export type ProductChangeRequest = z.infer<typeof productChangeRequestSchema>;
 export type ProductChangeResponse = z.infer<typeof productChangeResponseSchema>;
 export type CollectionRenameRequest = z.infer<typeof collectionRenameRequestSchema>;
@@ -210,6 +215,10 @@ export function toLinkSaveResponse(result: LinkSaveResult): LinkSaveResponse {
 
 export function toMetadataRetryResponse(result: MetadataRetryResult): MetadataRetryResponse {
   return { product: toProductResponse(result.product) };
+}
+
+export function toMetadataWakeResponse(result: MetadataWakeResult): MetadataWakeResponse {
+  return { products: result.products.map(toProductResponse) };
 }
 
 export function toProductChangeResponse(product: Product): ProductChangeResponse {

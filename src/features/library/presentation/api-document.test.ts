@@ -69,4 +69,44 @@ describe("API 문서", () => {
     expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "413", "415", "503"]));
     expect(operation.responses["413"].description).toContain("4194304");
   });
+
+  it("단축어 경로는 Bearer 키로만 받는 POST로 결과·거절 응답을 문서에 남기고 소유자 경로는 쿠키 세션을 쓴다", () => {
+    const document = buildApiDocument();
+    const operation = document.paths["/api/share/links"]?.post as {
+      security: unknown;
+      requestBody: { content: Record<string, { schema: { properties?: Record<string, unknown> } }> };
+      responses: Record<string, { headers?: Record<string, unknown> }>;
+    };
+    expect(operation.security).toEqual([{ shareKey: [] }]);
+    expect(document.components.securitySchemes.shareKey).toMatchObject({ type: "http", scheme: "bearer" });
+    expect(Object.keys(operation.requestBody.content["application/json"].schema.properties ?? {})).toEqual(["url"]);
+    expect(Object.keys(operation.responses)).toEqual(["200", "201", "400", "401", "409", "413", "415", "429", "503"]);
+    expect(Object.keys(operation.responses["401"].headers ?? {})).toEqual(["WWW-Authenticate"]);
+    expect(document.paths["/api/library"]?.get).not.toHaveProperty("security");
+  });
+
+  it("저장 키 경로는 읽기 GET, 만들기 POST 201·409, 폐기 DELETE 200·404를 쿠키 세션으로 문서에 남긴다", () => {
+    const document = buildApiDocument();
+    const keys = document.paths["/api/share-keys"] as Record<string, { security?: unknown; responses: Record<string, unknown>; requestBody?: unknown }>;
+    expect(Object.keys(keys).toSorted()).toEqual(["get", "post"]);
+    expect(Object.keys(keys.get.responses)).toEqual(expect.arrayContaining(["200", "401", "403", "503"]));
+    expect(keys.post.requestBody).toBeDefined();
+    expect(Object.keys(keys.post.responses)).toEqual(expect.arrayContaining(["201", "400", "401", "403", "409", "413", "415", "503"]));
+    const revoke = document.paths["/api/share-keys/{keyId}"]?.delete as {
+      parameters: { name: string; in: string; required: boolean; schema: { format?: string } }[];
+      responses: Record<string, unknown>;
+    };
+    expect(revoke.parameters).toEqual([expect.objectContaining({ name: "keyId", in: "path", required: true, schema: expect.objectContaining({ format: "uuid" }) })]);
+    expect(Object.keys(revoke.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "404", "503"]));
+    for (const operation of [keys.get, keys.post, revoke]) expect(operation).not.toHaveProperty("security");
+  });
+
+  it("깨우기 경로는 빈 본문의 POST로 202·400·401·403·413·415·503을 문서에 남긴다", () => {
+    const operation = buildApiDocument().paths["/api/library/metadata"]?.post as {
+      requestBody: { content: Record<string, { schema: { properties?: Record<string, unknown> } }> };
+      responses: Record<string, unknown>;
+    };
+    expect(Object.keys(operation.requestBody.content["application/json"].schema.properties ?? {})).toEqual([]);
+    expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["202", "400", "401", "403", "413", "415", "503"]));
+  });
 });

@@ -11,7 +11,14 @@ import {
   type ProductId,
 } from "../domain/library";
 import type { CollectionRequest } from "../../metadata/application/collection";
-import type { MetadataRetryCommand, MetadataRetryResult } from "../../metadata/application/commands";
+import type { MetadataRetryCommand, MetadataRetryResult, MetadataWakeCommand, MetadataWakeResult } from "../../metadata/application/commands";
+import type { ShareKeyIssueCommand, ShareKeyIssueResult, ShareKeyRevokeCommand } from "../../share/application/commands";
+import type { ShareKey, ShareKeyId, ShareSecret } from "../../share/domain/share-key";
+import {
+  shareKeyIssueResponseSchema,
+  shareKeyReadResponseSchema,
+  shareKeyRevokeResponseSchema,
+} from "../../share/presentation/share-dto";
 import { MAX_BACKUP_BYTES, readLibraryBackup, toLibraryBackupDocument } from "./library-backup";
 import { createLibraryHandlers } from "./library-handlers";
 import {
@@ -21,6 +28,7 @@ import {
   collectionRenameResponseSchema,
   linkSaveResponseSchema,
   metadataRetryResponseSchema,
+  metadataWakeResponseSchema,
   productChangeResponseSchema,
 } from "./library-dto";
 
@@ -68,6 +76,15 @@ const backup = {
   }],
 } satisfies LibraryBackup;
 
+const shareKey = {
+  id: "44444444-4444-4444-8444-444444444444" as ShareKeyId,
+  hint: "a1B2",
+  createdAt: "2026-11-13T05:00:00.000Z",
+  lastUsedAt: null,
+  revokedAt: null,
+} satisfies ShareKey;
+const shareSecret = `moti_sk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_Aa1B2"}` as ShareSecret;
+
 function given(access: Access) {
   const service = {
     snapshot: vi.fn(async (): Promise<Library> => ({ products: [product], collections: [collection] })),
@@ -88,8 +105,24 @@ function given(access: Access) {
   }));
   // settleRestore is a mock too: handing the result over after the response is the requirement.
   const settleRestore = vi.fn<(result: LibraryRestoreResult) => void>();
-  const handlers = createLibraryHandlers(async () => ({ access, service, signOut, collect, retry, settleRestore }));
-  return { handlers, service, signOut, collect, retry, settleRestore };
+  const shareKeys = {
+    read: vi.fn(async (): Promise<ShareKey | null> => shareKey),
+    issue: vi.fn(async (command: ShareKeyIssueCommand): Promise<ShareKeyIssueResult> => {
+      void command;
+      return { key: shareKey, secret: shareSecret };
+    }),
+    revoke: vi.fn(async (command: ShareKeyRevokeCommand): Promise<ShareKey> => ({
+      ...shareKey, id: command.keyId, revokedAt: "2026-11-13T06:00:00.000Z",
+    })),
+  };
+  const wake = vi.fn(async (command: MetadataWakeCommand): Promise<MetadataWakeResult> => {
+    void command;
+    return { products: [product] };
+  });
+  // collectAll is a mock: handing the woken products to collection after the response is the requirement.
+  const collectAll = vi.fn<(requests: CollectionRequest[]) => void>();
+  const handlers = createLibraryHandlers(async () => ({ access, service, signOut, collect, retry, settleRestore, shareKeys, wake, collectAll }));
+  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys, wake, collectAll };
 }
 
 const get = () => new Request(`${origin}/api/library`);
@@ -903,5 +936,182 @@ describe("POST /api/library/restore", () => {
     expect((await handlers.postRestore(restore(file()))).status).toBe(status);
     expect(service.restoreLibrary).not.toHaveBeenCalled();
     expect(signOut).toHaveBeenCalledTimes(signedOut ? 1 : 0);
+  });
+});
+
+describe("GET /api/share-keys", () => {
+  const read = (headers: Record<string, string> = {}) => new Request(`${origin}/api/share-keys`, { headers });
+
+  it("Given 허용한 Google 계정 When 저장 키를 읽으면 Then 200과 끝 네 글자·시각만 돌려주고 비밀은 없다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    const response = await handlers.getShareKey(read());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const text = await response.text();
+    expect(shareKeyReadResponseSchema.parse(JSON.parse(text))).toEqual({ key: shareKey });
+    expect(text).not.toContain("moti_sk_");
+    expect(shareKeys.read).toHaveBeenCalledOnce();
+  });
+
+  it("Given 키를 만든 적 없음 When 읽으면 Then key는 null이다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    shareKeys.read.mockResolvedValueOnce(null);
+    expect(shareKeyReadResponseSchema.parse(await (await handlers.getShareKey(read())).json())).toEqual({ key: null });
+  });
+
+  it.each([
+    [{ kind: "signed_out" } as Access, 401, "signed_out"],
+    [{ kind: "forbidden" } as Access, 403, "forbidden"],
+    [{ kind: "unconfigured" } as Access, 503, "unconfigured"],
+  ])("Given %j When 읽으면 Then %i %s이고 키를 읽지 않는다", async (access, status, code) => {
+    const { handlers, shareKeys, signOut } = given(access);
+    const response = await handlers.getShareKey(read({ authorization: `Bearer ${shareSecret}` }));
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(shareKeys.read).not.toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalledTimes(code === "forbidden" ? 1 : 0);
+  });
+});
+
+describe("POST /api/share-keys", () => {
+  it("Given 같은 출처의 소유자 When 화면에 키가 없던 상태로 만들면 Then 201과 비밀을 한 번 돌려주고 캐시하지 않는다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    const response = await handlers.postShareKey(post("/api/share-keys", { replaces: null }));
+    expect(response.status).toBe(201);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(shareKeyIssueResponseSchema.parse(await response.json())).toEqual({ key: shareKey, secret: shareSecret });
+    expect(shareKeys.issue).toHaveBeenCalledWith({ replaces: null });
+  });
+
+  it("Given 화면이 본 활성 키 When 새 키로 바꾸면 Then 그 키 ID를 소문자로 넘긴다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    await handlers.postShareKey(post("/api/share-keys", { replaces: shareKey.id.toUpperCase() }));
+    expect(shareKeys.issue).toHaveBeenCalledWith({ replaces: shareKey.id });
+  });
+
+  it.each([
+    ["다른 출처", { origin: "https://evil.example" }],
+    ["Origin 없음", { origin: "" }],
+  ])("Given %s When 키를 만들면 Then 403 cross_origin이고 키를 만들지 않는다", async (_name, headers) => {
+    const { handlers, shareKeys } = given(allowed);
+    const request = post("/api/share-keys", { replaces: null }, headers);
+    if (!headers.origin) request.headers.delete("origin");
+    const response = await handlers.postShareKey(request);
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(shareKeys.issue).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["UUID가 아닌 replaces", { replaces: "not-a-uuid" }],
+    ["replaces 없음", {}],
+    ["다른 필드", { replaces: null, label: "아이폰" }],
+    ["숫자 replaces", { replaces: 1 }],
+  ])("Given %s When 키를 만들면 Then 400이고 키를 만들지 않는다", async (_name, body) => {
+    const { handlers, shareKeys } = given(allowed);
+    const response = await handlers.postShareKey(post("/api/share-keys", body));
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).error).toBe("invalid_input");
+    expect(shareKeys.issue).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 곳에서 키가 바뀜 When 오래된 화면으로 만들면 Then 409 revision_conflict다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    shareKeys.issue.mockRejectedValueOnce(new LibraryError("revision_conflict", "stale"));
+    const response = await handlers.postShareKey(post("/api/share-keys", { replaces: null }));
+    expect(response.status).toBe(409);
+    expect((await errorOf(response)).error).toBe("revision_conflict");
+  });
+
+  it("Given 세션 없음 When 키를 만들면 Then 401이고 키를 만들지 않는다", async () => {
+    const { handlers, shareKeys } = given({ kind: "signed_out" });
+    const response = await handlers.postShareKey(post("/api/share-keys", { replaces: null }, { authorization: `Bearer ${shareSecret}` }));
+    expect(response.status).toBe(401);
+    expect(shareKeys.issue).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /api/share-keys/{keyId}", () => {
+  const revoke = (keyId: string, headers: Record<string, string> = { origin }) =>
+    new Request(`${origin}/api/share-keys/${keyId}`, { method: "DELETE", headers });
+  const route = (keyId: string) => ({ params: Promise.resolve({ keyId }) });
+
+  it("Given 같은 출처의 소유자 When 키를 폐기하면 Then 200과 폐기 시각이 있는 키를 돌려준다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    const response = await handlers.deleteShareKey(revoke(shareKey.id), route(shareKey.id.toUpperCase()));
+    expect(response.status).toBe(200);
+    expect(shareKeyRevokeResponseSchema.parse(await response.json())).toEqual({
+      key: { ...shareKey, revokedAt: "2026-11-13T06:00:00.000Z" },
+    });
+    expect(shareKeys.revoke).toHaveBeenCalledWith({ keyId: shareKey.id });
+  });
+
+  it("Given 다른 출처 When 키를 폐기하면 Then 403이고 폐기하지 않는다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    const response = await handlers.deleteShareKey(revoke(shareKey.id, { origin: "https://evil.example" }), route(shareKey.id));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(shareKeys.revoke).not.toHaveBeenCalled();
+  });
+
+  it("Given UUID가 아닌 키 ID When 폐기하면 Then 400이고 폐기하지 않는다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    const response = await handlers.deleteShareKey(revoke("abc"), route("abc"));
+    expect(response.status).toBe(400);
+    expect(shareKeys.revoke).not.toHaveBeenCalled();
+  });
+
+  it("Given 소유자에게 없는 키 When 폐기하면 Then 404 share_key_missing이다", async () => {
+    const { handlers, shareKeys } = given(allowed);
+    shareKeys.revoke.mockRejectedValueOnce(new LibraryError("share_key_missing", "missing"));
+    const response = await handlers.deleteShareKey(revoke(shareKey.id), route(shareKey.id));
+    expect(response.status).toBe(404);
+    expect(await errorOf(response)).toEqual({ error: "share_key_missing", message: "missing" });
+  });
+});
+
+describe("POST /api/library/metadata", () => {
+  it("Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집을 맡긴다", async () => {
+    const { handlers, wake, collectAll } = given(allowed);
+    const response = await handlers.postMetadataWake(post("/api/library/metadata", {}));
+    expect(response.status).toBe(202);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(metadataWakeResponseSchema.parse(await response.json())).toEqual({ products: [product] });
+    expect(wake).toHaveBeenCalledWith({ limit: 8 });
+    expect(collectAll).toHaveBeenCalledExactlyOnceWith([{ productId: product.id, generation: 1 }]);
+  });
+
+  it("Given 깨울 상품 없음 When 깨우면 Then 빈 목록이고 수집을 맡기지 않는다", async () => {
+    const { handlers, wake, collectAll } = given(allowed);
+    wake.mockResolvedValueOnce({ products: [] });
+    const response = await handlers.postMetadataWake(post("/api/library/metadata", {}));
+    expect(metadataWakeResponseSchema.parse(await response.json())).toEqual({ products: [] });
+    expect(collectAll).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["다른 출처", () => post("/api/library/metadata", {}, { origin: "https://evil.example" }), 403, "cross_origin"],
+    ["다른 필드", () => post("/api/library/metadata", { limit: 100 }), 400, "invalid_input"],
+    ["JSON이 아닌 형식", () => post("/api/library/metadata", "{}", { "content-type": "text/plain" }), 415, "unsupported_media_type"],
+  ] as const)("Given %s When 깨우면 Then 거절하고 깨우지 않는다", async (_name, request, status, code) => {
+    const { handlers, wake, collectAll } = given(allowed);
+    const response = await handlers.postMetadataWake(request());
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(wake).not.toHaveBeenCalled();
+    expect(collectAll).not.toHaveBeenCalled();
+  });
+
+  it("Given 세션 없음 When 깨우면 Then 401이고 깨우지 않는다", async () => {
+    const { handlers, wake } = given({ kind: "signed_out" });
+    expect((await handlers.postMetadataWake(post("/api/library/metadata", {}))).status).toBe(401);
+    expect(wake).not.toHaveBeenCalled();
+  });
+
+  it("Given 저장소 오류 When 깨우면 Then 503이고 수집을 맡기지 않는다", async () => {
+    const { handlers, wake, collectAll } = given(allowed);
+    wake.mockRejectedValueOnce(new LibraryError("storage_unavailable", "down"));
+    expect((await handlers.postMetadataWake(post("/api/library/metadata", {}))).status).toBe(503);
+    expect(collectAll).not.toHaveBeenCalled();
   });
 });

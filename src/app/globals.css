@@ -809,6 +809,129 @@ h1 {
 .setup-note {
   margin-top: 12px;
 }
+.share-page.share-setup {
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.85fr);
+  align-items: start;
+  gap: 48px;
+}
+.share-setup .setup-steps p {
+  max-width: 540px;
+}
+.shortcut-actions,
+.share-messages {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.shortcut-actions {
+  list-style: decimal;
+}
+.share-messages {
+  list-style: disc;
+}
+/* .setup-steps li lays out each numbered step; the lists inside a step are plain lists again. */
+.shortcut-actions li,
+.share-messages li {
+  display: list-item;
+}
+.shortcut-actions li + li,
+.share-messages li + li {
+  margin-top: 6px;
+}
+.share-endpoint {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.share-endpoint code,
+.share-secret {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  -webkit-user-select: all;
+  user-select: all;
+}
+.share-key-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.share-copy-status {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.share-key-panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.share-key-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.share-key-title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.share-key-detail {
+  margin-top: -6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.share-key-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.share-key-actions .button {
+  flex: 1 1 auto;
+}
+.share-key-panel .button,
+.share-endpoint .button {
+  min-height: 44px;
+}
+.share-key-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.share-key-panel .form-error,
+.share-key-panel .form-note {
+  margin: 0;
+}
+.share-secret-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.share-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--control);
+  border-radius: 8px;
+  font-size: 13px;
+}
 .phone-preview {
   width: 270px;
   height: 510px;
@@ -2082,5 +2205,17 @@ h1 {
     scroll-behavior: auto !important;
     transition: none !important;
     animation: none !important;
+  }
+}
+@media (max-width: 1100px) {
+  .share-page.share-setup {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+    gap: 32px;
+  }
+}
+@media (max-width: 850px) {
+  .share-page.share-setup {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 30px;
   }
 }

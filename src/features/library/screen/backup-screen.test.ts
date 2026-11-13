@@ -42,7 +42,8 @@ type Backup = Extract<ScreenDialog, { kind: "backup" }>;
 
 function ready(overrides: Partial<Ready> = {}): Ready {
   return {
-    phase: "ready", library, view: "purchased", collectionId: desk.id, dialog: null, refreshing: false, writing: null, toast: null, ...overrides,
+    phase: "ready", library, view: "purchased", collectionId: desk.id, dialog: null, refreshing: false, writing: null, toast: null,
+    share: { status: "unread" }, ...overrides,
   };
 }
 

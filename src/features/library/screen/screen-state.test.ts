@@ -49,12 +49,21 @@ const lamp = product("22222222-2222-4222-8222-222222222222", "2026-11-10T00:00:0
 const chair = product("44444444-4444-4444-8444-444444444444", "2026-11-11T00:00:00.000Z");
 const library: LibraryReadResponse = { products: [lamp, chair], collections: [desk, room] };
 const unavailable: ApiFailure = { kind: "unavailable", message: "잠시 뒤 다시 시도해 주세요." };
+const shareKey = {
+  id: "55555555-5555-4555-8555-555555555555",
+  hint: "a1B2",
+  createdAt: "2026-11-13T05:00:00.000Z",
+  lastUsedAt: null,
+  revokedAt: null,
+};
+const shareSecret = `moti_sk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_Aa1B2"}`;
 
 type Ready = Extract<LibraryScreenState, { phase: "ready" }>;
 
 function ready(overrides: Partial<Ready> = {}): Ready {
   return {
-    phase: "ready", library, view: "wish", collectionId: null, dialog: null, refreshing: false, writing: null, toast: null, ...overrides,
+    phase: "ready", library, view: "wish", collectionId: null, dialog: null, refreshing: false, writing: null, toast: null,
+    share: { status: "unread" }, ...overrides,
   };
 }
 
@@ -90,6 +99,13 @@ describe("보관함 불러오기", () => {
   it("Given 불러오는 중 When 보관함을 받으면 Then 필터와 대화상자 없이 보관함을 보여준다", () => {
     const { state, call } = transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: library } });
     expect(state).toEqual(ready());
+    expect(call).toEqual({ type: "metadata.wake" });
+  });
+
+  it("Given 아직 수집을 시작하지 않은 상품이 없음 When 보관함을 받으면 Then 깨우지 않는다", () => {
+    const started = { ...library, products: [{ ...lamp, metadata: { phase: "running" as const, generation: 1, attempts: 1, stalled: false } }] };
+    const { state, call } = transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: started } });
+    expect(state).toEqual(ready({ library: started }));
     expect(call).toBeNull();
   });
 
@@ -484,6 +500,10 @@ describe("요청 실행", () => {
       renameCollection: vi.fn(async () => ({ ok: true as const, value: { ...desk, name: "작업 공간", revision: 2 } })),
       exportBackup: vi.fn(async () => ({ ok: false as const, failure: unavailable })),
       restore: vi.fn(async () => ({ ok: true as const, value: library })),
+      wake: vi.fn(async () => ({ ok: true as const, value: { products: [lamp] } })),
+      readShareKey: vi.fn(async () => ({ ok: true as const, value: { key: null } })),
+      issueShareKey: vi.fn(async () => ({ ok: true as const, value: { key: shareKey, secret: shareSecret } })),
+      revokeShareKey: vi.fn(async () => ({ ok: true as const, value: { key: { ...shareKey, revokedAt: "2026-11-13T06:00:00.000Z" } } })),
     };
     await expect(perform(api, { type: "library.read" })).resolves.toEqual({ type: "library.settled", outcome: { ok: true, value: library } });
     const body = { url: "https://a.example", option: "", collectionIds: [] };
@@ -505,6 +525,14 @@ describe("요청 실행", () => {
     expect(api.renameCollection).toHaveBeenCalledWith(desk.id, { revision: 1, name: "작업 공간" });
     await expect(perform(api, { type: "library.poll" })).resolves.toEqual({ type: "poll.settled", outcome: { ok: true, value: library } });
     expect(api.read).toHaveBeenCalledTimes(2);
+    await expect(perform(api, { type: "metadata.wake" })).resolves.toEqual({ type: "wake.settled", outcome: { ok: true, value: { products: [lamp] } } });
+    expect(api.wake).toHaveBeenCalledOnce();
+    await expect(perform(api, { type: "share.read" })).resolves.toEqual({ type: "share.read.settled", outcome: { ok: true, value: { key: null } } });
+    await expect(perform(api, { type: "share.issue", replaces: null }))
+      .resolves.toEqual({ type: "share.issue.settled", outcome: { ok: true, value: { key: shareKey, secret: shareSecret } } });
+    expect(api.issueShareKey).toHaveBeenCalledWith({ replaces: null });
+    await expect(perform(api, { type: "share.revoke", keyId: shareKey.id })).resolves.toMatchObject({ type: "share.revoke.settled" });
+    expect(api.revokeShareKey).toHaveBeenCalledWith(shareKey.id);
   });
 });
 
@@ -1029,5 +1057,76 @@ describe("컬렉션 이름 바꾸기", () => {
     expect(call).toEqual({ type: "library.read" });
     expect(state).toMatchObject({ refreshing: true });
     expect(dialogOf(state)).toEqual(renaming("작업 공간", { error: { field: "collection", message: failure.message } }));
+  });
+});
+
+describe("기다리는 수집 깨우기", () => {
+  const stalledLamp: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 1, attempts: 0, stalled: true } };
+  const woken: ProductResponse = { ...lamp, metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false } };
+
+  it("Given 멈춘 것으로 보이던 상품 When 깨운 결과가 오면 Then 그 상품만 대기로 바꾸고 나머지는 그대로다", () => {
+    const { state, call } = transition(withProducts([stalledLamp, chair]), { type: "wake.settled", outcome: { ok: true, value: { products: [woken] } } });
+    expect(productsOf(state)).toEqual([woken, chair]);
+    expect(call).toBeNull();
+    expect(pollDelay(state, 0)).not.toBeNull();
+  });
+
+  it("Given 깨우는 사이 소유자가 고친 상품 When 오래된 깨우기 결과가 오면 Then 고친 값을 지킨다", () => {
+    const edited = { ...stalledLamp, title: "책상 조명", revision: 2 };
+    const { state } = transition(withProducts([edited, chair]), { type: "wake.settled", outcome: { ok: true, value: { products: [woken] } } });
+    expect(productsOf(state)[0]).toMatchObject({ title: "책상 조명", revision: 2 });
+  });
+
+  it("Given 깨우기 실패 When 결과가 오면 Then 알리지 않고 화면을 그대로 둔다", () => {
+    const before = withProducts([stalledLamp, chair]);
+    expect(transition(before, { type: "wake.settled", outcome: { ok: false, failure: unavailable } })).toEqual({ state: before, call: null });
+  });
+
+  it("Given 로그인이 끝난 세션 When 깨우기 결과가 오면 Then 로그인으로 떠난다", () => {
+    const { state } = transition(ready(), { type: "wake.settled", outcome: { ok: false, failure: { kind: "redirect", to: "/login" } } });
+    expect(state).toEqual({ phase: "leaving", to: "/login" });
+  });
+});
+
+describe("공유 저장 보기", () => {
+  const shown = { status: "ready" as const, key: shareKey, secret: shareSecret, confirm: null, busy: false, notice: null };
+
+  it("Given 위시 보기 When 공유 저장으로 가면 Then 키를 읽기 시작한다", () => {
+    expect(transition(ready(), { type: "view", view: "share" }))
+      .toEqual({ state: ready({ view: "share", share: { status: "loading" } }), call: { type: "share.read" } });
+  });
+
+  it("Given 비밀이 보이는 공유 저장 보기 When 다른 보기로 가면 Then 비밀을 지운다", () => {
+    const { state, call } = transition(ready({ view: "share", share: shown }), { type: "view", view: "purchased" });
+    expect(state).toEqual(ready({ view: "purchased", share: { ...shown, secret: null } }));
+    expect(call).toBeNull();
+  });
+
+  it("Given 공유 저장 보기 When 컬렉션을 고르면 Then 그 컬렉션의 위시 보기로 간다", () => {
+    expect(transition(ready({ view: "share" }), { type: "filter", collectionId: desk.id }).state)
+      .toEqual(ready({ view: "wish", collectionId: desk.id }));
+  });
+
+  it("Given 공유 저장 보기에서 키를 만듦 When 응답 전에 떠났다가 비밀이 오면 Then 비밀을 보이지 않는다", () => {
+    const busy = { ...shown, key: null, secret: null, busy: true };
+    const left = transition(ready({ view: "share", share: busy }), { type: "view", view: "wish" }).state;
+    const { state } = transition(left, { type: "share.issue.settled", outcome: { ok: true, value: { key: shareKey, secret: shareSecret } } });
+    expect((state as Ready).share).toEqual({ ...shown, secret: null });
+  });
+
+  it("Given 공유 저장 보기 When 패널 사건이 오면 Then 패널의 요청을 그대로 보낸다", () => {
+    const empty = { ...shown, key: null, secret: null };
+    expect(transition(ready({ view: "share", share: empty }), { type: "share.create" }))
+      .toEqual({ state: ready({ view: "share", share: { ...empty, busy: true } }), call: { type: "share.issue", replaces: null } });
+  });
+
+  it("Given 세션이 끝남 When 키 결과가 오면 Then 로그인으로 떠난다", () => {
+    const outcome = { ok: false as const, failure: { kind: "redirect" as const, to: "/login" } };
+    expect(transition(ready({ view: "share", share: { status: "loading" } }), { type: "share.read.settled", outcome }).state)
+      .toEqual({ phase: "leaving", to: "/login" });
+  });
+
+  it("Given 뒤로 가기 캐시에서 돌아온 공유 저장 보기 When 다시 보이면 Then 비밀 없이 처음부터 다시 불러온다", () => {
+    expect(transition(ready({ view: "share", share: shown }), { type: "resume" })).toEqual(initialScreen);
   });
 });

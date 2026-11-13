@@ -217,6 +217,7 @@ const databaseErrors: Record<string, LibraryErrorCode> = {
   M0006: "product_missing",
   M0007: "metadata_not_retryable",
   M0008: "revision_conflict",
+  M0011: "share_key_missing",
   "42501": "unauthorized",
   "23514": "invalid_input",
   "22023": "invalid_input",

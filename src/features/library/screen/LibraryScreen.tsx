@@ -1,12 +1,13 @@
 "use client";
 
-import { Archive, Bookmark, Check, Folder, LogOut, Pencil, Plus, ShoppingBag, X } from "lucide-react";
+import { Archive, Bookmark, Check, Folder, LogOut, Pencil, Plus, Share2, ShoppingBag, X } from "lucide-react";
 import type { LibraryReadResponse } from "../presentation/library-dto";
 import { AddLinkDialog } from "./AddLinkDialog";
 import { BackupDialog } from "./BackupDialog";
 import { CollectionDialog } from "./CollectionDialog";
 import { LibraryProductCard } from "./LibraryProductCard";
 import { ProductDetailDialog } from "./ProductDetailDialog";
+import { ShareView } from "./ShareView";
 import { visibleProducts, visibleToast, type LibraryScreenState, type ScreenEvent, type View } from "./screen-state";
 import { useLibraryScreen } from "./useLibraryScreen";
 
@@ -38,24 +39,23 @@ function SignOut() {
 const views = [
   { id: "wish", label: "위시리스트", icon: Bookmark },
   { id: "purchased", label: "구매완료", icon: ShoppingBag },
+  { id: "share", label: "공유 저장", icon: Share2 },
 ] as const;
 
-const headings: Record<View, { title: string; lead: string; results: string; hint: string }> = {
-  wish: {
-    title: "나의 위시리스트",
-    lead: "지금은 담아두고, 마음이 정해지면 꺼내보세요.",
-    results: "담아둔 물건",
-    hint: "천천히 골라도 괜찮아요",
-  },
-  purchased: {
-    title: "함께하게 된 물건들",
-    lead: "고민 끝에 내 일상으로 들어온 것들",
-    results: "구매한 물건",
-    hint: "구매일과 실구매가는 나중에 적어도 돼요",
-  },
+type ListView = Exclude<View, "share">;
+
+const headings: Record<View, { title: string; lead: string }> = {
+  wish: { title: "나의 위시리스트", lead: "지금은 담아두고, 마음이 정해지면 꺼내보세요." },
+  purchased: { title: "함께하게 된 물건들", lead: "고민 끝에 내 일상으로 들어온 것들" },
+  share: { title: "공유 저장", lead: "발견한 순간, 잊기 전에 담아두세요" },
 };
 
-function countIn(library: LibraryReadResponse, view: View, collectionId: string | null) {
+const lists: Record<ListView, { results: string; hint: string }> = {
+  wish: { results: "담아둔 물건", hint: "천천히 골라도 괜찮아요" },
+  purchased: { results: "구매한 물건", hint: "구매일과 실구매가는 나중에 적어도 돼요" },
+};
+
+function countIn(library: LibraryReadResponse, view: ListView, collectionId: string | null) {
   return visibleProducts(library, view, collectionId).length;
 }
 
@@ -149,14 +149,81 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
   return null;
 }
 
-function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
-  const { library, collectionId, view } = state;
-  const selected = library.collections.find((collection) => collection.id === collectionId) ?? null;
+function ProductList({ state, view, send }: { state: Ready; view: ListView; send: Send }) {
+  const { library, collectionId } = state;
   const products = visibleProducts(library, view, collectionId);
-  const heading = headings[view];
   const writable = state.writing === null && !state.refreshing;
   const filters = [{ id: null, name: "전체" }, ...library.collections];
+  return (
+    <>
+      <div className="category-row collection-chips" role="group" aria-label="컬렉션 필터">
+        {filters.map((item) => (
+          <button
+            key={item.id ?? "all"}
+            className={item.id === collectionId ? "active" : ""}
+            aria-pressed={item.id === collectionId}
+            onClick={() => send({ type: "filter", collectionId: item.id })}
+          >
+            {item.name} <span>{countIn(library, view, item.id)}</span>
+          </button>
+        ))}
+        <button aria-label="컬렉션 만들기" onClick={() => send({ type: "collection.open" })}>
+          <Plus size={15} aria-hidden="true" />
+        </button>
+      </div>
+      <div className="results-heading">
+        <p>
+          {lists[view].results} <strong>{products.length}</strong>
+        </p>
+        <span>{lists[view].hint}</span>
+      </div>
+      {products.length > 0 ? (
+        <div className="product-grid">
+          {products.map((product) => (
+            <LibraryProductCard
+              key={product.id}
+              product={product}
+              collections={library.collections}
+              purchasing={!writable}
+              onOpen={() => send({ type: "detail.open", productId: product.id })}
+              onPurchase={() => send({ type: "product.purchase", productId: product.id })}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="empty-state">
+          <div className="empty-mark">
+            <Bookmark size={29} aria-hidden="true" />
+          </div>
+          {view === "wish" ? (
+            <>
+              <h2>아직 담아둔 물건이 없어요</h2>
+              <p>마음에 드는 물건을 발견하면 이곳에 담아두세요.</p>
+              <button className="button secondary" onClick={() => send({ type: "add.open" })}>
+                첫 물건 담기
+              </button>
+            </>
+          ) : (
+            <>
+              <h2>아직 구매한 물건이 없어요</h2>
+              <p>구매완료로 옮긴 물건이 이곳에 모여요.</p>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
+  const { library, collectionId, view } = state;
+  // The share view lists no products: the sidebar counts and the collection it shows are the wish list's.
+  const listView: ListView | null = view === "share" ? null : view;
+  const selected = listView === null ? null : library.collections.find((collection) => collection.id === collectionId) ?? null;
+  const heading = headings[view];
+  const filters = [{ id: null, name: "전체" }, ...library.collections];
   const filter = (id: string | null) => send({ type: "filter", collectionId: id });
+  const current = (id: string | null) => listView !== null && id === collectionId;
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -173,13 +240,13 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
           {filters.map((item) => (
             <button
               key={item.id ?? "all"}
-              className={item.id === collectionId ? "collection-nav active" : "collection-nav"}
-              aria-current={item.id === collectionId ? "page" : undefined}
+              className={current(item.id) ? "collection-nav active" : "collection-nav"}
+              aria-current={current(item.id) ? "page" : undefined}
               onClick={() => filter(item.id)}
             >
               {item.id === null ? <Bookmark size={16} aria-hidden="true" /> : <Folder size={16} aria-hidden="true" />}
               <span>{item.name}</span>
-              <small className="collection-count">{countIn(library, view, item.id)}</small>
+              <small className="collection-count">{countIn(library, listView ?? "wish", item.id)}</small>
             </button>
           ))}
         </nav>
@@ -217,67 +284,15 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
                 <Pencil size={17} aria-hidden="true" />
               </button>
             )}
-            <button className="button primary add-button" data-focus-fallback onClick={() => send({ type: "add.open" })}>
-              <Plus size={18} />
-              링크 추가
-            </button>
-          </div>
-        </header>
-        <div className="category-row collection-chips" role="group" aria-label="컬렉션 필터">
-          {filters.map((item) => (
-            <button
-              key={item.id ?? "all"}
-              className={item.id === collectionId ? "active" : ""}
-              aria-pressed={item.id === collectionId}
-              onClick={() => filter(item.id)}
-            >
-              {item.name} <span>{countIn(library, view, item.id)}</span>
-            </button>
-          ))}
-          <button aria-label="컬렉션 만들기" onClick={() => send({ type: "collection.open" })}>
-            <Plus size={15} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="results-heading">
-          <p>
-            {heading.results} <strong>{products.length}</strong>
-          </p>
-          <span>{heading.hint}</span>
-        </div>
-        {products.length > 0 ? (
-          <div className="product-grid">
-            {products.map((product) => (
-              <LibraryProductCard
-                key={product.id}
-                product={product}
-                collections={library.collections}
-                purchasing={!writable}
-                onOpen={() => send({ type: "detail.open", productId: product.id })}
-                onPurchase={() => send({ type: "product.purchase", productId: product.id })}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <div className="empty-mark">
-              <Bookmark size={29} aria-hidden="true" />
-            </div>
-            {view === "wish" ? (
-              <>
-                <h2>아직 담아둔 물건이 없어요</h2>
-                <p>마음에 드는 물건을 발견하면 이곳에 담아두세요.</p>
-                <button className="button secondary" onClick={() => send({ type: "add.open" })}>
-                  첫 물건 담기
-                </button>
-              </>
-            ) : (
-              <>
-                <h2>아직 구매한 물건이 없어요</h2>
-                <p>구매완료로 옮긴 물건이 이곳에 모여요.</p>
-              </>
+            {listView !== null && (
+              <button className="button primary add-button" data-focus-fallback onClick={() => send({ type: "add.open" })}>
+                <Plus size={18} />
+                링크 추가
+              </button>
             )}
           </div>
-        )}
+        </header>
+        {listView === null ? <ShareView panel={state.share} send={send} /> : <ProductList state={state} view={listView} send={send} />}
         <footer className="page-footer">
           <span>moti</span>
           <p>좋아하는 것들을, 잊지 않도록.</p>

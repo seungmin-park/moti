@@ -50,6 +50,7 @@ const status: Record<ErrorCode, number> = {
   metadata_not_retryable: 409,
   revision_conflict: 409,
   picture_missing: 404,
+  share_key_missing: 404,
   storage_unavailable: 503,
 };
 
@@ -63,7 +64,31 @@ const backupFailed: ApiFailure = { kind: "unavailable", message: "백업을 만�
 const restoreUnknown: ApiFailure = { kind: "unavailable", message: "복원을 마쳤는지 확인하지 못했어요." };
 const unchanged = (message: string): ApiFailure => ({ kind: "invalid", field: null, message: `${message} 보관함은 바뀌지 않았어요.` });
 
+const readShareFailed: ApiFailure = { kind: "unavailable", message: "저장 키를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요." };
+const keyChanged: ApiFailure = { kind: "stale", message: "다른 곳에서 키가 바뀌었어요. 최신 상태를 불러왔어요." };
+const issueUnknown: ApiFailure = { kind: "unavailable", message: "새 키를 받지 못했어요. 최신 상태를 불러왔어요." };
+const revokeUnknown: ApiFailure = { kind: "unavailable", message: "키를 폐기했는지 확인하지 못했어요. 최신 상태를 불러왔어요." };
+const reloadFailure: ApiFailure = { kind: "unavailable", message: reload };
+const everyCode = (failure: ApiFailure) => ({
+  storage_unavailable: failure,
+  cross_origin: failure,
+  unsupported_media_type: failure,
+  payload_too_large: failure,
+  invalid_input: failure,
+  collection_missing: failure,
+  collection_duplicate: failure,
+  identity_conflict: failure,
+  product_missing: failure,
+  metadata_not_retryable: failure,
+  revision_conflict: failure,
+  picture_missing: failure,
+  share_key_missing: failure,
+});
+
 const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
+  "share.read": { ...signedIn, ...everyCode(readShareFailed) },
+  "share.issue": { ...signedIn, ...everyCode(issueUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged },
+  "share.revoke": { ...signedIn, ...everyCode(revokeUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged },
   "library.backup": {
     ...signedIn,
     storage_unavailable: backupFailed,
@@ -78,6 +103,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: backupFailed,
     revision_conflict: backupFailed,
     picture_missing: backupFailed,
+    share_key_missing: backupFailed,
   },
   "library.restore": {
     ...signedIn,
@@ -93,6 +119,23 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: restoreUnknown,
     revision_conflict: restoreUnknown,
     picture_missing: restoreUnknown,
+    share_key_missing: restoreUnknown,
+  },
+  "metadata.wake": {
+    ...signedIn,
+    storage_unavailable: { kind: "unavailable", message: readFailed },
+    cross_origin: { kind: "unavailable", message: readFailed },
+    unsupported_media_type: { kind: "unavailable", message: readFailed },
+    payload_too_large: { kind: "unavailable", message: readFailed },
+    invalid_input: { kind: "unavailable", message: readFailed },
+    collection_missing: { kind: "unavailable", message: readFailed },
+    collection_duplicate: { kind: "unavailable", message: readFailed },
+    identity_conflict: { kind: "unavailable", message: readFailed },
+    product_missing: { kind: "unavailable", message: readFailed },
+    metadata_not_retryable: { kind: "unavailable", message: readFailed },
+    revision_conflict: { kind: "unavailable", message: readFailed },
+    picture_missing: { kind: "unavailable", message: readFailed },
+    share_key_missing: { kind: "unavailable", message: readFailed },
   },
   "library.read": {
     ...signedIn,
@@ -108,6 +151,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: readFailed },
     revision_conflict: { kind: "unavailable", message: readFailed },
     picture_missing: { kind: "unavailable", message: readFailed },
+    share_key_missing: { kind: "unavailable", message: readFailed },
   },
   "link.save": {
     ...signedIn,
@@ -123,6 +167,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.create": {
     ...signedIn,
@@ -138,6 +183,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
   "collection.rename": {
     ...signedIn,
@@ -153,6 +199,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
     revision_conflict: { kind: "stale", message: changedElsewhere },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
   "metadata.retry": {
     ...signedIn,
@@ -168,6 +215,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "stale", message: "상품 상태가 바뀌었어요. 목록을 새로 불러왔어요." },
     revision_conflict: { kind: "unavailable", message: retryLater },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
   "product.change": {
     ...signedIn,
@@ -183,6 +231,7 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     metadata_not_retryable: { kind: "unavailable", message: retryLater },
     revision_conflict: { kind: "stale", message: changedElsewhere },
     picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
   },
 };
 
@@ -296,6 +345,47 @@ describe("보관함 API 클라이언트", () => {
     expect(init?.method).toBe("POST");
     expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
     expect(JSON.parse(String(init?.body))).toEqual({ generation: 1 });
+  });
+
+  it("Given 화면을 연 뒤 깨우기 When 요청하면 Then 빈 JSON을 POST로 보내고 202 상품 목록을 돌려준다", async () => {
+    const { fetcher, api } = respond({ products: [product] }, { status: 202 });
+    await expect(api.wake()).resolves.toEqual({ ok: true, value: { products: [product] } });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe("/api/library/metadata");
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({});
+  });
+
+  it("Given 저장 키 When 읽으면 Then /api/share-keys를 GET으로 읽고 키를 돌려준다", async () => {
+    const key = { id: "55555555-5555-4555-8555-555555555555", hint: "a1B2", createdAt: "2026-11-13T05:00:00.000Z", lastUsedAt: null, revokedAt: null };
+    const { fetcher, api } = respond({ key }, { status: 200 });
+    await expect(api.readShareKey()).resolves.toEqual({ ok: true, value: { key } });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe("/api/share-keys");
+    expect(init?.method).toBe("GET");
+    expect(init?.cache).toBe("no-store");
+  });
+
+  it("Given 새 저장 키 When 만들면 Then 화면이 본 키를 replaces로 POST하고 201 비밀을 돌려준다", async () => {
+    const key = { id: "55555555-5555-4555-8555-555555555555", hint: "AZz9", createdAt: "2026-11-13T05:00:00.000Z", lastUsedAt: null, revokedAt: null };
+    const secret = `moti_sk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_AAZz9"}`;
+    const { fetcher, api } = respond({ key, secret }, { status: 201 });
+    await expect(api.issueShareKey({ replaces: null })).resolves.toEqual({ ok: true, value: { key, secret } });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe("/api/share-keys");
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({ replaces: null });
+  });
+
+  it("Given 저장 키 폐기 When 요청하면 Then 키 경로에 본문 없는 DELETE를 보내고 200 키를 돌려준다", async () => {
+    const key = { id: "55555555-5555-4555-8555-555555555555", hint: "a1B2", createdAt: "2026-11-13T05:00:00.000Z", lastUsedAt: null, revokedAt: "2026-11-13T06:00:00.000Z" };
+    const { fetcher, api } = respond({ key }, { status: 200 });
+    await expect(api.revokeShareKey("../" + key.id)).resolves.toMatchObject({ ok: true });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe(`/api/share-keys/..%2F${key.id}`);
+    expect(init?.method).toBe("DELETE");
+    expect(init?.body).toBeUndefined();
   });
 
   it("Given 다시 가져오기에 202가 아닌 성공 코드 When 요청하면 Then 연결 안내로 실패한다", async () => {

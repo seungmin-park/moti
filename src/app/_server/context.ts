@@ -19,7 +19,10 @@ import { followUpRestore } from "@/features/library/application/restore-follow-u
 import { createPictureStore } from "@/features/library/infrastructure/product-pictures";
 import { createSupabaseLibraryStore } from "@/features/library/infrastructure/supabase-library-store";
 import type { LibraryRequestContext } from "@/features/library/presentation/library-handlers";
-import { createCollectionRunner, type CollectionRequest } from "@/features/metadata/application/collection";
+import { createShareKeyService } from "@/features/share/application/share-service";
+import { createSupabaseShareKeyStore } from "@/features/share/infrastructure/supabase-share-store";
+import { createCollectionRunner, runWithin, type CollectionRequest } from "@/features/metadata/application/collection";
+import { WAKE_CONCURRENCY, WAKE_WINDOW_MS } from "@/features/metadata/application/commands";
 import { createPictureCopier } from "@/features/metadata/application/picture-copy";
 import { strictFetchPolicy } from "@/features/metadata/infrastructure/address-policy";
 import { readProductPage } from "@/features/metadata/infrastructure/html-reader";
@@ -62,6 +65,12 @@ function scheduleCollection(config: AuthConfig, accessToken: string | null, requ
   after(() => runner.run(request));
 }
 
+function scheduleCollections(config: AuthConfig, accessToken: string | null, requests: CollectionRequest[]) {
+  if (!accessToken) return;
+  const runner = collectionRunner(afterResponseClient(config, accessToken));
+  after(() => runWithin(requests, runner.run, { concurrency: WAKE_CONCURRENCY, deadline: Date.now() + WAKE_WINDOW_MS, now: Date.now }));
+}
+
 function scheduleRestoreFollowUp(config: AuthConfig, accessToken: string | null, result: LibraryRestoreResult) {
   if (!accessToken) return;
   const client = afterResponseClient(config, accessToken);
@@ -88,6 +97,9 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
       collect: () => {},
       retry: unavailable,
       settleRestore: () => {},
+      shareKeys: createShareKeyService({ read: unavailable, issue: unavailable, revoke: unavailable }),
+      wake: unavailable,
+      collectAll: () => {},
     };
   }
   const { config, client } = connection;
@@ -100,6 +112,9 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
     collect: (request) => scheduleCollection(config, accessToken, request),
     retry: (command) => createSupabaseCollectionStore(client).retry(command),
     settleRestore: (result) => scheduleRestoreFollowUp(config, accessToken, result),
+    shareKeys: createShareKeyService(createSupabaseShareKeyStore(client)),
+    wake: (command) => createSupabaseCollectionStore(client).wake(command),
+    collectAll: (requests) => scheduleCollections(config, accessToken, requests),
   };
 }
 

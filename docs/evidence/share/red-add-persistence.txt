@@ -1,0 +1,320 @@
+# Red: add a link with the share key (step 3). The tests call moti_share_add and inspect the moti_share role; the migration defines neither yet (PGRST202 = no such function, 42704 = no such role).
+# The one passing test (Bearer secret to PostgREST is refused) is a guard that already holds: the key is not a JWT whether or not the function exists.
+# Command: npm run test:database -- -t "저장 키로 링크 담기|저장 키 역할의 권한|비우회 역할" (other persistence/service tests filtered out).
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ❯ tests/persistence/share-add.test.ts (17 tests | 16 failed) 4756ms
+   ❯ 저장 키로 링크 담기 (14)
+     × 키로 담으면 소유자가 저장한 것과 같은 상품과 첫 수집 작업을 만들고 결과의 종류만 돌려준다 345ms
+     × 이미 담은 링크는 duplicate만 알리고 아무것도 더 쓰지 않는다 278ms
+     × 모르는 키, 한 글자 틀린 키, 형식이 다른 키와 폐기한 키는 모두 같은 M0009와 같은 메시지로 거절하고 아무것도 쓰지 않는다 298ms
+     × 소유자 세션은 저장 키 함수를 실행하지 못하고, 익명은 다른 moti 함수를 실행하지 못한다 273ms
+     ✓ PostgREST에 비밀을 Bearer로 보내면 세션이 아니라서 거절한다 271ms
+     × 소유자 설정이 다른 계정으로 바뀌거나 Google 연결이 없어지면 이전 키는 M0009다 271ms
+     × 한 키로 한 시간에 30번까지 담고 31번째는 M0010이며 아무것도 쓰지 않는다. 한 시간이 지나면 다시 담는다 275ms
+     × Next를 거치지 않은 javascript 링크도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다 268ms
+     × Next를 거치지 않은 계정이 든 링크도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다 273ms
+     × Next를 거치지 않은 빈 정체성도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다 273ms
+     × Next를 거치지 않은 긴 옵션도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다 280ms
+     × Next를 거치지 않은 빈 쇼핑몰도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다 268ms
+     × 검사를 지난 값을 테이블이 거절해도 행 내용 없이 M0002로 바꾼다 275ms
+     × 폐기는 진행 중인 담기가 끝나기를 기다리고, 폐기 뒤의 담기는 M0009다 291ms
+   ❯ 저장 키 역할의 권한 (3)
+     × 익명으로 실행할 수 있는 moti 함수는 moti_share 역할이 소유한 moti_share_add 하나이고 로그인 세션은 실행하지 못한다 272ms
+     × moti_share 역할에 직접 준 권한은 추가에 필요한 것뿐이다 269ms
+     × moti_share 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다 275ms
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ❯ tests/persistence/library-security.test.ts (19 tests | 1 failed | 18 skipped) 309ms
+   ❯ 실제 DB 소유자 경계 (19)
+     ↓ anonymous 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ stranger 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ missing_config 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ missing_google 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ wrong_subject 접근은 조회와 두 쓰기 명령을 모두 거절한다
+     ↓ 공개 REST에서 테이블을 노출하지 않는다
+     × 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다 308ms
+     ↓ RPC 역할로 직접 읽거나 써도 다른 소유자의 행에는 RLS가 적용된다
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":""}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"javascript:alert(1)"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"https://name:secret@example.com/item"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_source_url":"https://example.com/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_identity_url":""}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_option":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+     ↓ 클라이언트 검증을 거치지 않은 RPC 입력도 DB가 거절한다: {"p_collection_ids":null}
+     ↓ failed 수집 상태는 오류 코드가 없으면 DB가 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름  를 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름 가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가를 거절한다
+     ↓ RPC가 유효하지 않은 컬렉션 이름 null를 거절한다
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/persistence/share-keys.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/library-security.test.ts > 실제 DB 소유자 경계 > 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다
+AssertionError: expected [ 'moti_backup', …(17) ] to deeply equal [ 'moti_backup', …(18) ]
+
+- Expected
++ Received
+
+@@ -11,11 +11,10 @@
+    "moti_record_purchase",
+    "moti_rename_collection",
+    "moti_restore_library",
+    "moti_return_to_wish",
+    "moti_save_link",
+-   "moti_share_add",
+    "moti_share_key_issue",
+    "moti_share_key_read",
+    "moti_share_key_revoke",
+    "moti_snapshot",
+  ]
+
+ ❯ tests/persistence/library-security.test.ts:79:65
+     77|        where n.nspname = 'public' and p.proname like 'moti_%'`,
+     78|     );
+     79|     expect(functions.rows.map((row) => row.proname).toSorted()).toEqua…
+       |                                                                 ^
+     80|       "moti_backup", "moti_create_collection", "moti_edit_product", "m…
+     81|       "moti_metadata_retry", "moti_picture_locate", "moti_purchase_pro…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > 키로 담으면 소유자가 저장한 것과 같은 상품과 첫 수집 작업을 만들고 결과의 종류만 돌려준다
+AssertionError: expected { data: null, code: 'PGRST202', …(1) } to match object { code: null, data: { kind: 'added' } }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "code": null,
+-   "data": {
+-     "kind": "added",
+-   },
++   "code": "PGRST202",
++   "data": null,
+  }
+
+ ❯ tests/persistence/share-add.test.ts:67:19
+     65|     const saved = (await library().saveLink(toLinkSaveCommand({ url: "…
+     66|
+     67|     expect(added).toMatchObject({ code: null, data: { kind: "added" } …
+       |                   ^
+     68|     expect(Object.keys(added.data as object)).toEqual(["kind"]);
+     69|     const products = (await library().snapshot()).products;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > 이미 담은 링크는 duplicate만 알리고 아무것도 더 쓰지 않는다
+AssertionError: expected { data: null, code: 'PGRST202', …(1) } to match object { code: null, …(1) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "code": null,
+-   "data": {
+-     "kind": "duplicate",
+-   },
++   "code": "PGRST202",
++   "data": null,
+  }
+
+ ❯ tests/persistence/share-add.test.ts:86:22
+     84|     const repeated = await add(secret, "https://shop.example/lamp?utm_…
+     85|
+     86|     expect(repeated).toMatchObject({ code: null, data: { kind: "duplic…
+       |                      ^
+     87|     expect(Object.keys(repeated.data as object)).toEqual(["kind"]);
+     88|     expect(await counts()).toEqual({ products: 1, jobs: 1 });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > 모르는 키, 한 글자 틀린 키, 형식이 다른 키와 폐기한 키는 모두 같은 M0009와 같은 메시지로 거절하고 아무것도 쓰지 않는다
+AssertionError: expected 'PGRST202' to be 'M0009' // Object.is equality
+
+Expected: "M0009"
+Received: "PGRST202"
+
+ ❯ tests/persistence/share-add.test.ts:116:27
+    114|
+    115|     for (const result of results) {
+    116|       expect(result.code).toBe("M0009");
+       |                           ^
+    117|       expect(result.error?.message).toBe("share key rejected");
+    118|       expect(JSON.stringify(result.error)).not.toContain(fixture.owner…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > 소유자 세션은 저장 키 함수를 실행하지 못하고, 익명은 다른 moti 함수를 실행하지 못한다
+AssertionError: expected 'PGRST202' to be '42501' // Object.is equality
+
+Expected: "42501"
+Received: "PGRST202"
+
+ ❯ tests/persistence/share-add.test.ts:126:89
+    124|   it("소유자 세션은 저장 키 함수를 실행하지 못하고, 익명은 다른 moti 함수를 실행하지 못한다", async () =…
+    125|     const { secret, key } = await issue();
+    126|     expect((await add(secret, "https://shop.example/lamp", fixture.own…
+       |                                                                                         ^
+    127|     for (const [name, parameters] of [
+    128|       ["moti_snapshot", {}],
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > 소유자 설정이 다른 계정으로 바뀌거나 Google 연결이 없어지면 이전 키는 M0009다
+AssertionError: expected 'PGRST202' to be 'M0009' // Object.is equality
+
+Expected: "M0009"
+Received: "PGRST202"
+
+ ❯ tests/persistence/share-add.test.ts:160:67
+    158|     const { secret } = await issue();
+    159|     await fixture.admin.query("delete from auth.identities where user_…
+    160|     expect((await add(secret, "https://shop.example/lamp")).code).toBe…
+       |                                                                   ^
+    161|     await fixture.admin.query("update moti.owner_config set owner_id =…
+    162|       [fixture.stranger.id, fixture.stranger.googleSubject]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > 한 키로 한 시간에 30번까지 담고 31번째는 M0010이며 아무것도 쓰지 않는다. 한 시간이 지나면 다시 담는다
+AssertionError: expected 'PGRST202' to be null
+
+- Expected:
+null
+
++ Received:
+"PGRST202"
+
+ ❯ tests/persistence/share-add.test.ts:171:27
+    169|     for (let index = 0; index < 30; index += 1) {
+    170|       const result = await add(secret, `https://shop.example/item-${in…
+    171|       expect(result.code).toBeNull();
+       |                           ^
+    172|     }
+    173|     const thirtieth = await keyRow(key.id);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > Next를 거치지 않은 javascript 링크도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > Next를 거치지 않은 계정이 든 링크도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > Next를 거치지 않은 빈 정체성도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > Next를 거치지 않은 긴 옵션도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > Next를 거치지 않은 빈 쇼핑몰도 SQL이 M0002로 거절하고 키 사용 시각을 남기지 않는다
+AssertionError: expected 'PGRST202' to be 'M0002' // Object.is equality
+
+Expected: "M0002"
+Received: "PGRST202"
+
+ ❯ tests/persistence/share-add.test.ts:196:25
+    194|     const { secret, key } = await issue();
+    195|     const result = await rpc("moti_share_add", { p_key: secret, ...lin…
+    196|     expect(result.code).toBe("M0002");
+       |                         ^
+    197|     expect(await counts()).toEqual({ products: 0, jobs: 0 });
+    198|     expect(await keyRow(key.id)).toMatchObject({ last_used_at: null, w…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > 검사를 지난 값을 테이블이 거절해도 행 내용 없이 M0002로 바꾼다
+AssertionError: expected 'PGRST202' to be 'M0002' // Object.is equality
+
+Expected: "M0002"
+Received: "PGRST202"
+
+ ❯ tests/persistence/share-add.test.ts:206:27
+    204|     try {
+    205|       const result = await add(secret, "https://refuse.example/lamp");
+    206|       expect(result.code).toBe("M0002");
+       |                           ^
+    207|       expect(result.error?.message).toBe("invalid link input");
+    208|       expect(JSON.stringify(result.error)).not.toContain(fixture.owner…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키로 링크 담기 > 폐기는 진행 중인 담기가 끝나기를 기다리고, 폐기 뒤의 담기는 M0009다
+error: function public.moti_share_add(unknown, unknown, unknown, unknown, unknown) does not exist
+ ❯ node_modules/pg/lib/client.js:694:17
+ ❯ tests/persistence/share-add.test.ts:223:7
+    221|       await adding.query("set local role anon");
+    222|       const link = linkOf("https://shop.example/lamp");
+    223|       await adding.query("select public.moti_share_add($1, $2, $3, $4,…
+       |       ^
+    224|         [secret, link.p_source_url, link.p_identity_url, link.p_option…
+    225|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키 역할의 권한 > 익명으로 실행할 수 있는 moti 함수는 moti_share 역할이 소유한 moti_share_add 하나이고 로그인 세션은 실행하지 못한다
+AssertionError: expected [] to deeply equal [ { proname: 'moti_share_add', …(4) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "authenticated": false,
+-     "owner": "moti_share",
+-     "proname": "moti_share_add",
+-     "prosecdef": true,
+-     "service": false,
+-   },
+- ]
++ []
+
+ ❯ tests/persistence/share-add.test.ts:253:18
+    251|        where n.nspname in ('public', 'moti', 'moti_storage') and has_f…
+    252|     );
+    253|     expect(rows).toEqual([{ proname: "moti_share_add", owner: "moti_sh…
+       |                  ^
+    254|     const role = await fixture.admin.query(
+    255|       `select rolsuper, rolbypassrls, rolinherit, rolcanlogin, rolcrea…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키 역할의 권한 > moti_share 역할에 직접 준 권한은 추가에 필요한 것뿐이다
+error: role "moti_share" does not exist
+ ❯ node_modules/pg-pool/index.js:45:11
+ ❯ tests/persistence/share-add.test.ts:270:22
+    268|
+    269|   it("moti_share 역할에 직접 준 권한은 추가에 필요한 것뿐이다", async () => {
+    270|     const { rows } = await fixture.admin.query<{ grant: string }>(
+       |                      ^
+    271|       `with share as (select 'moti_share'::regrole::oid as oid)
+    272|        select g.grant from (
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+ FAIL  tests/persistence/share-add.test.ts > 저장 키 역할의 권한 > moti_share 역할로는 정한 권한 밖의 읽기·쓰기·함수 실행을 모두 거절한다
+error: role "moti_share" does not exist
+ ❯ node_modules/pg/lib/client.js:694:17
+ ❯ tests/persistence/share-add.test.ts:358:7
+    356|     ];
+    357|     try {
+    358|       await connection.query("set role moti_share");
+       |       ^
+    359|       for (const statement of refused) {
+    360|         await expect(connection.query(statement), statement).rejects.t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/17]⎯
+
+
+ Test Files  2 failed | 12 skipped (14)
+      Tests  17 failed | 1 passed | 199 skipped (217)
+   Start at  21:38:00
+   Duration  6.95s (tests 83%, import 16%, transform 1%)
+
+    Isolate  14 workers spawned · ~57ms startup each (spawn + environment, per file)
+             at least ~740ms faster with isolate: false — reuses workers across files instead of one per file
+

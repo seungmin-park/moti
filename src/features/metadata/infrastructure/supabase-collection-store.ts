@@ -79,5 +79,9 @@ export function createSupabaseCollectionStore(client: SupabaseClient): Collectio
       }));
       return { kind: row.kind, product: toProduct(row.product) };
     },
+    async wake({ limit }) {
+      const rows = readResponse(z.array(productRowSchema), await callRpc(client, "moti_metadata_wake", { p_limit: limit }));
+      return { products: rows.map(toProduct) };
+    },
   };
 }

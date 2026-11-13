@@ -44,6 +44,7 @@ function store(overrides: Partial<CollectionJobStore> = {}): CollectionJobStore 
     complete: vi.fn(async () => ({ kind: "applied" as const, product, replacedPicture: null })),
     fail: vi.fn(async () => ({ kind: "applied" as const, product, replacedPicture: null })),
     retry: vi.fn(),
+    wake: vi.fn(),
     ...overrides,
   };
 }
