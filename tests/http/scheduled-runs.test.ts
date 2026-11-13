@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
-import { errorResponseSchema } from "../../src/features/library/presentation/library-dto";
+import { errorResponseSchema, libraryReadResponseSchema } from "../../src/features/library/presentation/library-dto";
 import {
   scheduledRunErrorResponseSchema,
   scheduledRunResponseSchema,
@@ -93,6 +93,48 @@ describe("실제 HTTP 예약 실행", () => {
     const shown = workerReadResponseSchema.parse(await (await fetch(new URL("/api/worker-keys", appUrl), { headers: { cookie } })).json());
     expect(shown.runs).toEqual([expect.objectContaining({ state: "done", collections: { collected: 0, failed: 1 } })]);
     expect(shown.key?.lastUsedAt).not.toBeNull();
+  });
+
+  it("작업 키로 부르면 수집이 끝난 위시 상품의 가격을 확인한다. 앱의 주소 정책이 막은 링크는 이전 가격을 지키고 같은 서울 날짜에는 다시 확인하지 않는다", async () => {
+    const { secret } = await issue();
+    const { product } = await createSupabaseLibraryStore(fixture.owner.client)
+      .saveLink(toLinkSaveCommand({ url: blockedLink, option: "", collectionIds: [] }));
+    await fixture.admin.query(
+      `with job as (
+         update moti.metadata_jobs set status = 'succeeded', attempts = 1, finished_at = now() - interval '2 days' where product_id = $1
+         returning product_id
+       )
+       update moti.products set metadata_phase = 'ready', metadata_attempts = 1, metadata_completed_at = now() - interval '2 days',
+         metadata_image = 'absent', last_success_amount_minor = 9000, last_success_currency = 'KRW', last_success_at = now() - interval '2 days'
+       where id in (select product_id from job)`,
+      [product.id],
+    );
+
+    const response = await scheduled({ authorization: `Bearer ${secret}` });
+
+    expect(response.status).toBe(200);
+    expect(scheduledRunResponseSchema.parse(await response.json())).toEqual({
+      stop: "done",
+      collections: { collected: 0, failed: 0 },
+      prices: { confirmed: 0, kept: 1 },
+      failures: { blocked_address: 1 },
+    });
+    const library = libraryReadResponseSchema.parse(await (await fetch(new URL("/api/library", appUrl), { headers: { cookie } })).json());
+    expect(library.products).toEqual([expect.objectContaining({
+      title: "새로 담은 상품",
+      lastSuccessfulPrice: { amountMinor: 9000, currency: "KRW", checkedAt: expect.any(String) },
+      priceCheck: { checkedAt: expect.any(String), code: "blocked_address" },
+    })]);
+    const [shown] = library.products;
+    expect(Date.parse(shown.priceCheck!.checkedAt)).toBeGreaterThan(Date.parse(shown.lastSuccessfulPrice!.checkedAt));
+
+    const again = await scheduled({ authorization: `Bearer ${secret}` });
+    expect(scheduledRunResponseSchema.parse(await again.json())).toMatchObject({ stop: "done", prices: { confirmed: 0, kept: 0 } });
+    const runs = workerReadResponseSchema.parse(await (await fetch(new URL("/api/worker-keys", appUrl), { headers: { cookie } })).json()).runs;
+    expect(runs.map(({ prices, failures }) => ({ prices, failures }))).toEqual([
+      { prices: { confirmed: 0, kept: 0 }, failures: {} },
+      { prices: { confirmed: 0, kept: 1 }, failures: { blocked_address: 1 } },
+    ]);
   });
 
   it("다른 실행이 임대를 쥐고 있으면 409 run_busy이고, 24시간에 여덟 번을 넘기면 429 run_limit이다", async () => {
