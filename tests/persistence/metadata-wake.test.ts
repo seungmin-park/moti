@@ -122,3 +122,85 @@ describe("기다리는 수집 깨우기", () => {
       .toEqual([{ id: product, metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false } }]);
   });
 });
+
+// A product the scheduled worker collected: name and price written, picture waiting for the owner's session.
+async function collectedByWorker(name: string, minutesAgo: number, image = "waiting"): Promise<string> {
+  const { rows } = await fixture.admin.query<{ id: string }>(
+    `with product as (
+       insert into moti.products (owner_id, source_url, identity_url, shop, created_at, title, metadata_phase,
+         metadata_attempts, metadata_completed_at, metadata_image, metadata_image_error_code,
+         last_success_amount_minor, last_success_currency, last_success_at)
+       values ($1, $2, $2, 'shop.example', now() - make_interval(mins => $3), '작업자가 가져온 이름', 'ready', 1, now(), $4,
+         case when $4 = 'failed' then 'timeout' end, 12000, 'KRW', now())
+       returning id, owner_id
+     )
+     insert into moti.metadata_jobs (owner_id, product_id, generation, status, attempts, finished_at, image_source_url)
+     select owner_id, id, 1, 'succeeded', 1, now(), 'https://img.example/a.jpg' from product returning product_id as id`,
+    [fixture.owner.id, `https://shop.example/${name}`, minutesAgo, image],
+  );
+  return rows[0].id;
+}
+
+async function product(id: string) {
+  const { rows } = await fixture.admin.query(
+    `select title, metadata_generation, metadata_phase, metadata_attempts, metadata_image, picture_job_id,
+       last_success_amount_minor::int as price,
+       (select json_agg(json_build_object('generation', j.generation, 'status', j.status, 'attempts', j.attempts) order by j.generation)
+        from moti.metadata_jobs j where j.product_id = p.id) as jobs
+     from moti.products p where id = $1`,
+    [id],
+  );
+  return rows[0];
+}
+
+describe("사진을 기다리는 상품 깨우기", () => {
+  it("작업자가 이름과 가격만 쓴 상품은 새 세대로 다시 대기열에 두고, 시도 0인 대기 작업 다음에 같은 한도 안에서 최신부터 깨운다", async () => {
+    const unstarted = await waiting("unstarted", 30);
+    const older = await collectedByWorker("older", 20);
+    const newer = await collectedByWorker("newer", 10);
+    const earlier = "77777777-7777-4777-8777-777777777777";
+    await fixture.admin.query(
+      "update moti.products set picture_job_id = $2, picture_attempt = 1, picture_copied_at = now(), picture_object_version = 'v1' where id = $1",
+      [newer, earlier],
+    );
+
+    const first = await rpc("moti_metadata_wake", { p_limit: 2 });
+
+    expect(first.data?.map(({ id, metadata_phase, metadata_generation }) => ({ id, metadata_phase, metadata_generation }))).toEqual([
+      { id: newer, metadata_phase: "queued", metadata_generation: 2 },
+      { id: unstarted, metadata_phase: "queued", metadata_generation: 1 },
+    ]);
+    expect(await product(newer)).toEqual({
+      title: "작업자가 가져온 이름", metadata_generation: 2, metadata_phase: "queued", metadata_attempts: 0, metadata_image: null,
+      picture_job_id: earlier, price: 12000,
+      jobs: [{ generation: 1, status: "succeeded", attempts: 1 }, { generation: 2, status: "queued", attempts: 0 }],
+    });
+    expect(await product(older)).toMatchObject({ metadata_generation: 1, metadata_phase: "ready", metadata_image: "waiting" });
+
+    const rest = await rpc("moti_metadata_wake", { p_limit: 8 });
+    expect(rest.data?.map(({ id }) => id)).toEqual([newer, older, unstarted]);
+    expect(await product(older)).toMatchObject({ metadata_generation: 2, metadata_phase: "queued" });
+  });
+
+  it("사진을 복사했거나 사진이 없거나 사진만 실패한 상품은 깨우지 않는다", async () => {
+    for (const image of ["copied", "absent", "failed"]) await collectedByWorker(image, 10, image);
+    expect(await rpc("moti_metadata_wake", { p_limit: 8 })).toEqual({ data: [], code: null });
+  });
+
+  it("다른 연결이 잠근 상품은 기다리지 않고 건너뛴다", async () => {
+    const locked = await collectedByWorker("locked", 10);
+    const free = await collectedByWorker("free", 20);
+    const holder = await fixture.admin.connect();
+    try {
+      await holder.query("begin");
+      await holder.query("select id from moti.products where id = $1 for update", [locked]);
+      const started = Date.now();
+      const result = await rpc("moti_metadata_wake", { p_limit: 8 });
+      expect(Date.now() - started).toBeLessThan(3000);
+      expect(result.data?.map(({ id }) => id)).toEqual([free]);
+    } finally {
+      await holder.query("rollback");
+      holder.release();
+    }
+  });
+});

@@ -102,6 +102,19 @@ describe("보관함 불러오기", () => {
     expect(call).toEqual({ type: "metadata.wake" });
   });
 
+  it("Given 예약 실행이 사진을 남겨 둔 상품 When 보관함을 받으면 Then 사진을 가져오도록 깨운다", () => {
+    const waiting = {
+      ...library,
+      products: [{
+        ...lamp,
+        metadata: { phase: "ready" as const, generation: 1, attempts: 1, completedAt: "2026-11-13T05:17:30.000Z", image: { outcome: "waiting" as const } },
+      }],
+    };
+    expect(transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: waiting } }).call).toEqual({ type: "metadata.wake" });
+    const copied = { ...waiting, products: [{ ...waiting.products[0], metadata: { ...waiting.products[0].metadata, image: { outcome: "copied" as const } } }] };
+    expect(transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: copied } }).call).toBeNull();
+  });
+
   it("Given 아직 수집을 시작하지 않은 상품이 없음 When 보관함을 받으면 Then 깨우지 않는다", () => {
     const started = { ...library, products: [{ ...lamp, metadata: { phase: "running" as const, generation: 1, attempts: 1, stalled: false } }] };
     const { state, call } = transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: started } });

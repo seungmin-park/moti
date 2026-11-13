@@ -82,6 +82,8 @@ const imageFailureReasons: Record<ImageFailureCode, string> = {
 const imageFailure = (metadata: Metadata): ImageFailureCode | null =>
   metadata.phase === "ready" && metadata.image.outcome === "failed" ? metadata.image.errorCode : null;
 const stalled = (metadata: Metadata) => (metadata.phase === "queued" || metadata.phase === "running") && metadata.stalled;
+// The scheduled worker read the page; the picture waits for the owner's screen, which copies it when moti opens.
+const pictureWaiting = (metadata: Metadata) => metadata.phase === "ready" && metadata.image.outcome === "waiting";
 const arrivals = { added: "위시에 담았어요", duplicate: "이미 담아둔 상품이에요" } as const;
 
 function money(price: { amountMinor: number; currency: string }): string {
@@ -120,7 +122,10 @@ function statusOf(metadata: Metadata): ProductDetailView["status"] {
     case "failed":
       return { title: "정보를 가져오지 못했어요", detail: `${failureReasons[metadata.errorCode]} ${kept}` };
     case "ready":
-      return { title: "상품 정보를 가져왔어요", detail: `${onSeoulDate(metadata.completedAt)}에 확인했어요.` };
+      return {
+        title: "상품 정보를 가져왔어요",
+        detail: `${onSeoulDate(metadata.completedAt)}에 확인했어요.${pictureWaiting(metadata) ? " 사진은 곧 가져와요." : ""}`,
+      };
   }
 }
 
@@ -136,7 +141,7 @@ function openableUrl(value: string): string | null {
 function pictureOf(product: ProductResponse, alt: string): PictureView {
   if (product.picture) return { kind: "photo", src: product.picture.src, alt };
   const { metadata } = product;
-  if ((metadata.phase === "queued" || metadata.phase === "running") && !metadata.stalled) {
+  if (((metadata.phase === "queued" || metadata.phase === "running") && !metadata.stalled) || pictureWaiting(metadata)) {
     return { kind: "placeholder", icon: "waiting", text: "사진을 가져오는 중" };
   }
   if (imageFailure(metadata)) return { kind: "placeholder", icon: "off", text: "사진을 가져오지 못했어요" };

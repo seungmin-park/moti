@@ -1,9 +1,15 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import sharp from "sharp";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLibraryService } from "../../src/features/library/application/library-service";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
-import type { PageRead, PageSource } from "../../src/features/metadata/application/collection";
+import { createPictureStore } from "../../src/features/library/infrastructure/product-pictures";
+import { createCollectionRunner, type PageRead, type PageSource } from "../../src/features/metadata/application/collection";
+import { WAKE_LIMIT } from "../../src/features/metadata/application/commands";
+import { createPictureCopier, type ImageSource } from "../../src/features/metadata/application/picture-copy";
+import { normalizePicture } from "../../src/features/metadata/infrastructure/sharp-normalizer";
+import { createSupabaseCollectionStore } from "../../src/features/metadata/infrastructure/supabase-collection-store";
 import { readProductPage } from "../../src/features/metadata/infrastructure/html-reader";
 import { toShareLinkAddCommand } from "../../src/features/share/application/commands";
 import { createShareKeyService, createShareLinkService } from "../../src/features/share/application/share-service";
@@ -14,6 +20,10 @@ import { createSupabaseWorkerKeyStore, createSupabaseWorkerRunStore } from "../.
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 
 let fixture: DatabaseFixture;
+let photo: Buffer;
+beforeAll(async () => {
+  photo = await sharp({ create: { width: 1200, height: 900, channels: 3, background: "#777777" } }).jpeg().toBuffer();
+});
 beforeEach(async () => { fixture = await createDatabaseFixture(); });
 afterEach(async () => {
   if (!fixture) return;
@@ -92,5 +102,30 @@ describe("실제 저장소를 쓰는 예약 실행", () => {
     const before = await owner().snapshot();
     expect(await worker(blocked).run({ secret: first.secret })).toEqual({ kind: "refused", code: "key_rejected" });
     expect(await owner().snapshot()).toEqual(before);
+  });
+
+  it("작업자가 남긴 사진은 소유자가 moti를 열면 깨워 소유자 세션으로 비공개 사본을 만든다", async () => {
+    await sharedLink("https://shop.example/headphones");
+    const { secret } = await workerKeys().issue({ replaces: null });
+    await worker(shop(() => served(offerPage))).run({ secret });
+    const jobs = createSupabaseCollectionStore(fixture.owner.client);
+
+    const { products } = await jobs.wake({ limit: WAKE_LIMIT });
+
+    expect(products.map(({ title, metadata }) => ({ title, metadata }))).toEqual([
+      { title: "무선 헤드폰 블랙", metadata: { phase: "queued", generation: 2, attempts: 0, stalled: false } },
+    ]);
+    const images: ImageSource = { read: async () => ({ ok: true, bytes: photo }) };
+    const runner = createCollectionRunner({
+      store: jobs,
+      source: shop(() => served(offerPage)),
+      read: readProductPage,
+      copier: createPictureCopier({ source: images, normalize: normalizePicture, pictures: createPictureStore(fixture.owner.client) }),
+    });
+    expect(await runner.run({ productId: products[0].id, generation: 2 })).toMatchObject({ kind: "collected" });
+    const [after] = (await owner().snapshot()).products;
+    expect(after).toMatchObject({ metadata: { phase: "ready", generation: 2, image: { outcome: "copied" } }, picture: { version: expect.any(String) } });
+    expect(await objects()).toBe(1);
+    expect((await jobs.wake({ limit: WAKE_LIMIT })).products).toEqual([]);
   });
 });

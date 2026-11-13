@@ -237,9 +237,18 @@ describe("상품 사진", () => {
     ["사진만 실패", ready({ outcome: "failed", errorCode: "blocked_by_site" }), "off", "사진을 가져오지 못했어요"],
     ["페이지 실패", { ...queued, metadata: failed }, "link", "링크를 담아두었어요"],
     ["멈춘 수집", { ...queued, metadata: { phase: "running", generation: 1, attempts: 1, stalled: true } }, "link", "링크를 담아두었어요"],
+    ["예약 실행이 이름만 가져옴", ready({ outcome: "waiting" }), "waiting", "사진을 가져오는 중"],
   ])("Given %s이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다", (_, product, icon, text) => {
     expect(toProductCardView(product, []).picture).toEqual({ kind: "placeholder", icon, text });
     expect(toProductDetailView(product, null).picture).toEqual({ kind: "placeholder", icon, text });
+  });
+
+  it("Given 예약 실행이 이름과 가격만 가져옴 When 보이면 Then 이전 사본이 있으면 계속 보이고, 상세는 사진을 곧 가져온다고 말하며 다시 가져오기는 없다", () => {
+    expect(toProductCardView(ready({ outcome: "waiting" }, { src }), []).picture).toEqual({ kind: "photo", src, alt: "" });
+    const view = toProductDetailView(ready({ outcome: "waiting" }), null);
+    expect(view.status).toEqual({ title: "상품 정보를 가져왔어요", detail: "2026. 11. 11.에 확인했어요. 사진은 곧 가져와요." });
+    expect(view.canRetry).toBe(false);
+    expect(toProductCardView(ready({ outcome: "waiting" }), []).status).toBeNull();
   });
 
   it("Given 이전 사본이 있고 이번 사진은 실패 When 보이면 Then 이전 사본을 계속 보인다", () => {

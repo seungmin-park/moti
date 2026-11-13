@@ -199,10 +199,12 @@ function withResponses(products: ProductResponse[], incoming: ProductResponse[])
   return incoming.reduce(withResponse, products);
 }
 
-// Products whose collection never started: a share key's adds, or a restore or save whose run never began. Only the
-// owner's session can collect them, so the screen asks for them once it has the library.
-function hasUnstarted(library: LibraryReadResponse): boolean {
-  return library.products.some(({ metadata }) => metadata.phase === "queued" && metadata.attempts === 0);
+// Products only the owner's session can finish: collections that never started (a share key's adds, or a restore or
+// save whose run never began) and pictures the scheduled worker left waiting. The screen asks for them once it has
+// the library.
+function needsWake(library: LibraryReadResponse): boolean {
+  return library.products.some(({ metadata }) =>
+    (metadata.phase === "queued" && metadata.attempts === 0) || (metadata.phase === "ready" && metadata.image.outcome === "waiting"));
 }
 
 // A retry deliberately resets collection (a resumed job goes back to queued), so its answer replaces the product.
@@ -759,7 +761,7 @@ export function transition(state: LibraryScreenState, event: ScreenEvent): Trans
             phase: "ready", library: event.outcome.value, view: "wish", collectionId: null,
             dialog: null, refreshing: false, writing: null, toast: null, share: { status: "unread" },
           },
-          call: hasUnstarted(event.outcome.value) ? { type: "metadata.wake" } : null,
+          call: needsWake(event.outcome.value) ? { type: "metadata.wake" } : null,
         };
       }
       const { failure } = event.outcome;

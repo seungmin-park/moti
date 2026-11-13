@@ -524,3 +524,58 @@ revoke all on function public.moti_worker_fail(text, uuid, uuid, uuid, uuid, tex
 grant execute on function public.moti_worker_next(text, uuid, uuid) to anon;
 grant execute on function public.moti_worker_complete(text, uuid, uuid, uuid, uuid, text, bigint, text, text) to anon;
 grant execute on function public.moti_worker_fail(text, uuid, uuid, uuid, uuid, text) to anon;
+
+-- The owner's screen also copies the pictures the worker could not. After waking jobs nobody started, it puts products
+-- whose picture is waiting back in the queue as a new generation, newest first, within the same limit: metadata_retry's
+-- requeue, so the existing runner rereads the page and copies the picture with the owner's token. The name, price and
+-- any earlier copy stay shown meanwhile. It locks only products here, after the jobs above, so the job-then-product
+-- order holds; a product another request holds is left for the next open.
+create or replace function moti.metadata_wake(p_owner uuid, p_limit integer) returns jsonb
+language plpgsql set search_path = '' as $$
+declare
+  v_products uuid[];
+  v_waiting uuid[];
+begin
+  if p_limit is null or p_limit not between 1 and 8 then
+    raise exception using errcode = 'M0002', message = 'invalid wake limit';
+  end if;
+
+  with picked as (
+    select j.id from moti.metadata_jobs j
+    join moti.products p on p.id = j.product_id and p.metadata_generation = j.generation
+    where j.owner_id = p_owner and j.status = 'queued' and j.attempts = 0
+    order by p.created_at desc, p.id
+    limit p_limit
+    for update of j skip locked
+  ), woken as (
+    update moti.metadata_jobs j set updated_at = now()
+    from picked where j.id = picked.id
+    returning j.product_id
+  )
+  select coalesce(array_agg(product_id), '{}') into v_products from woken;
+
+  with waiting as (
+    select p.id from moti.products p
+    where p.owner_id = p_owner and p.metadata_phase = 'ready' and p.metadata_image = 'waiting'
+    order by p.created_at desc, p.id
+    limit p_limit - cardinality(v_products)
+    for update skip locked
+  ), requeued as (
+    update moti.products p
+    set metadata_generation = p.metadata_generation + 1, metadata_phase = 'queued', metadata_attempts = 0,
+        metadata_error_code = null, metadata_completed_at = null, metadata_image = null, metadata_image_error_code = null
+    from waiting where p.id = waiting.id
+    returning p.id, p.owner_id, p.metadata_generation
+  ), queued as (
+    insert into moti.metadata_jobs (owner_id, product_id, generation)
+    select owner_id, id, metadata_generation from requeued
+    returning product_id
+  )
+  select coalesce(array_agg(product_id), '{}') into v_waiting from queued;
+
+  return coalesce((
+    select jsonb_agg(moti.product_json(p) order by p.created_at desc, p.id)
+    from moti.products p where p.owner_id = p_owner and p.id = any(v_products || v_waiting)
+  ), '[]'::jsonb);
+end
+$$;

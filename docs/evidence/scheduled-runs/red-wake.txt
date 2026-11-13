@@ -1,0 +1,33 @@
+# Red: the owner's screen copies pictures the worker left waiting (step 7).
+# Unit: the card and detail have no words for a waiting picture, and the first load does not wake for one (3 fail).
+# Command: npx vitest run src/features/library/screen/product-view.test.ts src/features/library/screen/screen-state.test.ts
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+     × Given 예약 실행이 이름만 가져옴이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다 4ms
+     × Given 예약 실행이 이름과 가격만 가져옴 When 보이면 Then 이전 사본이 있으면 계속 보이고, 상세는 사진을 곧 가져온다고 말하며 다시 가져오기는 없다 0ms
+     × Given 예약 실행이 사진을 남겨 둔 상품 When 보관함을 받으면 Then 사진을 가져오도록 깨운다 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 사진 > Given 예약 실행이 이름만 가져옴이고 사본이 없음 When 보이면 Then 그 상태에 맞는 중립 자리표시를 쓴다
+AssertionError: expected { kind: 'placeholder', …(2) } to deeply equal { kind: 'placeholder', …(2) }
+ FAIL  src/features/library/screen/product-view.test.ts > 상품 사진 > Given 예약 실행이 이름과 가격만 가져옴 When 보이면 Then 이전 사본이 있으면 계속 보이고, 상세는 사진을 곧 가져온다고 말하며 다시 가져오기는 없다
+AssertionError: expected { title: '상품 정보를 가져왔어요', …(1) } to deeply equal { title: '상품 정보를 가져왔어요', …(1) }
+ FAIL  src/features/library/screen/screen-state.test.ts > 보관함 불러오기 > Given 예약 실행이 사진을 남겨 둔 상품 When 보관함을 받으면 Then 사진을 가져오도록 깨운다
+AssertionError: expected null to deeply equal { type: 'metadata.wake' }
+ Test Files  2 failed (2)
+      Tests  3 failed | 147 passed (150)
+
+# Persistence and service: moti_metadata_wake does not requeue waiting products, so the owner's wake finds nothing to copy (3 fail).
+# The passing persistence test (copied, absent and failed pictures are not woken) is a guard that already holds; the two passing service tests are step 6's.
+# Command: npm run test:database -- -t "사진을 기다리는 상품 깨우기|실제 저장소를 쓰는 예약 실행"
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+     × 작업자가 이름과 가격만 쓴 상품은 새 세대로 다시 대기열에 두고, 시도 0인 대기 작업 다음에 같은 한도 안에서 최신부터 깨운다 332ms
+     × 다른 연결이 잠근 상품은 기다리지 않고 건너뛴다 271ms
+     × 작업자가 남긴 사진은 소유자가 moti를 열면 깨워 소유자 세션으로 비공개 사본을 만든다 290ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/persistence/metadata-wake.test.ts > 사진을 기다리는 상품 깨우기 > 작업자가 이름과 가격만 쓴 상품은 새 세대로 다시 대기열에 두고, 시도 0인 대기 작업 다음에 같은 한도 안에서 최신부터 깨운다
+AssertionError: expected [ { …(3) } ] to deeply equal [ { …(3) }, { …(3) } ]
+ FAIL  tests/persistence/metadata-wake.test.ts > 사진을 기다리는 상품 깨우기 > 다른 연결이 잠근 상품은 기다리지 않고 건너뛴다
+AssertionError: expected [] to deeply equal [ Array(1) ]
+ FAIL  tests/service/scheduled-run.test.ts > 실제 저장소를 쓰는 예약 실행 > 작업자가 남긴 사진은 소유자가 moti를 열면 깨워 소유자 세션으로 비공개 사본을 만든다
+AssertionError: expected [] to deeply equal [ { title: '무선 헤드폰 블랙', …(1) } ]
+ Test Files  2 failed | 18 skipped (20)
+      Tests  3 failed | 3 passed | 279 skipped (285)
