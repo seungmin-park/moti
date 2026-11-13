@@ -1,0 +1,55 @@
+# Red: the 자동 확인 dialog's state and words (step 8). Stubs without behaviour: the worker view helpers return empty text and no notice, the screen ignores worker key events and does not open the dialog from the library, and the API client's worker calls fail as a lost connection.
+# 16 tests fail (view helpers, dialog transitions, worker API requests). The 493 passing are the existing screen tests and the cases a do-nothing stub also satisfies (opening is refused while a restore runs, a failed read keeps the record).
+# Command: npx vitest run src/features/library/screen
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+     × Given 키 없음 When 보이면 Then 키를 만들어 GitHub에 넣으라고 안내한다 5ms
+     × Given 활성 키 When 보이면 Then 끝 네 글자와 만든 날, 이 키로 실행을 시작한 때만 증거로 보인다 1ms
+     × Given 폐기한 키 When 보이면 Then 언제 폐기했고 그 키로는 실행할 수 없다고 말한다 0ms
+     × Given 바꾸기·폐기 확인 When 보이면 Then 진행 중인 실행도 멈추고 GitHub 비밀값을 바꿔야 한다고 말한다 0ms
+     × Given 끝난 실행 When 보이면 Then 서울 시각, 수집·실패 셈, 멈춘 이유와 이유별 실패를 보인다 1ms
+     × Given running 실행 When 보이면 Then 실행 중이에요.이고 cut만 오류로 보인다 1ms
+     × Given deadline 실행 When 보이면 Then 남은 일은 다음 실행에서 이어가요.이고 cut만 오류로 보인다 0ms
+     × Given cut 실행 When 보이면 Then 끝까지 실행되지 못했어요.이고 cut만 오류로 보인다 0ms
+     × Given revoked 실행 When 보이면 Then 키를 폐기해 멈췄어요.이고 cut만 오류로 보인다 0ms
+     × Given 활성 키 When 키를 만든 뒤나 마지막 실행 뒤 26시간이 지나면 Then 늦거나 멈췄을 수 있다고 말한다 0ms
+     × Given 보관함 When 자동 확인을 열면 Then 대화상자를 열고 작업 키와 실행 기록을 읽는다 7ms
+     × Given 읽는 중 When 키와 실행 기록이 오면 Then 패널에 키를, 기록에 최근 실행을 둔다 1ms
+     × Given 키를 만드는 중 닫음 When 비밀이 오면 Then 비밀을 보이지 않는다 0ms
+     × Given 공유 저장 보기와 자동 확인 When 작업 키 사건이 오면 Then 공유 키 패널은 그대로다 1ms
+     × Given 세션이 끝남 When 작업 키 결과가 오면 Then 로그인으로 떠난다 2ms
+     × Given 작업 키 When 읽고 만들고 폐기하면 Then /api/worker-keys에 GET·POST·DELETE를 보내고 키와 실행 기록을 돌려준다 6ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 작업 키 When 읽고 만들고 폐기하면 Then /api/worker-keys에 GET·POST·DELETE를 보내고 키와 실행 기록을 돌려준다
+AssertionError: expected { ok: false, failure: { …(2) } } to deeply equal { ok: true, …(1) }
+ FAIL  src/features/library/screen/screen-state.test.ts > 자동 확인 > Given 보관함 When 자동 확인을 열면 Then 대화상자를 열고 작업 키와 실행 기록을 읽는다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+ FAIL  src/features/library/screen/screen-state.test.ts > 자동 확인 > Given 읽는 중 When 키와 실행 기록이 오면 Then 패널에 키를, 기록에 최근 실행을 둔다
+AssertionError: expected { panel: { status: 'loading' }, …(1) } to deeply equal { …(2) }
+ FAIL  src/features/library/screen/screen-state.test.ts > 자동 확인 > Given 키를 만드는 중 닫음 When 비밀이 오면 Then 비밀을 보이지 않는다
+AssertionError: expected { status: 'ready', key: null, …(4) } to deeply equal { Object (status, key, ...) }
+ FAIL  src/features/library/screen/screen-state.test.ts > 자동 확인 > Given 공유 저장 보기와 자동 확인 When 작업 키 사건이 오면 Then 공유 키 패널은 그대로다
+AssertionError: expected { Object (status, key, ...) } to match object { confirm: 'revoke' }
+ FAIL  src/features/library/screen/screen-state.test.ts > 자동 확인 > Given 세션이 끝남 When 작업 키 결과가 오면 Then 로그인으로 떠난다
+AssertionError: expected { phase: 'ready', …(9) } to deeply equal { phase: 'leaving', to: '/login' }
+ FAIL  src/features/library/screen/worker-view.test.ts > 작업 키 표시 > Given 키 없음 When 보이면 Then 키를 만들어 GitHub에 넣으라고 안내한다
+AssertionError: expected { title: '', detail: '' } to deeply equal { title: '아직 작업 키가 없어요.', …(1) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 작업 키 표시 > Given 활성 키 When 보이면 Then 끝 네 글자와 만든 날, 이 키로 실행을 시작한 때만 증거로 보인다
+AssertionError: expected { title: '', detail: '' } to deeply equal { …(2) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 작업 키 표시 > Given 폐기한 키 When 보이면 Then 언제 폐기했고 그 키로는 실행할 수 없다고 말한다
+AssertionError: expected { title: '', detail: '' } to deeply equal { …(2) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 작업 키 표시 > Given 바꾸기·폐기 확인 When 보이면 Then 진행 중인 실행도 멈추고 GitHub 비밀값을 바꿔야 한다고 말한다
+AssertionError: expected { message: '', action: '' } to deeply equal { …(2) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 최근 실행 표시 > Given 끝난 실행 When 보이면 Then 서울 시각, 수집·실패 셈, 멈춘 이유와 이유별 실패를 보인다
+AssertionError: expected { …(6) } to deeply equal { …(6) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 최근 실행 표시 > Given running 실행 When 보이면 Then 실행 중이에요.이고 cut만 오류로 보인다
+AssertionError: expected { …(6) } to match object { state: '실행 중이에요.', failed: false }
+ FAIL  src/features/library/screen/worker-view.test.ts > 최근 실행 표시 > Given deadline 실행 When 보이면 Then 남은 일은 다음 실행에서 이어가요.이고 cut만 오류로 보인다
+AssertionError: expected { …(6) } to match object { state: '남은 일은 다음 실행에서 이어가요.', …(1) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 최근 실행 표시 > Given cut 실행 When 보이면 Then 끝까지 실행되지 못했어요.이고 cut만 오류로 보인다
+AssertionError: expected { …(6) } to match object { state: '끝까지 실행되지 못했어요.', …(1) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 최근 실행 표시 > Given revoked 실행 When 보이면 Then 키를 폐기해 멈췄어요.이고 cut만 오류로 보인다
+AssertionError: expected { …(6) } to match object { Object (state, failed) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 오래 실행이 없을 때 > Given 활성 키 When 키를 만든 뒤나 마지막 실행 뒤 26시간이 지나면 Then 늦거나 멈췄을 수 있다고 말한다
+AssertionError: expected null to be '26시간 넘게 실행 기록이 없어요. GitHub 예약 실행이 늦거나…' // Object.is equality
+ Test Files  3 failed | 4 passed (7)
+      Tests  16 failed | 493 passed (509)

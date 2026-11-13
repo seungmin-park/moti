@@ -49,6 +49,18 @@ describe("공유 저장 키 패널 열기", () => {
   });
 });
 
+describe("엔드포인트", () => {
+  it("Given 작업 키 패널 When 열고 만들고 폐기하면 Then 모든 요청이 작업 키 엔드포인트로 간다", () => {
+    expect(openKeyPanel({ status: "unread" }, "worker").call).toEqual({ type: "key.read", endpoint: "worker" });
+    expect(onKeyPanel(ready({ key: null }), { type: "key.create", endpoint: "worker" }, true).call)
+      .toEqual({ type: "key.issue", endpoint: "worker", replaces: null });
+    expect(onKeyPanel(ready({ confirm: "revoke" }), { type: "key.confirm", endpoint: "worker" }, true).call)
+      .toEqual({ type: "key.revoke", endpoint: "worker", keyId: key.id });
+    expect(onKeyPanel(ready({ confirm: "revoke", busy: true }), { type: "key.revoke.settled", endpoint: "worker", outcome: { ok: true, value: { key: revoked } } }, true).call)
+      .toEqual({ type: "key.read", endpoint: "worker" });
+  });
+});
+
 describe("저장 키 만들기", () => {
   it.each([["키 없음", null], ["폐기한 키", revoked]])("Given %s When 만들면 Then 바꿀 키 없이 만들기를 요청한다", (_name, shown) => {
     expect(onKeyPanel(ready({ key: shown }), { type: "key.create", endpoint: "share" }, true))

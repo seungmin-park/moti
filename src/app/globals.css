@@ -1689,6 +1689,94 @@ h1 {
   color: var(--muted);
   margin-bottom: 14px;
 }
+.worker-section {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.worker-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.worker-section > p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.worker-section .form-note {
+  margin: 0;
+}
+.worker-values {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.worker-values li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.worker-values code {
+  display: block;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  -webkit-user-select: all;
+  user-select: all;
+}
+.worker-value {
+  font-size: 12px;
+  color: var(--ink-soft);
+  max-width: 100%;
+}
+.worker-values .button {
+  min-height: 44px;
+}
+.worker-runs {
+  display: flex;
+  flex-direction: column;
+}
+.worker-runs li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.worker-runs li:first-child {
+  padding-top: 0;
+}
+.worker-run-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.worker-run-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.worker-run-state.cut {
+  color: var(--error);
+}
+.worker-run-failures {
+  font-size: 12px;
+  color: var(--muted);
+}
 .backup-progress {
   display: flex;
   align-items: center;

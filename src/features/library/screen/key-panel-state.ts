@@ -4,14 +4,19 @@ import type {
   ShareKeyResponse,
   ShareKeyRevokeResponse,
 } from "../../share/presentation/share-dto";
+import type {
+  WorkerKeyIssueResponse,
+  WorkerKeyRevokeResponse,
+  WorkerReadResponse,
+} from "../../worker/presentation/worker-dto";
 import type { ApiFailure, ApiOutcome } from "./library-api";
 
 // The owner's keys the screen manages. Each has its own endpoints; the panel logic is the same for all of them.
-export type KeyEndpoint = "share";
+export type KeyEndpoint = "share" | "worker";
 // What reading each endpoint answers: always the key, sometimes more for the view around the panel.
-type KeyReads = { share: ShareKeyReadResponse };
-type KeyIssues = { share: ShareKeyIssueResponse };
-type KeyRevokes = { share: ShareKeyRevokeResponse };
+type KeyReads = { share: ShareKeyReadResponse; worker: WorkerReadResponse };
+type KeyIssues = { share: ShareKeyIssueResponse; worker: WorkerKeyIssueResponse };
+type KeyRevokes = { share: ShareKeyRevokeResponse; worker: WorkerKeyRevokeResponse };
 export type KeyResponse = ShareKeyResponse;
 export type KeyConfirm = "rotate" | "revoke";
 export type KeyNotice = { kind: "error" | "info"; message: string };

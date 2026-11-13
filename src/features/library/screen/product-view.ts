@@ -62,6 +62,11 @@ const failureReasons: Record<FailureCode, string> = {
   internal: "정보를 가져오는 중에 문제가 생겼어요.",
 };
 
+// Why a collection ended without product data, in the words the detail view uses.
+export function collectionFailureReason(code: FailureCode): string {
+  return failureReasons[code];
+}
+
 const imageFailureReasons: Record<ImageFailureCode, string> = {
   invalid_url: "사진 주소를 열 수 없어요.",
   blocked_address: "안전을 위해 열지 않는 사진 주소예요.",

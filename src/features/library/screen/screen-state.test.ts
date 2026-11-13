@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import type { WorkerRunResponse } from "../../worker/presentation/worker-dto";
+import type { KeyPanel } from "./key-panel-state";
 import type { CollectionResponse, LibraryReadResponse, ProductResponse } from "../presentation/library-dto";
 import type { ApiFailure, LibraryApi } from "./library-api";
 import {
@@ -57,13 +59,24 @@ const shareKey = {
   revokedAt: null,
 };
 const shareSecret = `moti_sk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_Aa1B2"}`;
+const workerKey = { ...shareKey, id: "77777777-7777-4777-8777-777777777777", hint: "Wk9_" };
+const workerSecret = `moti_wk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_AWk9_"}`;
+const workerRun: WorkerRunResponse = {
+  id: "88888888-8888-4888-8888-888888888888",
+  startedAt: "2026-11-13T05:17:00.000Z",
+  finishedAt: "2026-11-13T05:17:40.000Z",
+  state: "cut",
+  collections: { collected: 1, failed: 0 },
+  prices: { confirmed: 0, kept: 0 },
+  failures: {},
+};
 
 type Ready = Extract<LibraryScreenState, { phase: "ready" }>;
 
 function ready(overrides: Partial<Ready> = {}): Ready {
   return {
     phase: "ready", library, view: "wish", collectionId: null, dialog: null, refreshing: false, writing: null, toast: null,
-    share: { status: "unread" }, ...overrides,
+    share: { status: "unread" }, worker: { panel: { status: "unread" }, runs: [] }, ...overrides,
   };
 }
 
@@ -517,6 +530,9 @@ describe("요청 실행", () => {
       readShareKey: vi.fn(async () => ({ ok: true as const, value: { key: null } })),
       issueShareKey: vi.fn(async () => ({ ok: true as const, value: { key: shareKey, secret: shareSecret } })),
       revokeShareKey: vi.fn(async () => ({ ok: true as const, value: { key: { ...shareKey, revokedAt: "2026-11-13T06:00:00.000Z" } } })),
+      readWorker: vi.fn(async () => ({ ok: true as const, value: { key: null, runs: [] } })),
+      issueWorkerKey: vi.fn(async () => ({ ok: true as const, value: { key: workerKey, secret: workerSecret } })),
+      revokeWorkerKey: vi.fn(async () => ({ ok: true as const, value: { key: { ...workerKey, revokedAt: "2026-11-13T06:00:00.000Z" } } })),
     };
     await expect(perform(api, { type: "library.read" })).resolves.toEqual({ type: "library.settled", outcome: { ok: true, value: library } });
     const body = { url: "https://a.example", option: "", collectionIds: [] };
@@ -546,6 +562,14 @@ describe("요청 실행", () => {
     expect(api.issueShareKey).toHaveBeenCalledWith({ replaces: null });
     await expect(perform(api, { type: "key.revoke", endpoint: "share", keyId: shareKey.id })).resolves.toMatchObject({ type: "key.revoke.settled", endpoint: "share" });
     expect(api.revokeShareKey).toHaveBeenCalledWith(shareKey.id);
+    await expect(perform(api, { type: "key.read", endpoint: "worker" }))
+      .resolves.toEqual({ type: "key.read.settled", endpoint: "worker", outcome: { ok: true, value: { key: null, runs: [] } } });
+    await expect(perform(api, { type: "key.issue", endpoint: "worker", replaces: null }))
+      .resolves.toEqual({ type: "key.issue.settled", endpoint: "worker", outcome: { ok: true, value: { key: workerKey, secret: workerSecret } } });
+    expect(api.issueWorkerKey).toHaveBeenCalledWith({ replaces: null });
+    await expect(perform(api, { type: "key.revoke", endpoint: "worker", keyId: workerKey.id })).resolves.toMatchObject({ type: "key.revoke.settled", endpoint: "worker" });
+    expect(api.revokeWorkerKey).toHaveBeenCalledWith(workerKey.id);
+    expect(api.readShareKey).toHaveBeenCalledOnce();
   });
 });
 
@@ -1141,5 +1165,61 @@ describe("공유 저장 보기", () => {
 
   it("Given 뒤로 가기 캐시에서 돌아온 공유 저장 보기 When 다시 보이면 Then 비밀 없이 처음부터 다시 불러온다", () => {
     expect(transition(ready({ view: "share", share: shown }), { type: "resume" })).toEqual(initialScreen);
+  });
+});
+
+describe("자동 확인", () => {
+  const shown = { status: "ready" as const, key: workerKey, secret: workerSecret, confirm: null, busy: false, notice: null };
+  const opened = (panel: KeyPanel = shown, runs: WorkerRunResponse[] = []) => ready({ dialog: { kind: "worker" }, worker: { panel, runs } });
+
+  it("Given 보관함 When 자동 확인을 열면 Then 대화상자를 열고 작업 키와 실행 기록을 읽는다", () => {
+    expect(transition(ready(), { type: "worker.open" }))
+      .toEqual({ state: ready({ dialog: { kind: "worker" }, worker: { panel: { status: "loading" }, runs: [] } }), call: { type: "key.read", endpoint: "worker" } });
+  });
+
+  it("Given 읽는 중 When 키와 실행 기록이 오면 Then 패널에 키를, 기록에 최근 실행을 둔다", () => {
+    const { state } = transition(opened({ status: "loading" }), {
+      type: "key.read.settled", endpoint: "worker", outcome: { ok: true, value: { key: workerKey, runs: [workerRun] } },
+    });
+    expect((state as Ready).worker).toEqual({ panel: { ...shown, secret: null }, runs: [workerRun] });
+    expect((state as Ready).share).toEqual({ status: "unread" });
+  });
+
+  it("Given 비밀이 보이는 자동 확인 When 닫으면 Then 비밀과 확인을 지우고 키와 기록은 남긴다", () => {
+    const { state } = transition(opened(shown, [workerRun]), { type: "dialog.close" });
+    expect(state).toEqual(ready({ worker: { panel: { ...shown, secret: null }, runs: [workerRun] } }));
+  });
+
+  it("Given 키를 만드는 중 닫음 When 비밀이 오면 Then 비밀을 보이지 않는다", () => {
+    const busy = { ...shown, key: null, secret: null, busy: true };
+    const closed = transition(opened(busy), { type: "dialog.close" }).state;
+    const { state } = transition(closed, { type: "key.issue.settled", endpoint: "worker", outcome: { ok: true, value: { key: workerKey, secret: workerSecret } } });
+    expect((state as Ready).worker.panel).toEqual({ ...shown, secret: null });
+  });
+
+  it("Given 공유 저장 보기와 자동 확인 When 작업 키 사건이 오면 Then 공유 키 패널은 그대로다", () => {
+    const share = { ...shown, key: shareKey, secret: null };
+    const { state, call } = transition(ready({ view: "share", share, dialog: { kind: "worker" }, worker: { panel: { ...shown, secret: null }, runs: [] } }),
+      { type: "key.ask", endpoint: "worker", confirm: "revoke" });
+    expect((state as Ready).share).toEqual(share);
+    expect((state as Ready).worker.panel).toMatchObject({ confirm: "revoke" });
+    expect(call).toBeNull();
+  });
+
+  it("Given 실패한 읽기 When 다시 읽기가 실패하면 Then 이미 보인 기록을 지우지 않는다", () => {
+    const quiet = { ...shown, secret: null };
+    const { state } = transition(opened(quiet, [workerRun]), { type: "key.read.settled", endpoint: "worker", outcome: { ok: false, failure: unavailable } });
+    expect((state as Ready).worker.runs).toEqual([workerRun]);
+  });
+
+  it("Given 세션이 끝남 When 작업 키 결과가 오면 Then 로그인으로 떠난다", () => {
+    const outcome = { ok: false as const, failure: { kind: "redirect" as const, to: "/login" } };
+    expect(transition(opened({ status: "loading" }), { type: "key.read.settled", endpoint: "worker", outcome }).state)
+      .toEqual({ phase: "leaving", to: "/login" });
+  });
+
+  it("Given 백업을 복원하는 중 When 자동 확인을 열면 Then 열지 않는다", () => {
+    const restoring = ready({ dialog: { kind: "backup", step: { name: "restoring", incoming: { products: 1, collections: 0 } }, notice: null } });
+    expect(transition(restoring, { type: "worker.open" })).toEqual({ state: restoring, call: null });
   });
 });

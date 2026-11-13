@@ -91,6 +91,9 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
   "share.read": { ...signedIn, ...everyCode(readShareFailed) },
   "share.issue": { ...signedIn, ...everyCode(issueUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged, worker_key_missing: keyChanged },
   "share.revoke": { ...signedIn, ...everyCode(revokeUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged, worker_key_missing: keyChanged },
+  "worker.read": { ...signedIn, ...everyCode({ kind: "unavailable", message: "자동 확인 상태를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요." }) },
+  "worker.issue": { ...signedIn, ...everyCode(issueUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged, worker_key_missing: keyChanged },
+  "worker.revoke": { ...signedIn, ...everyCode(revokeUnknown), cross_origin: reloadFailure, revision_conflict: keyChanged, share_key_missing: keyChanged, worker_key_missing: keyChanged },
   "library.backup": {
     ...signedIn,
     storage_unavailable: backupFailed,
@@ -387,6 +390,28 @@ describe("보관함 API 클라이언트", () => {
     expect(path).toBe("/api/share-keys");
     expect(init?.method).toBe("POST");
     expect(JSON.parse(String(init?.body))).toEqual({ replaces: null });
+  });
+
+  it("Given 작업 키 When 읽고 만들고 폐기하면 Then /api/worker-keys에 GET·POST·DELETE를 보내고 키와 실행 기록을 돌려준다", async () => {
+    const key = { id: "55555555-5555-4555-8555-555555555555", hint: "Wk9_", createdAt: "2026-11-13T05:00:00.000Z", lastUsedAt: null, revokedAt: null };
+    const read = respond({ key, runs: [] }, { status: 200 });
+    await expect(read.api.readWorker()).resolves.toEqual({ ok: true, value: { key, runs: [] } });
+    expect(read.fetcher.mock.calls[0][0]).toBe("/api/worker-keys");
+    expect(read.fetcher.mock.calls[0][1]?.method).toBe("GET");
+
+    const secret = `moti_wk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_AWk9_"}`;
+    const issued = respond({ key, secret }, { status: 201 });
+    await expect(issued.api.issueWorkerKey({ replaces: null })).resolves.toEqual({ ok: true, value: { key, secret } });
+    expect(issued.fetcher.mock.calls[0][0]).toBe("/api/worker-keys");
+    expect(JSON.parse(String(issued.fetcher.mock.calls[0][1]?.body))).toEqual({ replaces: null });
+
+    const shareSecret = respond({ key, secret: secret.replace("moti_wk_", "moti_sk_") }, { status: 201 });
+    await expect(shareSecret.api.issueWorkerKey({ replaces: null })).resolves.toMatchObject({ ok: false });
+
+    const revoked = respond({ key: { ...key, revokedAt: "2026-11-13T06:00:00.000Z" } }, { status: 200 });
+    await expect(revoked.api.revokeWorkerKey("../" + key.id)).resolves.toMatchObject({ ok: true });
+    expect(revoked.fetcher.mock.calls[0][0]).toBe(`/api/worker-keys/..%2F${key.id}`);
+    expect(revoked.fetcher.mock.calls[0][1]?.method).toBe("DELETE");
   });
 
   it("Given 저장 키 폐기 When 요청하면 Then 키 경로에 본문 없는 DELETE를 보내고 200 키를 돌려준다", async () => {

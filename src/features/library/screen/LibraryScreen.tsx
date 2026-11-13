@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, Bookmark, Check, Folder, LogOut, Pencil, Plus, Share2, ShoppingBag, X } from "lucide-react";
+import { Archive, Bookmark, CalendarClock, Check, Folder, LogOut, Pencil, Plus, Share2, ShoppingBag, X } from "lucide-react";
 import type { LibraryReadResponse } from "../presentation/library-dto";
 import { AddLinkDialog } from "./AddLinkDialog";
 import { BackupDialog } from "./BackupDialog";
@@ -8,6 +8,7 @@ import { CollectionDialog } from "./CollectionDialog";
 import { LibraryProductCard } from "./LibraryProductCard";
 import { ProductDetailDialog } from "./ProductDetailDialog";
 import { ShareView } from "./ShareView";
+import { WorkerDialog } from "./WorkerDialog";
 import { visibleProducts, visibleToast, type LibraryScreenState, type ScreenEvent, type View } from "./screen-state";
 import { useLibraryScreen } from "./useLibraryScreen";
 
@@ -127,6 +128,7 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
       />
     );
   }
+  if (dialog?.kind === "worker") return <WorkerDialog panel={state.worker.panel} runs={state.worker.runs} send={send} />;
   if (dialog?.kind === "backup") {
     return <BackupDialog step={dialog.step} notice={dialog.notice} blocked={state.writing !== null || state.refreshing} send={send} />;
   }
@@ -255,6 +257,10 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
             <Archive size={15} aria-hidden="true" />
             백업과 복원
           </button>
+          <button className="text-button" onClick={() => send({ type: "worker.open" })}>
+            <CalendarClock size={15} aria-hidden="true" />
+            자동 확인
+          </button>
           <SignOut />
         </div>
       </aside>
@@ -263,6 +269,9 @@ function ReadyScreen({ state, send }: { state: Ready; send: Send }) {
         <div className="mobile-actions">
           <button className="icon-button" aria-label="백업과 복원" title="백업과 복원" onClick={() => send({ type: "backup.open" })}>
             <Archive size={19} aria-hidden="true" />
+          </button>
+          <button className="icon-button" aria-label="자동 확인" title="자동 확인" onClick={() => send({ type: "worker.open" })}>
+            <CalendarClock size={19} aria-hidden="true" />
           </button>
           <SignOut />
         </div>
