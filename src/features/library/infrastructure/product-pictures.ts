@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { PictureObject, PictureStore } from "../../metadata/application/picture-copy";
+import type { PictureOrphanStore } from "../application/picture-sweep";
 
 export const PICTURE_BUCKET = "product-pictures";
 // A signed link can't be revoked, so it lives one hour; the picture route redirects to a fresh one each time.
@@ -26,6 +27,17 @@ export function createPictureStore(client: SupabaseClient): PictureStore {
     async discard(objects) {
       if (objects.length === 0) return;
       await bucket().remove([...objects]).catch(() => undefined);
+    },
+  };
+}
+
+// Names only, never the objects: the server hands them straight to discard under the same owner token.
+export function createPictureOrphanStore(client: SupabaseClient): PictureOrphanStore {
+  return {
+    async find(limit) {
+      const { data, error } = await client.rpc("moti_picture_orphans", { p_limit: limit });
+      if (error) throw new Error(`moti_picture_orphans ${error.code}`);
+      return z.array(pictureObjectSchema).parse(data);
     },
   };
 }

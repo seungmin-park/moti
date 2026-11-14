@@ -1,0 +1,61 @@
+# Red (injected defect): the sweep against the real database and Storage (step 3). sweepPictures and the orphan
+# adapter kept their signatures and did nothing (diff below; restored afterwards and checked with cmp). The adapter
+# test fails (no names, no refusal for another account), and both service tests fail: the aged orphan stays, and the
+# sweep with an unreachable Storage answers 0 instead of handing one name over and removing it on the next open.
+# Command: npm run test:database -- -t "남은 사본 저장소 어댑터|실제 저장소를 쓰는 남은 사진 정리"
+# (other tests filtered out, so the runner exits 1 on skips).
+#
+# diff --git a/src/features/library/application/picture-sweep.ts b/src/features/library/application/picture-sweep.ts
+# index 27e2a4a..ceb2771 100644
+# --- a/src/features/library/application/picture-sweep.ts
+# +++ b/src/features/library/application/picture-sweep.ts
+# @@ -15,17 +15,6 @@ export type PictureSweepResult = { kind: "requested"; count: number } | { kind:
+#  
+#  // Runs after the owner's wake response. Storage checks each name again with the owner's token. Never throws.
+#  export async function sweepPictures({ orphans, pictures }: { orphans: PictureOrphanStore; pictures: PictureStore }): Promise<PictureSweepResult> {
+# -  let found: PictureObject[];
+# -  try {
+# -    found = await orphans.find(SWEEP_BATCH);
+# -  } catch {
+# -    return { kind: "failed", step: "find" };
+# -  }
+# -  if (found.length === 0) return { kind: "requested", count: 0 };
+# -  try {
+# -    await pictures.discard(found);
+# -  } catch {
+# -    return { kind: "failed", step: "discard" };
+# -  }
+# -  return { kind: "requested", count: found.length };
+# +  void orphans; void pictures;
+# +  return { kind: "requested", count: 0 };
+#  }
+# diff --git a/src/features/library/infrastructure/product-pictures.ts b/src/features/library/infrastructure/product-pictures.ts
+# index 2d472a3..53295fb 100644
+# --- a/src/features/library/infrastructure/product-pictures.ts
+# +++ b/src/features/library/infrastructure/product-pictures.ts
+# @@ -35,9 +35,8 @@ export function createPictureStore(client: SupabaseClient): PictureStore {
+#  export function createPictureOrphanStore(client: SupabaseClient): PictureOrphanStore {
+#    return {
+#      async find(limit) {
+# -      const { data, error } = await client.rpc("moti_picture_orphans", { p_limit: limit });
+# -      if (error) throw new Error(`moti_picture_orphans ${error.code}`);
+# -      return z.array(pictureObjectSchema).parse(data);
+# +      void client; void limit;
+# +      return [];
+#      },
+#    };
+#  }
+ ❯ tests/persistence/picture-orphans.test.ts (12 tests | 1 failed | 11 skipped) 379ms
+     × 남은 사본 저장소 어댑터는 이름만 돌려주고 소유자가 아닌 세션이면 예외를 던진다 379ms
+ ❯ tests/service/picture-sweep.test.ts (2 tests | 2 failed) 695ms
+     × 10분 지난 남은 사본만 지우고 보여주는 사본, 끝나지 않은 작업의 사본, 방금 남은 사본은 그대로 둔다 381ms
+     × Storage에 닿지 못해 지우지 못해도 예외 없이 끝나고 다음에 열 때 지운다 313ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [] to deeply equal [ Array(1) ]
+ ❯ tests/persistence/picture-orphans.test.ts:167:76
+AssertionError: expected { kind: 'requested', count: +0 } to deeply equal { kind: 'requested', count: 1 }
+ ❯ tests/service/picture-sweep.test.ts:89:27
+AssertionError: expected { kind: 'requested', count: +0 } to deeply equal { kind: 'requested', count: 1 }
+ ❯ tests/service/picture-sweep.test.ts:101:58
+ Test Files  2 failed | 21 skipped (23)
+      Tests  3 failed | 329 skipped (332)

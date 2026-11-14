@@ -93,7 +93,7 @@ export default defineConfig([
           message: "예약 실행 요청은 쿠키를 읽지도 쓰지도 않는다. 작업 키만 인증이다.",
         },
         {
-          group: ["**/product-pictures", "**/picture-copy"],
+          group: ["**/product-pictures", "**/picture-copy", "**/picture-sweep"],
           message: "작업자는 Storage에 닿지 않는다. 사진은 소유자의 화면이 가져온다.",
         },
       ] }],
@@ -104,7 +104,7 @@ export default defineConfig([
     files: ["src/features/worker/**/*.ts"],
     rules: {
       "no-restricted-syntax": ["error", {
-        selector: "ImportDeclaration[source.value=/(product-pictures|picture-copy)$/]",
+        selector: "ImportDeclaration[source.value=/(product-pictures|picture-copy|picture-sweep)$/]",
         message: "작업자는 Storage에 닿지 않는다. 사진은 소유자의 화면이 가져온다.",
       }],
     },

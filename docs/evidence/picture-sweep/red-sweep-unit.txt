@@ -1,0 +1,21 @@
+# Red: the sweep's orchestration (step 2). sweepPictures kept its signature and the port types and did nothing
+# (`void orphans; void pictures; return { kind: "requested", count: 0 }`), so it neither asked for orphans nor handed
+# names to Storage. 4 tests fail: asking once for 200 and discarding exactly the returned names, a full batch without a
+# second round, and both ports' failures answered as a result. The test for an empty answer (no Storage call) passes,
+# because a sweep that does nothing also calls nothing; it protects against a discard of an empty list.
+# Command: npx vitest run src/features/library/application/picture-sweep.test.ts
+ ❯ src/features/library/application/picture-sweep.test.ts (5 tests | 4 failed) 7ms
+     × Given 남은 사본 둘 When 정리하면 Then 한 번에 200개까지 묻고 받은 이름 그대로 버리라고 한다 3ms
+     × Given 한도만큼 남은 사본 When 정리하면 Then 다시 묻지 않고 나머지는 다음에 열 때 정리한다 2ms
+     × Given 남은 사본을 찾지 못함 When 정리하면 Then 예외 없이 실패라고 답하고 아무것도 버리지 않는다 0ms
+     × Given 버리기가 예외를 던짐 When 정리하면 Then 예외 없이 실패라고 답한다 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected "vi.fn()" to be called once with arguments: [ 200 ]
+ ❯ src/features/library/application/picture-sweep.test.ts:26:26
+AssertionError: expected { kind: 'requested', count: +0 } to deeply equal { kind: 'requested', count: 200 }
+ ❯ src/features/library/application/picture-sweep.test.ts:42:56
+AssertionError: expected { kind: 'requested', count: +0 } to deeply equal { kind: 'failed', step: 'find' }
+ ❯ src/features/library/application/picture-sweep.test.ts:52:20
+AssertionError: expected { kind: 'requested', count: +0 } to deeply equal { kind: 'failed', step: 'discard' }
+ ❯ src/features/library/application/picture-sweep.test.ts:63:20
+      Tests  4 failed | 1 passed (5)

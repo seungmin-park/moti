@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import type { Product } from "../../src/features/library/domain/library";
-import { PICTURE_BUCKET } from "../../src/features/library/infrastructure/product-pictures";
+import { createPictureOrphanStore, PICTURE_BUCKET } from "../../src/features/library/infrastructure/product-pictures";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
 import type { CollectedPage, CollectionJob } from "../../src/features/metadata/application/collection";
 import { createSupabaseCollectionStore } from "../../src/features/metadata/infrastructure/supabase-collection-store";
@@ -159,6 +159,13 @@ describe("남은 사진 사본 찾기", () => {
     await aged(await leftBehind(), 11);
     expect((await orphans(200, fixture.stranger.client)).code).toBe("M0001");
     expect((await orphans(200, fixture.anonymous)).code).toBe("42501");
+  });
+
+  it("남은 사본 저장소 어댑터는 이름만 돌려주고 소유자가 아닌 세션이면 예외를 던진다", async () => {
+    const older = await aged(await leftBehind(), 11);
+
+    expect(await createPictureOrphanStore(fixture.owner.client).find(200)).toEqual([older]);
+    await expect(createPictureOrphanStore(fixture.stranger.client).find(200)).rejects.toThrow("M0001");
   });
 
   it("Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다", async () => {

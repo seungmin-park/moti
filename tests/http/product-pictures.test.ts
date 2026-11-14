@@ -9,6 +9,7 @@ import {
   errorResponseSchema,
   libraryReadResponseSchema,
   metadataRetryResponseSchema,
+  metadataWakeResponseSchema,
 } from "../../src/features/library/presentation/library-dto";
 import type { CollectedPage, CollectionJob } from "../../src/features/metadata/application/collection";
 import type { ImageCopy } from "../../src/features/metadata/application/picture-copy";
@@ -147,5 +148,38 @@ describe("실제 HTTP 사진 사본", () => {
       if (Date.now() > deadline) throw new Error(`10초 안에 다시 수집하지 않았습니다: ${JSON.stringify(rows[0])}`);
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+  });
+
+  it("화면이 열며 깨우면 응답은 그대로이고 응답 뒤 10분 지난 남은 사본을 지우며 보여주는 사본은 남긴다", async () => {
+    const jobs = createSupabaseCollectionStore(fixture.owner.client);
+    const shown = (await settledWith(await saved(), { outcome: "copied" })).picture;
+    // A run that uploaded and died: the next attempt claimed the job, so no complete can record that copy.
+    const product = await saved();
+    const died = await jobs.claim({ productId: product.id, generation: 1 });
+    if (died.kind !== "claimed") throw new Error("작업을 맡지 못했습니다.");
+    expect((await fixture.owner.client.storage.from(PICTURE_BUCKET)
+      .upload(died.job.picture, webp, { contentType: "image/webp", upsert: false })).error).toBeNull();
+    await fixture.admin.query("update moti.metadata_jobs set lease_until = now() - interval '1 second' where id = $1", [died.job.id]);
+    expect(await jobs.claim({ productId: product.id, generation: 1 })).toMatchObject({ kind: "claimed" });
+    await fixture.admin.query(
+      "update storage.objects set created_at = now() - interval '11 minutes' where bucket_id = $1 and name = any($2::text[])",
+      [PICTURE_BUCKET, [shown, died.job.picture]],
+    );
+    const stored = async () => (await fixture.admin.query<{ name: string }>(
+      "select name from storage.objects where bucket_id = $1 and starts_with(name, $2) order by name",
+      [PICTURE_BUCKET, `${fixture.owner.id}/`],
+    )).rows.map((row) => row.name);
+    expect(await stored()).toEqual([shown, died.job.picture].toSorted());
+
+    const response = await fetch(new URL("/api/library/metadata", appUrl), {
+      method: "POST",
+      headers: { cookie, origin, "content-type": "application/json" },
+      body: "{}",
+    });
+
+    expect(response.status).toBe(202);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(metadataWakeResponseSchema.parse(await response.json())).toEqual({ products: [] });
+    await expect.poll(stored, { timeout: 10_000 }).toEqual([shown]);
   });
 });

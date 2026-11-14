@@ -165,7 +165,7 @@ export const libraryRoutes: Route[] = [
   {
     method: "post",
     path: "/api/library/metadata",
-    summary: "아직 한 번도 시작하지 않은 수집(저장 키로 담은 상품, 복원 뒤 시간 안에 못 끝낸 상품 등)을 깨운다. 지금 세대에서 대기 중이고 시도가 0인 작업을 최신 상품부터 8개까지 다시 대기열 앞에 두고 응답 뒤에 수집한다. 다른 요청이 잡고 있는 작업은 건너뛴다.",
+    summary: "화면이 보관함을 처음 받을 때마다 부른다. 아직 한 번도 시작하지 않은 수집(저장 키로 담은 상품, 복원 뒤 시간 안에 못 끝낸 상품 등)을 깨우고, 남은 자리만큼 예약 실행이 사진을 남겨 둔 상품을 새 세대로 다시 대기열에 둔다. 함께 최신 상품부터 8개까지이고 응답 뒤에 수집한다. 다른 요청이 잡고 있는 작업과 상품은 건너뛴다. 응답 뒤에는 어떤 상품도 쓰지 않는 10분 지난 사진 사본을 200개까지 소유자 토큰으로 지운다. 응답 본문은 정리와 상관없다.",
     request: metadataWakeRequestSchema,
     responses: {
       202: { description: "MetadataWakeResponse. 깨운 상품. 없으면 빈 목록이다.", schema: metadataWakeResponseSchema },

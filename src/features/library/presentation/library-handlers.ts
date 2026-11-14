@@ -77,6 +77,8 @@ export type LibraryRequestContext = {
   wake(command: MetadataWakeCommand): Promise<MetadataWakeResult>;
   // Schedules collection of several products after the response, within a window; never delays or fails the request.
   collectAll(requests: CollectionRequest[]): void;
+  // After the response: removes the owner's leftover picture copies. Never delays or fails the request.
+  sweep(): void;
 };
 export type ProductRoute = { params: Promise<{ productId: string }> };
 export type CollectionRoute = { params: Promise<{ collectionId: string }> };
@@ -153,7 +155,8 @@ function failure(code: ErrorCode, message = errorMessages[code], field?: string)
 }
 
 type Allowed = Pick<
-  LibraryRequestContext, "service" | "collect" | "retry" | "settleRestore" | "shareKeys" | "workerKeys" | "wake" | "collectAll"
+  LibraryRequestContext,
+  "service" | "collect" | "retry" | "settleRestore" | "shareKeys" | "workerKeys" | "wake" | "collectAll" | "sweep"
 >;
 type Action<Route> = (allowed: Allowed, request: Request, route: Route) => Promise<Response>;
 
@@ -285,14 +288,16 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
       const { keyId } = await route.params;
       return json(200, toWorkerKeyRevokeResponse(await workerKeys.revoke(toWorkerKeyRevokeCommand(keyId))));
     }, { write: true }),
-    // The screen calls this once it has the library: products nobody started collecting (a share key's adds) start now.
-    postMetadataWake: handle(async ({ wake, collectAll }, request) => {
+    // The screen calls this each time it first has the library: products nobody started collecting (a share key's
+    // adds) and pictures the worker left waiting start now, and the copies no product uses any more go after it.
+    postMetadataWake: handle(async ({ wake, collectAll, sweep }, request) => {
       const metadataWakeRequest = await readRequest(request, (value) => metadataWakeRequestSchema.parse(value));
       if (metadataWakeRequest instanceof Response) return metadataWakeRequest;
       const result = await wake({ limit: WAKE_LIMIT });
       if (result.products.length > 0) {
         collectAll(result.products.map(({ id, metadata }) => ({ productId: id, generation: metadata.generation })));
       }
+      sweep();
       return json(202, toMetadataWakeResponse(result));
     }, { write: true }),
     // The src of an <img>: same-origin and stable for one copy. Each request signs a fresh short-lived link, and the

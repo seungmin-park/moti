@@ -1,0 +1,14 @@
+# Red: the wake handler schedules the sweep (step 3). The tests hand the handler a `sweep` mock in its context; the
+# handler did not call it yet. The two tests where the wake succeeds (with and without woken products) fail because the
+# sweep was never scheduled. The five refusals (other origin, other field, not JSON, no session, storage error) pass,
+# because a handler that never sweeps also never sweeps on a refusal; they guard that a refused wake schedules nothing.
+# Command: npx vitest run src/features/library/presentation/library-handlers.test.ts -t "POST /api/library/metadata"
+ ❯ src/features/library/presentation/library-handlers.test.ts (182 tests | 2 failed | 175 skipped) 23ms
+     × Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집과 남은 사진 정리를 맡긴다 19ms
+     × Given 깨울 상품 없음 When 깨우면 Then 빈 목록이고 수집은 맡기지 않지만 남은 사진 정리는 맡긴다 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected "vi.fn()" to be called once with arguments: []
+ ❯ src/features/library/presentation/library-handlers.test.ts:1262:19
+AssertionError: expected "vi.fn()" to be called once with arguments: []
+ ❯ src/features/library/presentation/library-handlers.test.ts:1271:19
+      Tests  2 failed | 5 passed | 175 skipped (182)
