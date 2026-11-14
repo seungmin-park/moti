@@ -44,8 +44,8 @@ const expireLease = (job: CollectionJob) =>
   fixture.admin.query("update moti.metadata_jobs set lease_until = now() - interval '1 second' where id = $1", [job.id]);
 
 // The copy a product shows.
-async function shown(): Promise<string> {
-  const job = await claimed(await saved());
+async function shown(product?: Product): Promise<string> {
+  const job = await claimed(product ?? await saved());
   const name = await uploaded(job);
   expect(await jobs().complete(job, page, { outcome: "copied" })).toMatchObject({ kind: "applied" });
   return name;
@@ -68,6 +68,56 @@ async function leftBehind(): Promise<string> {
   await expireLease(first);
   expect((await claimed(product)).attempts).toBe(2);
   return name;
+}
+
+// A product's first copy once a later collection copied a new one, and the discard of the old one never ran.
+async function replaced(): Promise<{ old: string; current: string }> {
+  const product = await saved();
+  const old = await shown(product);
+  await fixture.admin.query(
+    `update moti.products set metadata_phase = 'failed', metadata_error_code = 'timeout', metadata_completed_at = null,
+     metadata_image = null, metadata_image_error_code = null where id = $1`,
+    [product.id],
+  );
+  const retried = await jobs().retry({ productId: product.id, expectedGeneration: 1 });
+  const next = await claimed(product, retried.product.metadata.generation);
+  const current = await uploaded(next);
+  expect(await jobs().complete(next, page, { outcome: "copied" })).toMatchObject({ kind: "applied", replacedPicture: old });
+  return { old, current };
+}
+
+// The copy of a product a restore removed: the row and its jobs are gone, the object is not.
+async function removed(): Promise<string> {
+  const product = await saved();
+  const name = await shown(product);
+  await fixture.admin.query("delete from moti.products where id = $1", [product.id]);
+  return name;
+}
+
+// A run that uploaded and stalled, then the owner's retry put the job back in the queue: it is not running, and the
+// next claim makes a new attempt, so nothing can record the copy.
+async function resumed(): Promise<string> {
+  const product = await saved();
+  const job = await claimed(product);
+  const name = await uploaded(job);
+  await expireLease(job);
+  expect(await jobs().retry({ productId: product.id, expectedGeneration: 1 })).toMatchObject({ kind: "resumed" });
+  return name;
+}
+
+// A run whose product moved to a new generation before it finished: its complete closes the job as superseded.
+async function superseded(): Promise<string> {
+  const product = await saved();
+  const job = await claimed(product);
+  const name = await uploaded(job);
+  await fixture.admin.query("update moti.products set metadata_generation = 2, metadata_phase = 'queued' where id = $1", [product.id]);
+  expect(await jobs().complete(job, page, { outcome: "copied" })).toEqual({ kind: "stale" });
+  return name;
+}
+
+function service(): SupabaseClient {
+  const { apiUrl, serviceRoleKey } = readDatabaseConfig();
+  return createClient(apiUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 async function aged(name: string, minutes: number): Promise<string> {
@@ -119,10 +169,8 @@ describe("남은 사진 사본 찾기", () => {
   });
 
   it("다른 계정 접두사의 객체는 돌려주지 않는다", async () => {
-    const { apiUrl, serviceRoleKey } = readDatabaseConfig();
-    const service = createClient(apiUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const foreign = `${fixture.stranger.id}/${randomUUID()}/${randomUUID()}-1.webp`;
-    expect((await pictures(service).upload(foreign, webp, { contentType: "image/webp" })).error).toBeNull();
+    expect((await pictures(service()).upload(foreign, webp, { contentType: "image/webp" })).error).toBeNull();
     await aged(foreign, 60);
     const older = await aged(await leftBehind(), 11);
 
@@ -138,16 +186,38 @@ describe("남은 사진 사본 찾기", () => {
     expect(await orphans(2)).toEqual({ data: names, code: null });
   });
 
-  it("돌려준 사본은 소유자가 지울 수 있고 돌려주지 않은 오래된 사본은 Storage도 지우지 못한다", async () => {
-    const kept = [await aged(await shown(), 60), await aged(await stillRunning(), 60)];
-    const older = await aged(await leftBehind(), 11);
+  // The answer repeats may_discard's conditions instead of calling it, so this pins the two together: of the owner's old
+  // copies, Storage lets the owner discard exactly the ones the answer holds.
+  it("여러 상태의 오래된 사본 가운데 돌려준 것만 Storage가 소유자에게 지우게 한다", async () => {
+    const swapped = await replaced();
+    const kept = [await shown(), await stillRunning(), swapped.current];
+    const returned = [await leftBehind(), swapped.old, await removed(), await resumed(), await superseded()];
+    for (const name of [...kept, ...returned]) await aged(name, 11);
     const before = await stored();
 
     const { data } = await orphans();
     await pictures(fixture.owner.client).remove(before);
+    const after = await stored();
 
-    expect(data).toEqual([older]);
-    expect(await stored()).toEqual(kept.toSorted());
+    expect(data).toEqual(returned.toSorted());
+    expect(before.filter((name) => !after.includes(name))).toEqual(data);
+    expect(after).toEqual(kept.toSorted());
+  });
+
+  it("moti가 만들지 않은 이름은 오래돼도 돌려주지 않는다", async () => {
+    // The dashboard marks a folder it creates with an empty placeholder, the only size Storage accepts for that name.
+    const strange: [string, Buffer][] = [
+      [`${fixture.owner.id}/.emptyFolderPlaceholder`, Buffer.alloc(0)],
+      [`${fixture.owner.id}/${randomUUID()}/${randomUUID()}-1.png`, webp],
+    ];
+    for (const [name, body] of strange) {
+      expect((await pictures(service()).upload(name, body, { contentType: "image/webp" })).error).toBeNull();
+      await aged(name, 60);
+    }
+    const older = await aged(await leftBehind(), 11);
+
+    expect(await orphans()).toEqual({ data: [older], code: null });
+    expect(await createPictureOrphanStore(fixture.owner.client).find(200)).toEqual([older]);
   });
 
   it.each([0, 201, null])("한도가 %s이면 M0002다", async (limit) => {

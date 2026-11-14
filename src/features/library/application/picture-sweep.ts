@@ -1,6 +1,6 @@
 import type { PictureObject, PictureStore } from "../../metadata/application/picture-copy";
 
-// The database's answer to which of the owner's copies no product shows, no running job may still record, and that
+// The database's answer to which of the owner's copies no product refers to, no running job may still record, and that
 // are older than ten minutes: the objects Storage lets the owner discard, with a margin.
 export interface PictureOrphanStore {
   find(limit: number): Promise<PictureObject[]>;
@@ -14,7 +14,9 @@ export const SWEEP_BATCH = 200;
 export type PictureSweepResult = { kind: "requested"; count: number } | { kind: "failed"; step: "find" | "discard" };
 
 // Runs after the owner's wake response. Storage checks each name again with the owner's token. Never throws.
-export async function sweepPictures({ orphans, pictures }: { orphans: PictureOrphanStore; pictures: PictureStore }): Promise<PictureSweepResult> {
+export async function sweepPictures(
+  { orphans, pictures }: { orphans: PictureOrphanStore; pictures: Pick<PictureStore, "discard"> },
+): Promise<PictureSweepResult> {
   let found: PictureObject[];
   try {
     found = await orphans.find(SWEEP_BATCH);
