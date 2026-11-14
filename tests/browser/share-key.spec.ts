@@ -94,6 +94,36 @@ test("소유자는 키를 한 번만 보고, 단축어가 그 키로 담으면 �
   await expect(claimsDone(page)).toHaveCount(0);
 });
 
+test("안내는 실제 iPhone에서 동작한 구성을 보이고, 쇼핑 앱의 글로 담은 상품은 수집하지 못해도 글 속 이름으로 보인다", async ({ page, context }) => {
+  await signIn(context);
+  await page.goto("/");
+  await openShare(page);
+  const guide = page.getByRole("region", { name: "iPhone 공유 단축어 설정" });
+  await expect(guide).toContainText("편집기 맨 위에 입력 받기 블록");
+  await expect(guide).toContainText("맨 위 블록의 ‘입력이 없는 경우: 계속하기’에서 ‘계속하기’를 눌러 ‘클립보드 가져오기’로");
+  await expect(guide).not.toContainText("같은 곳에서");
+  await expect(guide).toContainText("요청 본문은 JSON으로 키 url에 ‘단축어 입력’");
+  await expect(guide).toContainText("공유 메뉴에 단축어가 없는 앱(예: 네이버 앱)");
+  await expect(guide).not.toContainText("목록에서 항목 가져오기");
+  await keyPanel(page).getByRole("button", { name: "저장 키 만들기", exact: true }).click();
+  const secret = await secretOf(page);
+
+  const response = await fetch(new URL("/api/share/links", appUrl), {
+    method: "POST",
+    headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
+    body: JSON.stringify({ url: `쿠팡을 추천합니다!\n로투스 벨기에 와플 초코\n${blockedLink}` }),
+  });
+  expect(response.status).toBe(201);
+
+  await page.reload();
+  const card = page.getByRole("button", { name: /상세 보기$/ });
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAccessibleName("로투스 벨기에 와플 초코, 127.0.0.1 상세 보기");
+  // The loopback link fails collection; the shared name stays.
+  await expect(card).toContainText("정보를 가져오지 못했어요", { timeout: 20_000 });
+  await expect(card).toContainText("로투스 벨기에 와플 초코");
+});
+
 test("새 키로 바꾸고 폐기할 때 확인은 취소에 먼저 머물고, 바꾼 뒤 이전 키와 폐기한 키로는 담지 못한다", async ({ page, context }) => {
   await signIn(context);
   await page.goto("/");

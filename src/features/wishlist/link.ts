@@ -1,6 +1,14 @@
 export const MAX_LINK_LENGTH = 4096;
 export const MAX_OPTION_LENGTH = 120;
 
+// Query names that say how a link was shared, not which product it is: ad click ids, the Musinsa app's AppsFlyer
+// short-link redirect and Naver's search tracking. utm_* and af_* are matched by prefix.
+const TRACKING_KEYS = new Set([
+  "gclid", "fbclid", "msclkid",
+  "is_retargeting", "shortlink", "source_caller", "onelink_id",
+  "nl-query", "nl-au",
+]);
+
 export type SavedLink = {
   sourceUrl: string;
   identityUrl: string;
@@ -50,11 +58,14 @@ export function parseLink(url: unknown, rawOption: unknown): LinkResult {
   }
 
   const identity = new URL(source);
-  for (const key of [...identity.searchParams.keys()]) {
-    if (
-      /^utm_/i.test(key) ||
-      ["gclid", "fbclid", "msclkid"].includes(key.toLowerCase())
-    ) identity.searchParams.delete(key);
+  const keys = [...new Set(identity.searchParams.keys())];
+  // AppsFlyer's pid names a media source, but alone it is a common product-id parameter, so it only counts with af_*.
+  const appsFlyer = keys.some((key) => /^af_/i.test(key));
+  for (const key of keys) {
+    const lower = key.toLowerCase();
+    if (/^(utm|af)_/.test(lower) || TRACKING_KEYS.has(lower) || (appsFlyer && lower === "pid")) {
+      identity.searchParams.delete(key);
+    }
   }
   identity.searchParams.sort();
   return {

@@ -5,7 +5,7 @@ import { SHARE_LINKS_PATH, shareLinkMessages } from "../../share/presentation/sh
 import { KeyPanel, useCopy, type KeyPanelText } from "./KeyPanel";
 import type { KeyPanel as KeyPanelState } from "./key-panel-state";
 import type { ScreenEvent } from "./screen-state";
-import { shareConfirmView, shareKeyView } from "./share-view";
+import { shareConfirmView, shareKeyView, shareWithoutShortcuts, shortcutSteps } from "./share-view";
 
 type Send = (event: ScreenEvent) => void;
 
@@ -56,13 +56,9 @@ export function ShareView({ panel, send }: { panel: KeyPanelState; send: Send })
             <span aria-hidden="true">1</span>
             <div>
               <h3>처음 한 번, 단축어 만들기</h3>
-              <p>iPhone의 단축어 앱에서 아래 순서대로 직접 만들어요. 동작 이름은 iOS 버전과 언어에 따라 조금 다를 수 있어요.</p>
+              <p>iPhone의 단축어 앱에서 아래 순서대로 직접 만들어요. 실제 iPhone에서 동작한 구성이에요. 동작 이름은 iOS 버전과 언어에 따라 조금 다를 수 있어요.</p>
               <ol className="shortcut-actions">
-                <li>새 단축어 이름을 “moti에 담기”로 정하고, 설정에서 ‘공유 시트에서 보기’를 켜고 받을 항목을 URL과 Safari 웹 페이지로 골라요.</li>
-                <li>‘입력에서 URL 가져오기’를 넣고, ‘목록에서 항목 가져오기’로 첫 번째 항목을 골라요.</li>
-                <li>‘URL 콘텐츠 가져오기’를 넣고 아래 주소를 적은 뒤, 방법은 POST, 헤더는 Authorization, 요청 본문은 JSON으로 url에 2번의 항목을 넣어요.</li>
-                <li>‘사전 값 가져오기’로 message를 꺼내 ‘알림 보기’로 보여 줘요.</li>
-                <li>마지막으로 오른쪽(휴대폰에서는 아래)의 저장 키를 만들어 Authorization 헤더 값에 붙여 넣어요.</li>
+                {shortcutSteps.map((step) => <li key={step}>{step}</li>)}
               </ol>
               <div className="share-endpoint">
                 <span className="share-key-label">단축어가 보낼 주소</span>
@@ -80,6 +76,7 @@ export function ShareView({ panel, send }: { panel: KeyPanelState; send: Send })
             <div>
               <h3>마음에 드는 상품에서 공유</h3>
               <p>Safari나 쇼핑 앱의 공유 메뉴에서 ‘moti에 담기’ 단축어를 골라요.</p>
+              <p>{shareWithoutShortcuts}</p>
             </div>
           </li>
           <li>

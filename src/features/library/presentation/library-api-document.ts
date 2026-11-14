@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_JSON_BYTES } from "../../shared/presentation/http";
+import { MAX_SHARED_TEXT_LENGTH } from "../../share/domain/shared-text";
 import {
   MAX_SHARE_BYTES,
   SHARE_LINKS_PATH,
@@ -271,20 +272,20 @@ export const libraryRoutes: Route[] = [
   {
     method: "post",
     path: SHARE_LINKS_PATH,
-    summary: "iPhone 공유 단축어가 저장 키로 링크 하나를 담는다. 쿠키 세션은 인증이 아니고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 응답은 결과와 단축어가 보여줄 message뿐이고 상품 정보는 돌려주지 않는다. 상품 정보 수집은 소유자가 moti를 열 때 시작한다.",
+    summary: `iPhone 공유 단축어가 저장 키로 링크 하나를 담는다. url에는 링크나 링크가 든 공유 글을 넣는다. 한도는 둘이다. url은 ${MAX_SHARED_TEXT_LENGTH.toLocaleString("en-US")}자(code point) 이하이고(넘으면 400 invalid_link), 요청 본문 전체는 UTF-8로 ${MAX_SHARE_BYTES.toLocaleString("en-US")}바이트 이하다(넘으면 413 payload_too_large). 한글은 한 글자가 3바이트라 한글 글은 약 2,700자에서 본문 한도에 먼저 걸린다. 글이면 첫 http(s) 링크를 담고, 그 앞의 가장 가까운 글을 수집 전 상품 이름으로 둔다(글자나 숫자가 없거나 쌍점으로 끝나는 글은 건너뛴다). 쿠키 세션은 인증이 아니고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 응답은 결과와 단축어가 보여줄 message뿐이고 상품 정보는 돌려주지 않는다. 상품 정보 수집은 소유자가 moti를 열 때 시작한다.`,
     security: "shareKey",
     request: shareLinkAddRequestSchema,
     responses: {
       201: { description: "ShareLinkAddResponse. 새로 담았다(added).", schema: shareLinkAddResponseSchema },
       200: { description: "ShareLinkAddResponse. 이미 담겨 있다(duplicate). 아무것도 바꾸지 않는다.", schema: shareLinkAddResponseSchema },
-      400: { description: "본문이 url 하나만 담은 JSON 객체가 아니거나 상품 링크가 아니다(invalid_link).", schema: shareLinkErrorResponseSchema },
+      400: { description: `본문이 url 하나만 담은 JSON 객체가 아니거나, url에 http(s) 링크가 없거나, url이 ${MAX_SHARED_TEXT_LENGTH.toLocaleString("en-US")}자(code point)를 넘거나, 상품 링크가 아니다(invalid_link).`, schema: shareLinkErrorResponseSchema },
       401: {
         description: "키가 없거나 형식이 다르거나 모르는 키이거나 폐기한 키다. 모두 같은 본문이다(share_key_rejected).",
         schema: shareLinkErrorResponseSchema,
         headers: { "WWW-Authenticate": "Bearer" },
       },
       409: { description: "같은 링크인지 확인하지 못했다(identity_conflict).", schema: shareLinkErrorResponseSchema },
-      413: { description: `본문이 ${MAX_SHARE_BYTES}바이트를 넘는다(payload_too_large).`, schema: shareLinkErrorResponseSchema },
+      413: { description: `본문이 UTF-8로 ${MAX_SHARE_BYTES}바이트를 넘는다(payload_too_large). 한글 공유 글은 글자 수 한도보다 이 한도에 먼저 걸린다(약 2,700자).`, schema: shareLinkErrorResponseSchema },
       415: { description: "본문이 application/json이 아니다(unsupported_media_type).", schema: shareLinkErrorResponseSchema },
       429: { description: "이 키로 지난 한 시간 동안 30번 담았다(share_key_busy). 이미 담은 링크도 센다.", schema: shareLinkErrorResponseSchema },
       503: { description: "설정이 없거나(unconfigured) 저장소를 쓸 수 없다(unavailable).", schema: shareLinkErrorResponseSchema },

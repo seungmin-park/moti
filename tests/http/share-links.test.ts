@@ -91,6 +91,25 @@ describe("실제 HTTP 단축어 경로", () => {
     expect((await library()).products).toHaveLength(1);
   });
 
+  it("쿠팡 앱이 넘긴 글을 url 칸에 그대로 보내면 201이고 보관함에는 글 속 링크와 그 이름으로 보인다. 링크 없는 글은 400이다", async () => {
+    const { secret } = await issue();
+
+    const added = await shortcut(secret, { url: "쿠팡을 추천합니다!\n로투스 벨기에 와플 초코\nhttps://link.coupang.com/a/iGa1zKNs4a" });
+
+    expect(added.status).toBe(201);
+    expect(shareLinkAddResponseSchema.parse(await added.json()).result).toBe("added");
+    expect((await library()).products).toEqual([expect.objectContaining({
+      sourceUrl: "https://link.coupang.com/a/iGa1zKNs4a",
+      title: "로투스 벨기에 와플 초코",
+      metadata: expect.objectContaining({ phase: "queued" }),
+    })]);
+
+    const refused = await shortcut(secret, { url: "쿠팡을 추천합니다!\n로투스 벨기에 와플 초코" });
+    expect(refused.status).toBe(400);
+    expect(shareLinkErrorResponseSchema.parse(await refused.json()).error).toBe("invalid_link");
+    expect((await library()).products).toHaveLength(1);
+  });
+
   it("폐기한 키, 모르는 키와 형식이 틀린 키는 바이트까지 같은 401이고 아무것도 담지 않는다", async () => {
     const issued = await issue();
     await fixture.owner.client.rpc("moti_share_key_revoke", { p_key_id: issued.key.id });

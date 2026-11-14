@@ -1,0 +1,33 @@
+# feat/share-text 리뷰 반영 Red (2026-11-15, base b8d24d8)
+
+## 1·2·6. 단위: 구현 전(b8d24d8의 shared-text.ts, share-view.ts)에 새 검사를 먼저 넣고 실행
+$ npx vitest run src/features/share/domain/shared-text.test.ts src/features/library/screen/share-view.test.ts
+ FAIL  share-view.test.ts > 단축어 만들기 안내 > Given 실제 iPhone에서 동작한 구성 When 안내를 보이면 Then 받을 항목·입력이 없을 때·요청 하나·알림을 그 순서로 말한다
+   Expected: "맨 위"
+   Received: "새 단축어 이름을 “moti에 담기”로 정하고, 세부 사항에서 ‘공유 시트에서 보기’를 켜요. 받을 항목은 URL, Safari 웹 페이지, 텍스트로 골라요."
+ FAIL  shared-text.test.ts > 링크는 바로 뒤의 한글에서 끝난다              url "https://a.com/p/1입니다"
+ FAIL  shared-text.test.ts > 링크는 한글 자모에서 끝난다                    url "https://a.com/p/1ㅋㅋ"
+ FAIL  shared-text.test.ts > 링크는 전각 쉼표에서 끝난다                    url "https://a.com/p/1，좋아요"
+ FAIL  shared-text.test.ts > 링크는 전각 마침표·느낌표·물음표에서 끝난다    url "https://a.com/p/1。！？"
+ FAIL  shared-text.test.ts > 링크는 전각 괄호에서 끝난다                    url "https://a.com/p/1）", title "（"
+ FAIL  shared-text.test.ts > 링크는 겹낫표 괄호에서 끝난다                  url "https://a.com/p/1】", title "【"
+ FAIL  shared-text.test.ts > 링크는 홑화살괄호·겹화살괄호에서 끝난다        url "https://a.com/p/1〉《》", title "〈"
+ FAIL  shared-text.test.ts > 전각 괄호도 짝으로 보아 링크 앞의 여는 괄호는 이름에서 뗀다   url "https://a.com/p/1）", title "로투스 와플 （"
+ FAIL  shared-text.test.ts > 상품 보기:처럼 쌍점으로 끝나는 같은 줄 글은 이름이 아니다     url "https://a.com/p/1입니다", title "상품 보기:"
+ FAIL  shared-text.test.ts > 글자나 숫자가 없거나 쌍점으로 끝나는 글(화살표)…              title "▶"
+ FAIL  shared-text.test.ts > 글자나 숫자가 없거나 쌍점으로 끝나는 글(쌍점으로 끝나는 머리말)…  title "링크:"
+ FAIL  shared-text.test.ts > 글자나 숫자가 없거나 쌍점으로 끝나는 글(전각 쌍점)…            title "링크："
+ FAIL  shared-text.test.ts > 글자나 숫자가 없거나 쌍점으로 끝나는 글(기호만 있는 줄)…       title "👉👇"
+ FAIL  shared-text.test.ts > 글자나 숫자가 없거나 쌍점으로 끝나는 글(머리말만 있는 줄)…     title "상품 링크:"
+      Tests  15 failed | 28 passed (43)
+
+처음부터 통과한 새 검사(보호 검사): "모점"(、는 이전에도 끝 글자로 뗐다), 퍼센트 인코딩한 한글 경로, 닫는 괄호가 아주 많은 링크(결과는 맞고 느렸다, 아래 3).
+기존 120자 검사의 "🌱"×200 이름은 새 규칙(글자·숫자 없음)에서 이름이 아니므로 같은 대리 쌍 문자인 "𝐀"(U+1D400, 글자)×200으로 바꿨다.
+
+## 3. trimLink 시간: "https://a.com/" + ")"×4980, 두 번째 호출을 측정 (Apple Silicon macOS, Node 24)
+$ node scratchpad/time.mts   # readSharedText를 import해 performance.now()로 측정
+이전(b8d24d8): ms 144.9 https://a.com/
+이후:          ms 0.5 https://a.com/
+
+## 6. 브라우저(tests/browser/share-key.spec.ts)
+안내 문구 기대값만 바꿨다. 별도 Red 빌드는 돌리지 않았다. 같은 문구를 단위 검사가 Red로 확인했고, 브라우저 검사는 npm run verify의 실제 스택 브라우저 단계에서 통과를 확인한다.

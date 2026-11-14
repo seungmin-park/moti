@@ -1,9 +1,11 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { toLinkSaveCommand } from "../../src/features/library/application/commands";
+import { toLibraryRestoreCommand, toLinkSaveCommand } from "../../src/features/library/application/commands";
 import type { Product } from "../../src/features/library/domain/library";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
+import { createSupabaseCollectionStore } from "../../src/features/metadata/infrastructure/supabase-collection-store";
+import { seoulToday } from "../../src/features/wishlist/product-fields";
 import { toShareLinkAddCommand } from "../../src/features/share/application/commands";
 import { ShareError, parseShareSecret, type ShareSecret } from "../../src/features/share/domain/share-key";
 import { createSupabaseShareLinkStore } from "../../src/features/share/infrastructure/supabase-share-store";
@@ -277,7 +279,7 @@ describe("저장 키 역할의 권한", () => {
       `select p.oid::regprocedure::text as name from pg_proc p where p.proowner = 'moti_share'::regrole
        union all select c.oid::regclass::text from pg_class c where c.relowner = 'moti_share'::regrole`,
     );
-    expect(owned.rows).toEqual([{ name: "moti_share_add(text,text,text,text,text)" }]);
+    expect(owned.rows).toEqual([{ name: "moti_share_add(text,text,text,text,text,text)" }]);
     // Only the migration owner may act as the role (one row per grantor): a member such as authenticator would hold its grants.
     const members = await fixture.admin.query(
       `select distinct m.member::regrole::text as member from pg_auth_members m where m.roleid = 'moti_share'::regrole order by 1`,
@@ -319,6 +321,7 @@ describe("저장 키 역할의 권한", () => {
       "column moti.products.owner_id SELECT",
       "column moti.products.shop INSERT",
       "column moti.products.source_url INSERT",
+      "column moti.products.title INSERT",
       "column moti.share_keys.id SELECT",
       "column moti.share_keys.last_used_at UPDATE",
       "column moti.share_keys.owner_id SELECT",
@@ -328,7 +331,7 @@ describe("저장 키 역할의 권한", () => {
       "column moti.share_keys.window_started_at UPDATE",
       "column moti.share_keys.window_uses SELECT",
       "column moti.share_keys.window_uses UPDATE",
-      "function moti.add_link(uuid,text,text,text,text) EXECUTE",
+      "function moti.add_link(uuid,text,text,text,text,text) EXECUTE",
       "function moti.has_google_identity(uuid,text) EXECUTE",
       "function moti.is_clean_title(text) EXECUTE",
       "function moti.is_collection_error(text) EXECUTE",
@@ -408,7 +411,11 @@ describe("공유 담기 어댑터", () => {
     );
     await expect(store().add(command(issued.secret))).rejects.toMatchObject({ code: "key_busy" });
     await fixture.admin.query("update moti.share_keys set window_uses = 0 where id = $1", [issued.key.id]);
-    const forged = { secret: issued.secret as ShareSecret, link: { sourceUrl: "javascript:alert(1)", identityUrl: "javascript:alert(1)", option: "", shop: "x" } };
+    const forged = {
+      secret: issued.secret as ShareSecret,
+      link: { sourceUrl: "javascript:alert(1)", identityUrl: "javascript:alert(1)", option: "", shop: "x" },
+      title: null,
+    };
     const refused = await store().add(forged).catch((error: unknown) => error);
     expect(refused).toBeInstanceOf(ShareError);
     expect(refused).toMatchObject({ code: "invalid_input" });
@@ -419,5 +426,104 @@ describe("공유 담기 어댑터", () => {
     const secret = (await issue()).secret;
     await expect(createSupabaseShareLinkStore(fixture.owner.client).add(command(secret))).rejects.toMatchObject({ code: "storage_unavailable" });
     expect(await counts()).toEqual({ products: 0, jobs: 0 });
+  });
+
+  it("명령의 이름을 함께 담는다", async () => {
+    const secret = parseShareSecret((await issue()).secret)!;
+    const link = command(secret, "https://link.coupang.com/a/iGa1zKNs4a").link;
+    expect(await store().add({ secret, link, title: "로투스 벨기에 와플 초코" })).toEqual({ kind: "added" });
+    expect((await library().snapshot()).products).toEqual([
+      expect.objectContaining({ sourceUrl: "https://link.coupang.com/a/iGa1zKNs4a", title: "로투스 벨기에 와플 초코" }),
+    ]);
+  });
+});
+
+describe("공유한 글의 이름", () => {
+  const coupang = "https://link.coupang.com/a/iGa1zKNs4a";
+  const jobs = () => createSupabaseCollectionStore(fixture.owner.client);
+  const titled = (key: string, url: string, title: unknown) =>
+    rpc("moti_share_add", { p_key: key, ...linkOf(url), p_title: title }, fixture.anonymous);
+  const productOf = async (url: string) => (await library().snapshot()).products.find((product) => product.sourceUrl === url)!;
+  const titles = async (id: string) =>
+    (await fixture.admin.query<{ title: string; owner_title: string | null }>("select title, owner_title from moti.products where id = $1", [id])).rows[0];
+
+  it("받은 이름은 수집 전 이름(title)이고, 수집이 성공하면 수집한 이름이 대신한다", async () => {
+    const { secret } = await issue();
+
+    expect(await titled(secret, coupang, "로투스 벨기에 와플 초코")).toMatchObject({ code: null, data: { kind: "added" } });
+    const product = await productOf(coupang);
+    expect(product).toMatchObject({ title: "로투스 벨기에 와플 초코", metadata: { phase: "queued" } });
+    expect(await titles(product.id)).toEqual({ title: "로투스 벨기에 와플 초코", owner_title: null });
+
+    const claim = await jobs().claim({ productId: product.id, generation: product.metadata.generation });
+    if (claim.kind !== "claimed") throw new Error(`작업을 맡지 못했습니다: ${claim.kind}`);
+    expect(await jobs().complete(claim.job, { title: "로투스 비스코프 와플 초코 300g", price: null, imageSourceUrl: null }, { outcome: "absent" }))
+      .toMatchObject({ kind: "applied" });
+    expect((await productOf(coupang)).title).toBe("로투스 비스코프 와플 초코 300g");
+  });
+
+  it("수집이 실패해도 받은 이름이 남고, 소유자가 고친 이름은 그 뒤 수집보다 앞선다", async () => {
+    const { secret } = await issue();
+    await titled(secret, coupang, "로투스 벨기에 와플 초코");
+    const product = await productOf(coupang);
+    const first = await jobs().claim({ productId: product.id, generation: product.metadata.generation });
+    if (first.kind !== "claimed") throw new Error(`작업을 맡지 못했습니다: ${first.kind}`);
+    await jobs().fail(first.job, "blocked_by_site");
+    expect(await productOf(coupang)).toMatchObject({ title: "로투스 벨기에 와플 초코", metadata: { phase: "failed" } });
+
+    const failed = await productOf(coupang);
+    await library().changeProduct({
+      productId: product.id, revision: failed.revision, change: { type: "details", title: "와플 간식", note: "", collectionIds: [] },
+    });
+    const retried = await jobs().retry({ productId: product.id, expectedGeneration: failed.metadata.generation });
+    const again = await jobs().claim({ productId: product.id, generation: retried.product.metadata.generation });
+    if (again.kind !== "claimed") throw new Error(`작업을 맡지 못했습니다: ${again.kind}`);
+    await jobs().complete(again.job, { title: "로투스 비스코프 와플 초코 300g", price: null, imageSourceUrl: null }, { outcome: "absent" });
+
+    expect((await productOf(coupang)).title).toBe("와플 간식");
+    expect(await titles(product.id)).toEqual({ title: "로투스 비스코프 와플 초코 300g", owner_title: "와플 간식" });
+  });
+
+  it.each([
+    ["없는 이름", null],
+    ["빈 이름", ""],
+    ["앞뒤 공백", " 와플 "],
+    ["121자", "가".repeat(121)],
+    ["제어 문자", "와플\u0007초코"],
+    ["NFC가 아닌 이름", "한"],
+  ])("%s은 링크를 막지 않고 기본 이름으로 담는다", async (_name, title) => {
+    const { secret } = await issue();
+    expect(await titled(secret, coupang, title)).toMatchObject({ code: null, data: { kind: "added" } });
+    expect((await productOf(coupang)).title).toBe("새로 담은 상품");
+  });
+
+  it("이미 담은 상품에는 받은 이름을 쓰지 않는다", async () => {
+    const { secret } = await issue();
+    await titled(secret, coupang, "처음 이름");
+    expect(await titled(secret, coupang, "다른 이름")).toMatchObject({ code: null, data: { kind: "duplicate" } });
+    expect((await productOf(coupang)).title).toBe("처음 이름");
+  });
+
+  it("이름 인자를 모르는 이전 앱의 호출도 그대로 담는다", async () => {
+    const { secret } = await issue();
+    expect(await add(secret, coupang)).toMatchObject({ code: null, data: { kind: "added" } });
+    expect((await productOf(coupang)).title).toBe("새로 담은 상품");
+  });
+
+  it("받은 이름은 수집한 이름으로 백업에 나가고 복원 뒤에도 남는다", async () => {
+    const { secret } = await issue();
+    await titled(secret, coupang, "로투스 벨기에 와플 초코");
+    const backup = await library().exportLibrary();
+    expect(backup.products).toEqual([expect.objectContaining({ sourceUrl: coupang, collectedTitle: "로투스 벨기에 와플 초코", ownerTitle: null })]);
+
+    await library().restoreLibrary(toLibraryRestoreCommand({
+      collections: [],
+      products: backup.products.map((product) => ({
+        sourceUrl: product.sourceUrl, option: product.option, collectedTitle: product.collectedTitle, ownerTitle: product.ownerTitle,
+        note: product.note, collections: product.collectionNames, addedAt: product.addedAt, purchase: product.purchase,
+        lastSuccessfulPrice: product.lastSuccessfulPrice,
+      })),
+    }, seoulToday(new Date())));
+    expect((await productOf(coupang)).title).toBe("로투스 벨기에 와플 초코");
   });
 });

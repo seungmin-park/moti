@@ -98,6 +98,8 @@ describe("POST /api/share/links: 본문", () => {
     ["다른 필드", 400, "invalid_link", () => share(JSON.stringify({ url, option: "블랙" }))],
     ["문자열이 아닌 url", 400, "invalid_link", () => share(JSON.stringify({ url: 1 }))],
     ["링크가 아닌 글", 400, "invalid_link", () => share(JSON.stringify({ url: "이 상품 어때요" }))],
+    ["링크 없는 여러 줄 글", 400, "invalid_link", () => share(JSON.stringify({ url: "쿠팡을 추천합니다!\n로투스 벨기에 와플 초코" }))],
+    ["단축어 입력이 비어 있음", 400, "invalid_link", () => share(JSON.stringify({ url: "" }))],
     ["javascript 링크", 400, "invalid_link", () => share(JSON.stringify({ url: "javascript:alert(1)" }))],
   ] as const)("Given %s When 링크를 공유하면 Then %i %s이고 저장소를 부르지 않는다", async (_name, status, code, request) => {
     const { handlers, add } = given();
@@ -143,6 +145,25 @@ describe("POST /api/share/links: 결과", () => {
     expect(add).toHaveBeenCalledWith({
       secret,
       link: { sourceUrl: url, identityUrl: "https://shop.example/lamp", option: "", shop: "shop.example" },
+      title: null,
+    });
+  });
+
+  it("Given 쿠팡 앱이 단축어에 넘긴 글 When 같은 url 칸으로 공유하면 Then 201이고 글 속 링크와 그 위 줄의 이름으로 저장소를 부른다", async () => {
+    const { handlers, add } = given();
+    const text = "쿠팡을 추천합니다!\n로투스 벨기에 와플 초코\nhttps://link.coupang.com/a/iGa1zKNs4a";
+    const response = await handlers.postShareLink(share(JSON.stringify({ url: text })));
+    expect(response.status).toBe(201);
+    expect(shareLinkAddResponseSchema.parse(await expectShortcutAnswer(response)).result).toBe("added");
+    expect(add).toHaveBeenCalledWith({
+      secret,
+      link: {
+        sourceUrl: "https://link.coupang.com/a/iGa1zKNs4a",
+        identityUrl: "https://link.coupang.com/a/iGa1zKNs4a",
+        option: "",
+        shop: "link.coupang.com",
+      },
+      title: "로투스 벨기에 와플 초코",
     });
   });
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseLink } from "./link";
 import { reduceSession, type Session } from "./model";
 
 const empty = (): Session => ({
@@ -100,4 +101,51 @@ describe("공유 링크 규칙", () => {
       expect(state.feedback).toMatchObject({ kind: "invalid", field: "option" });
     },
   );
+});
+
+describe("앱 공유 링크의 추적 query", () => {
+  const identityOf = (url: string) => {
+    const parsed = parseLink(url, "");
+    if (!parsed.ok) throw new Error(parsed.message);
+    return parsed.link;
+  };
+
+  // The shape of the Musinsa app's short link after its redirect; the ids are made up.
+  const appsFlyer =
+    "https://www.musinsa.com/products/5016455?af_referrer_customer_id=AAA111&source_caller=sdk&af_force_deeplink=true" +
+    "&shortlink=abc12345&af_dp=musinsa%3A%2F%2Fproducts&is_retargeting=true&af_channel=mobile_share&pid=af_app_invites" +
+    "&af_referrer_uid=0000-1111&onelink_id=Xy12&af_siteid=999";
+
+  it("무신사 앱 링크의 AppsFlyer query를 판별에서 빼서 Safari 주소와 같은 상품으로 본다", () => {
+    const link = identityOf(appsFlyer);
+    expect(link.sourceUrl).toBe(appsFlyer);
+    expect(link.identityUrl).toBe("https://www.musinsa.com/products/5016455");
+    expect(link.identityUrl).toBe(identityOf("https://www.musinsa.com/products/5016455").identityUrl);
+  });
+
+  it("네이버 스마트스토어의 검색 추적 query와 utm_*을 판별에서 빼고 상품 query는 남긴다", () => {
+    const link = identityOf(
+      "https://m.smartstore.naver.com/whatkey/products/13459235684?nl-query=%EC%A7%80%EC%98%A8&nl-au=0123abcd&NL-Query=x&utm_campaign=y&optionId=7",
+    );
+    expect(link.identityUrl).toBe("https://m.smartstore.naver.com/whatkey/products/13459235684?optionId=7");
+  });
+
+  it("pid는 AppsFlyer query와 함께 올 때만 추적 값으로 보고, 혼자 오면 상품을 가르는 값으로 남긴다", () => {
+    expect(identityOf("https://shop.example/item?pid=af_app_invites&af_channel=share").identityUrl).toBe("https://shop.example/item");
+    expect(identityOf("https://shop.example/item?pid=1234").identityUrl).toBe("https://shop.example/item?pid=1234");
+    expect(identityOf("https://shop.example/item?pid=1234").identityUrl)
+      .not.toBe(identityOf("https://shop.example/item?pid=5678").identityUrl);
+  });
+
+  it("추적 이름과 비슷하지만 다른 query는 남긴다", () => {
+    expect(identityOf("https://shop.example/item?after=1&shortlinks=2&sourcecaller=3&nl=4").identityUrl)
+      .toBe("https://shop.example/item?after=1&nl=4&shortlinks=2&sourcecaller=3");
+  });
+
+  it("화면에서 담을 때도 같은 판별을 써서 추적 query만 다른 링크를 이미 담은 상품으로 본다", () => {
+    const original = save("https://www.musinsa.com/products/5016455");
+    const again = save(appsFlyer, "", original);
+    expect(again.feedback?.kind).toBe("duplicate");
+    expect(again.products).toEqual(original.products);
+  });
 });
