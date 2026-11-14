@@ -6,9 +6,10 @@ describe("단축어 만들기 안내", () => {
   it("Given 실제 iPhone에서 동작한 구성 When 안내를 보이면 Then 받을 항목·입력이 없을 때·요청 하나·알림을 그 순서로 말한다", () => {
     expect(shortcutSteps).toHaveLength(5);
     const [receive, fallback, request, notify, key] = shortcutSteps;
-    for (const item of ["‘공유 시트에서 보기’", "URL", "Safari 웹 페이지", "텍스트"]) expect(receive).toContain(item);
-    expect(fallback).toContain("‘입력이 없는 경우’");
-    expect(fallback).toContain("‘클립보드 가져오기’");
+    for (const item of ["맨 위", "입력 받기", "URL", "Safari 웹 페이지", "텍스트", "ⓘ", "‘공유 시트에서 보기’"]) expect(receive).toContain(item);
+    // iOS keeps the input types and the no-input choice in the editor's top receive block, not in the ⓘ details.
+    for (const item of ["맨 위", "‘입력이 없는 경우: 계속하기’", "‘계속하기’", "‘클립보드 가져오기’"]) expect(fallback).toContain(item);
+    expect(fallback).not.toContain("같은 곳");
     for (const item of ["‘URL 콘텐츠 가져오기’", "POST", "Authorization", "JSON", "url", "‘단축어 입력’"]) expect(request).toContain(item);
     expect(notify).toContain("‘사전 값 가져오기’");
     expect(notify).toContain("message");

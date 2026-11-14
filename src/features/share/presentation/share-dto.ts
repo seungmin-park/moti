@@ -4,7 +4,8 @@ import { SHARE_SECRET_PATTERN, type ShareKey } from "../domain/share-key";
 
 export const SHARE_LINKS_PATH = "/api/share/links";
 // A link is at most 4,096 characters; the rest is room for the shared text around it and JSON escapes, not for other
-// fields. The text has its own cap in characters (readSharedText).
+// fields. The text has its own cap in characters (readSharedText); Korean text (3 bytes a character in UTF-8) reaches
+// this byte cap first, at about 2,700 characters.
 export const MAX_SHARE_BYTES = 8 * 1024;
 
 // `url` keeps its name so existing Shortcuts keep working, but it may hold the shared text around a link.

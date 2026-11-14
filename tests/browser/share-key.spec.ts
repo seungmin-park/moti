@@ -99,7 +99,9 @@ test("안내는 실제 iPhone에서 동작한 구성을 보이고, 쇼핑 앱의
   await page.goto("/");
   await openShare(page);
   const guide = page.getByRole("region", { name: "iPhone 공유 단축어 설정" });
-  await expect(guide).toContainText("‘입력이 없는 경우’를 ‘클립보드 가져오기’로");
+  await expect(guide).toContainText("편집기 맨 위에 입력 받기 블록");
+  await expect(guide).toContainText("맨 위 블록의 ‘입력이 없는 경우: 계속하기’에서 ‘계속하기’를 눌러 ‘클립보드 가져오기’로");
+  await expect(guide).not.toContainText("같은 곳에서");
   await expect(guide).toContainText("요청 본문은 JSON으로 키 url에 ‘단축어 입력’");
   await expect(guide).toContainText("공유 메뉴에 단축어가 없는 앱(예: 네이버 앱)");
   await expect(guide).not.toContainText("목록에서 항목 가져오기");
