@@ -95,7 +95,7 @@ claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트
 
 객체 이름은 SQL(`moti.picture_object`)만 만들고 claim으로 돌려준다. 공개 계약과 화면에는 같은 출처 경로만 있다. Storage 정책은 `moti_storage`의 보안 정의자 함수가 `moti_rpc`로 실행해 기존 RLS로 소유자의 행만 본다. 설계 비교와 검증은 [changes/pictures.md](changes/pictures.md)에 있다.
 
-남은 사본 정리(5c)는 깨우기의 응답 뒤에 돈다. `library/application/picture-sweep.ts`의 `sweepPictures`가 소유자 RPC `moti_picture_orphans`에 이름을 200개까지 묻고 `PictureStore.discard`에 그대로 넘긴다. SQL은 `may_discard`와 같은 조건(상품이 쓰지 않음, 수집 중인 작업의 이번 시도가 아님)에 10분 여유를 더해 이름만 돌려주고, Storage가 지울 때 `may_discard`로 다시 확인한다. `storage.objects`를 읽는 것은 마이그레이션 소유자로 실행하는 `moti.stored_pictures` 하나다.
+남은 사본 정리(5c)는 깨우기의 응답 뒤에 돈다. `library/application/picture-sweep.ts`의 `sweepPictures`가 소유자 RPC `moti_picture_orphans`에 이름을 200개까지 묻고 `PictureStore.discard`에 그대로 넘긴다. SQL은 `may_discard`와 같은 조건(상품이 쓰지 않음, 수집 중인 작업의 이번 시도가 아님)에 10분 여유와 `picture_object`의 이름 형식을 더해 이름만 돌려주고, Storage가 지울 때 `may_discard`로 다시 확인한다. `storage.objects`를 읽는 것은 마이그레이션 소유자로 실행하는 `moti.stored_pictures` 하나다.
 
 ```text
 화면: 보관함을 처음 받음 → POST /api/library/metadata → 202 → after(): moti_picture_orphans(200) → 소유자 토큰으로 remove(이름) → may_discard
