@@ -116,24 +116,22 @@ describe("보관함 불러오기", () => {
     expect(call).toEqual({ type: "metadata.wake" });
   });
 
-  it("Given 예약 실행이 사진을 남겨 둔 상품 When 보관함을 받으면 Then 사진을 가져오도록 깨운다", () => {
-    const waiting = {
-      ...library,
-      products: [{
-        ...lamp,
-        metadata: { phase: "ready" as const, generation: 1, attempts: 1, completedAt: "2026-11-13T05:17:30.000Z", image: { outcome: "waiting" as const } },
-      }],
-    };
-    expect(transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: waiting } }).call).toEqual({ type: "metadata.wake" });
-    const copied = { ...waiting, products: [{ ...waiting.products[0], metadata: { ...waiting.products[0].metadata, image: { outcome: "copied" as const } } }] };
-    expect(transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: copied } }).call).toBeNull();
-  });
-
-  it("Given 아직 수집을 시작하지 않은 상품이 없음 When 보관함을 받으면 Then 깨우지 않는다", () => {
-    const started = { ...library, products: [{ ...lamp, metadata: { phase: "running" as const, generation: 1, attempts: 1, stalled: false } }] };
-    const { state, call } = transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value: started } });
-    expect(state).toEqual(ready({ library: started }));
-    expect(call).toBeNull();
+  it.each<[string, ProductResponse[]]>([
+    ["예약 실행이 사진을 남겨 둔 상품", [{
+      ...lamp,
+      metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-13T05:17:30.000Z", image: { outcome: "waiting" } },
+    }]],
+    ["사진까지 가져온 상품", [{
+      ...lamp,
+      metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-13T05:17:30.000Z", image: { outcome: "copied" } },
+    }]],
+    ["수집 중인 상품", [{ ...lamp, metadata: { phase: "running", generation: 1, attempts: 1, stalled: false } }]],
+    ["상품 없음", []],
+  ])("Given %s When 보관함을 처음 받으면 Then 사진 복사와 남은 사진 정리를 위해 깨운다", (_name, products) => {
+    const value = { ...library, products };
+    const { state, call } = transition({ phase: "loading" }, { type: "library.settled", outcome: { ok: true, value } });
+    expect(state).toEqual(ready({ library: value }));
+    expect(call).toEqual({ type: "metadata.wake" });
   });
 
   it("Given 불러오는 중 When 일시적으로 실패하면 Then 실패 안내를 보여주고 다시 불러오기로 재요청한다", () => {
@@ -506,6 +504,12 @@ describe("뒤로 가기 캐시에서 돌아온 화면", () => {
     ] satisfies LibraryScreenState[]) {
       expect(transition(state, { type: "resume" })).toEqual(initialScreen);
     }
+  });
+
+  it("Given 깨울 상품이 없는 보관함 When 캐시에서 돌아와 보관함을 다시 받으면 Then 다시 깨운다", () => {
+    const settled = { ...library, products: [{ ...lamp, metadata: { phase: "failed" as const, generation: 1, attempts: 3, errorCode: "timeout" as const } }] };
+    const { call } = run(ready({ library: settled }), { type: "resume" }, { type: "library.settled", outcome: { ok: true, value: settled } });
+    expect(call).toEqual({ type: "metadata.wake" });
   });
 
   it("Given 불러오는 중이거나 떠나는 중 When 페이지가 캐시에서 다시 보이면 Then 아무것도 바꾸지 않는다", () => {

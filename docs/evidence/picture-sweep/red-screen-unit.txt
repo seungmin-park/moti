@@ -1,0 +1,17 @@
+# Red: the screen wakes on every first load (step 4). The screen still woke only when the library held a collection that
+# never started or a picture the worker left waiting (5a's needsWake), so a library with nothing to wake never reached
+# the wake route and the sweep behind it. 4 tests fail: a first load with a copied picture, with a running collection,
+# with no products, and a page back from the back/forward cache whose library has nothing to wake. The case with a
+# waiting picture passes, because 5a already woke for it.
+# Command: npx vitest run src/features/library/screen
+ ❯ src/features/library/screen/screen-state.test.ts (124 tests | 4 failed) 25ms
+     × Given 사진까지 가져온 상품 When 보관함을 처음 받으면 Then 사진 복사와 남은 사진 정리를 위해 깨운다 6ms
+     × Given 수집 중인 상품 When 보관함을 처음 받으면 Then 사진 복사와 남은 사진 정리를 위해 깨운다 0ms
+     × Given 상품 없음 When 보관함을 처음 받으면 Then 사진 복사와 남은 사진 정리를 위해 깨운다 0ms
+     × Given 깨울 상품이 없는 보관함 When 캐시에서 돌아와 보관함을 다시 받으면 Then 다시 깨운다 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected null to deeply equal { type: 'metadata.wake' }
+ ❯ src/features/library/screen/screen-state.test.ts:134:18
+AssertionError: expected null to deeply equal { type: 'metadata.wake' }
+ ❯ src/features/library/screen/screen-state.test.ts:512:18
+      Tests  4 failed | 522 passed (526)

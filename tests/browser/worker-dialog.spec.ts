@@ -67,11 +67,21 @@ async function closeWorker(page: Page) {
 
 test("소유자는 작업 키를 한 번만 보고, GitHub처럼 실행하면 다시 열 때 실행 기록과 이 키로 실행을 시작한 때를 본다", async ({ page, context }) => {
   await createSupabaseLibraryStore(fixture().owner.client).saveLink(toLinkSaveCommand({ url: blockedLink, option: "", collectionIds: [] }));
-  await fixture().admin.query("update moti.metadata_jobs set attempts = 1 where owner_id = $1", [fixture().owner.id]);
+  // A collection that already ran once: neither the wake nor the screen counts it as never started.
+  await fixture().admin.query(
+    `with job as (update moti.metadata_jobs set attempts = 1 where owner_id = $1 returning product_id)
+     update moti.products set metadata_attempts = 1 where id in (select product_id from job)`,
+    [fixture().owner.id],
+  );
   await signIn(context);
+  // Nothing in this library waits for the owner's session, yet opening moti still wakes: the leftover-picture sweep runs on it.
+  const woke = page.waitForResponse((response) =>
+    response.request().method() === "POST" && new URL(response.url()).pathname === "/api/library/metadata");
   await page.goto("/");
+  expect((await woke).status()).toBe(202);
   await openWorker(page);
 
+  await expect(dialog(page)).toContainText("사진 복사와 남은 사진 정리는 moti를 열 때 해요.");
   await expect(keyPanel(page)).toContainText("아직 작업 키가 없어요.");
   await expect(dialog(page)).toContainText("MOTI_WORKER_TOKEN");
   await expect(dialog(page)).toContainText("MOTI_WORKER_URL");

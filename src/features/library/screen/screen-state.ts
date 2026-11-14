@@ -214,14 +214,6 @@ function withResponses(products: ProductResponse[], incoming: ProductResponse[])
   return incoming.reduce(withResponse, products);
 }
 
-// Products only the owner's session can finish: collections that never started (a share key's adds, or a restore or
-// save whose run never began) and pictures the scheduled worker left waiting. The screen asks for them once it has
-// the library.
-function needsWake(library: LibraryReadResponse): boolean {
-  return library.products.some(({ metadata }) =>
-    (metadata.phase === "queued" && metadata.attempts === 0) || (metadata.phase === "ready" && metadata.image.outcome === "waiting"));
-}
-
 // A retry deliberately resets collection (a resumed job goes back to queued), so its answer replaces the product.
 function replace(products: ProductResponse[], product: ProductResponse): ProductResponse[] {
   return products.map((item) => (item.id === product.id ? product : item));
@@ -794,7 +786,9 @@ export function transition(state: LibraryScreenState, event: ScreenEvent): Trans
             dialog: null, refreshing: false, writing: null, toast: null, share: { status: "unread" },
             worker: { panel: { status: "unread" }, runs: [] },
           },
-          call: needsWake(event.outcome.value) ? { type: "metadata.wake" } : null,
+          // Every first load wakes, a page back from the cache included: only the owner's session can start collections
+          // nobody started, copy the pictures the worker left waiting, and sweep the copies no product uses any more.
+          call: { type: "metadata.wake" },
         };
       }
       const { failure } = event.outcome;
