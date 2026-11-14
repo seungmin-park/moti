@@ -1,0 +1,50 @@
+# Red (injected defect): the sweep over real HTTP (step 3). The app was built with the wake handler not scheduling the
+# sweep (diff below), then the source was restored before the run, so persistence and service (which import the
+# source) pass and only the built app lacks the sweep. The new HTTP test fails: the wake answers 202 with the same body,
+# and after 10 seconds of polling the aged orphan is still in Storage next to the shown copy. The other 45 HTTP tests
+# pass. The runner stops after a failed HTTP phase, so the browser phase did not run.
+# Command: npm run build (with the defect) && npm run test:database (source restored).
+#
+# diff --git a/src/features/library/presentation/library-handlers.ts b/src/features/library/presentation/library-handlers.ts
+# index 85765e3..e266ff0 100644
+# --- a/src/features/library/presentation/library-handlers.ts
+# +++ b/src/features/library/presentation/library-handlers.ts
+# @@ -297,7 +297,7 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
+#        if (result.products.length > 0) {
+#          collectAll(result.products.map(({ id, metadata }) => ({ productId: id, generation: metadata.generation })));
+#        }
+# -      sweep();
+# +      void sweep;
+#        return json(202, toMetadataWakeResponse(result));
+#      }, { write: true }),
+#      // The src of an <img>: same-origin and stable for one copy. Each request signs a fresh short-lived link, and the
+      Tests  332 passed (332)
+Verified 275 persistence and 57 service tests with no skipped assertions.
+ ✓ tests/http/library-api.test.ts (10 tests) 3272ms
+ ✓ tests/http/library-backup.test.ts (7 tests) 2783ms
+ ✓ tests/http/share-links.test.ts (6 tests) 2223ms
+ ✓ tests/http/library-organize.test.ts (5 tests) 1943ms
+ ✓ tests/http/scheduled-runs.test.ts (5 tests) 1774ms
+ ❯ tests/http/product-pictures.test.ts (5 tests | 1 failed) 12033ms
+     × 화면이 열며 깨우면 응답은 그대로이고 응답 뒤 10분 지난 남은 사본을 지우며 보여주는 사본은 남긴다 10401ms
+ ✓ tests/http/metadata-collection.test.ts (4 tests) 1646ms
+ ✓ tests/http/share-keys.test.ts (2 tests) 768ms
+ ✓ tests/http/worker-keys.test.ts (2 tests) 755ms
+ ❯ tests/http/product-pictures.test.ts:183:52
+ ❯ tests/http/product-pictures.test.ts:183:5
+ FAIL  tests/http/product-pictures.test.ts > 실제 HTTP 사진 사본 > 화면이 열며 깨우면 응답은 그대로이고 응답 뒤 10분 지난 남은 사본을 지우며 보여주는 사본은 남긴다
+AssertionError: expected [ …(2) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  [
++   "16d55cba-c913-4de0-b7b9-f07648fa5e79/471dc8af-8266-404e-8737-ce354b932aa6/f0bd47af-0fd6-45a1-8762-7de7dbe6b8d1-1.webp",
+    "16d55cba-c913-4de0-b7b9-f07648fa5e79/984e3bc1-2730-4938-9662-afadfbc1261e/04a36992-e38d-43a8-b917-e2bbe0ef6a20-1.webp",
+  ]
+
+ ❯ tests/http/product-pictures.test.ts:183:52
+    181|     expect(response.headers.get("cache-control")).toBe("no-store");
+    182|     expect(metadataWakeResponseSchema.parse(await response.json())).to…
+    183|     await expect.poll(stored, { timeout: 10_000 }).toEqual([shown]);
+      Tests  1 failed | 45 passed (46)

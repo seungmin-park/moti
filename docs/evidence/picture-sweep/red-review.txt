@@ -1,0 +1,372 @@
+# Red (independent review of 5351d55). Two parts.
+#
+# 1. Names moti does not make. Before the fix the orphan query returned every old, unreferenced name under the owner's
+#    prefix, so one folder placeholder the dashboard leaves (an empty .emptyFolderPlaceholder) or any other name made
+#    the server's schema refuse the whole answer, on every open. The new test "moti가 만들지 않은 이름은 오래돼도
+#    돌려주지 않는다" ran against the migration without the name-format condition: it fails because the answer holds the
+#    placeholder and a .png name; the other 12 tests pass. The first attempt was invalid and is not shown: Storage
+#    refused the non-empty placeholder upload (EntityTooLarge, it accepts that name only empty), so the test now uploads
+#    it empty, as the dashboard does.
+#
+# 2. The query repeats may_discard's conditions instead of calling it. Before the review, the comparison with Storage's
+#    own delete covered three states (shown, still running, left behind by the next attempt). The test now builds seven
+#    (adds a replaced copy, a removed product, a job the owner's retry put back in the queue, a superseded job). Each
+#    defect below was put into the fixed migration and run with the pre-review test file (HEAD 5351d55, copied in as
+#    tests/persistence/picture-orphans-old.test.ts) beside the new one, then the migration was restored (cmp with the
+#    fixed copy after each run) and the old file removed:
+#      A. the running-job check also protects a queued job's current attempt. Storage deletes that copy; the answer
+#         leaves it out.
+#      B. only names whose product row still exists. Storage deletes the removed product's copy; the answer leaves it
+#         out.
+#    In both runs all 12 pre-review tests pass and only the widened comparison fails, on the copy the answer misses.
+#    Neither defect touches a grant.
+#
+# Command each time: npm run test:database -- -t "남은 사진 사본 찾기" (other tests filtered out, so the runner exits 1 on
+# skips). Green with the fixed migration: 13 passed, 320 skipped.
+
+=== 1. name format: migration without the format condition, new tests
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs -t 남은 사진 사본 찾기
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ tests/persistence/picture-orphans.test.ts (13 tests | 1 failed) 4102ms
+   ❯ 남은 사진 사본 찾기 (13)
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 400ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 314ms
+     ✓ 끝나지 않은 작업의 이번 시도 사본은 임대가 지나도 돌려주지 않고 다음 시도가 맡은 뒤에만 돌려준다 299ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 306ms
+     ✓ 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 339ms
+     ✓ 여러 상태의 오래된 사본 가운데 돌려준 것만 Storage가 소유자에게 지우게 한다 402ms
+     × moti가 만들지 않은 이름은 오래돼도 돌려주지 않는다 307ms
+     ✓ 한도가 0이면 M0002다 290ms
+     ✓ 한도가 201이면 M0002다 295ms
+     ✓ 한도가 null이면 M0002다 291ms
+     ✓ 소유자가 아닌 세션은 M0001, 익명은 42501이다 292ms
+     ✓ 남은 사본 저장소 어댑터는 이름만 돌려주고 소유자가 아닌 세션이면 예외를 던진다 293ms
+     ✓ Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다 271ms
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/worker-price.test.ts (28 tests | 28 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/share-add.test.ts (20 tests | 20 skipped)
+ ↓ tests/persistence/worker-collect.test.ts (19 tests | 19 skipped)
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-runs.test.ts (13 tests | 13 skipped)
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (12 tests | 12 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/scheduled-run.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/service/picture-sweep.test.ts (2 tests | 2 skipped)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/picture-orphans.test.ts > 남은 사진 사본 찾기 > moti가 만들지 않은 이름은 오래돼도 돌려주지 않는다
+AssertionError: expected { data: [ …(3) ], code: null } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+  {
+    "code": null,
+    "data": [
++     "ac98bd4e-a9ea-40d0-a613-1ba00d6237ba/.emptyFolderPlaceholder",
+      "ac98bd4e-a9ea-40d0-a613-1ba00d6237ba/922b4fcf-0c55-46cd-8a8e-9b1be8eafd4b/31393eed-4fa2-44d7-ae94-77a9ce0a8937-1.webp",
++     "ac98bd4e-a9ea-40d0-a613-1ba00d6237ba/cb4e2caa-7970-4db0-b1ae-43363a120fde/a0ff0968-330f-41ec-9bb2-25d50d5a0383-1.png",
+    ],
+  }
+
+ ❯ tests/persistence/picture-orphans.test.ts:219:29
+    217|     const older = await aged(await leftBehind(), 11);
+    218|
+    219|     expect(await orphans()).toEqual({ data: [older], code: null });
+       |                             ^
+    220|     expect(await createPictureOrphanStore(fixture.owner.client).find(2…
+    221|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 22 skipped (23)
+      Tests  1 failed | 12 passed | 320 skipped (333)
+   Start at  14:59:29
+   Duration  7.03s (tests 72%, import 26%, transform 1%, worker 1%)
+
+    Isolate  23 workers spawned · ~55ms startup each (spawn + environment, per file)
+             at least ~1.21s faster with isolate: false — reuses workers across files instead of one per file
+
+
+=== 2A. defect A
+--- migration (fixed)	2026-11-14 15:00:05
++++ supabase/migrations/20261119000000_picture_sweep.sql	2026-11-14 15:00:56
+@@ -35,7 +35,7 @@
+         )
+         and not exists (
+           select 1 from moti.metadata_jobs j
+-          where j.status = 'running' and moti.picture_object(j.owner_id, j.product_id, j.id, j.attempts) = s.name
++          where j.status in ('running', 'queued') and moti.picture_object(j.owner_id, j.product_id, j.id, j.attempts) = s.name
+         )
+       order by s.name
+       limit p_limit
+
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs -t 남은 사진 사본 찾기
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/worker-price.test.ts (28 tests | 28 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/share-add.test.ts (20 tests | 20 skipped)
+ ↓ tests/persistence/worker-collect.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/scheduled-run.test.ts (6 tests | 6 skipped)
+ ✓ tests/persistence/picture-orphans-old.test.ts (12 tests) 3791ms
+   ✓ 남은 사진 사본 찾기 (12)
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 415ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 315ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 318ms
+     ✓ 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 338ms
+     ✓ 돌려준 사본은 소유자가 지울 수 있고 돌려주지 않은 오래된 사본은 Storage도 지우지 못한다 327ms
+     ✓ 한도가 null이면 M0002다 321ms
+     ✓ 소유자가 아닌 세션은 M0001, 익명은 42501이다 305ms
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-runs.test.ts (13 tests | 13 skipped)
+ ❯ tests/persistence/picture-orphans.test.ts (13 tests | 1 failed) 4094ms
+   ❯ 남은 사진 사본 찾기 (13)
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 342ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 309ms
+     ✓ 끝나지 않은 작업의 이번 시도 사본은 임대가 지나도 돌려주지 않고 다음 시도가 맡은 뒤에만 돌려준다 307ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 296ms
+     ✓ 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 339ms
+     × 여러 상태의 오래된 사본 가운데 돌려준 것만 Storage가 소유자에게 지우게 한다 430ms
+     ✓ moti가 만들지 않은 이름은 오래돼도 돌려주지 않는다 320ms
+     ✓ 한도가 0이면 M0002다 304ms
+     ✓ 한도가 201이면 M0002다 297ms
+     ✓ 한도가 null이면 M0002다 287ms
+     ✓ 소유자가 아닌 세션은 M0001, 익명은 42501이다 292ms
+     ✓ 남은 사본 저장소 어댑터는 이름만 돌려주고 소유자가 아닌 세션이면 예외를 던진다 300ms
+     ✓ Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다 269ms
+ ↓ tests/persistence/metadata-wake.test.ts (12 tests | 12 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/service/picture-sweep.test.ts (2 tests | 2 skipped)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/picture-orphans.test.ts > 남은 사진 사본 찾기 > 여러 상태의 오래된 사본 가운데 돌려준 것만 Storage가 소유자에게 지우게 한다
+AssertionError: expected [ …(4) ] to deeply equal [ …(5) ]
+
+- Expected
++ Received
+
+  [
+    "903b4376-e6ba-4986-bec5-9f4d1ca17599/22c46200-6ea3-4438-be96-071735cd3c66/f7837ecc-3b2b-4a1f-9d87-bfcae3ff44a0-1.webp",
+    "903b4376-e6ba-4986-bec5-9f4d1ca17599/2d570940-b668-4ed7-bdb4-ec1361274e78/a4a91f0c-c714-49d3-89e8-bd7639f19c9c-1.webp",
+    "903b4376-e6ba-4986-bec5-9f4d1ca17599/627d1122-1c26-496a-9b7c-da587c0adfae/332470a2-91ce-4b00-b526-3881965abbad-1.webp",
+    "903b4376-e6ba-4986-bec5-9f4d1ca17599/90f9dc17-4455-44df-b7c4-6fe323286fa4/5216671f-d426-47f7-a086-9bb10c33ef0b-1.webp",
+-   "903b4376-e6ba-4986-bec5-9f4d1ca17599/95db1a28-e112-4fcb-b516-7097b20846c8/bdb2ef37-5ba4-4a30-ae9e-5e3c4d48758b-1.webp",
+  ]
+
+ ❯ tests/persistence/picture-orphans.test.ts:202:18
+    200|     const after = await stored();
+    201|
+    202|     expect(data).toEqual(returned.toSorted());
+       |                  ^
+    203|     expect(before.filter((name) => !after.includes(name))).toEqual(dat…
+    204|     expect(after).toEqual(kept.toSorted());
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed | 22 skipped (24)
+      Tests  1 failed | 24 passed | 320 skipped (345)
+   Start at  15:01:26
+   Duration  10.97s (tests 83%, import 16%, transform 1%)
+
+    Isolate  24 workers spawned · ~56ms startup each (spawn + environment, per file)
+             at least ~1.29s faster with isolate: false — reuses workers across files instead of one per file
+
+
+=== 2B. defect B
+--- migration (fixed)	2026-11-14 15:00:05
++++ supabase/migrations/20261119000000_picture_sweep.sql	2026-11-14 15:01:38
+@@ -37,6 +37,7 @@
+           select 1 from moti.metadata_jobs j
+           where j.status = 'running' and moti.picture_object(j.owner_id, j.product_id, j.id, j.attempts) = s.name
+         )
++        and exists (select 1 from moti.products p where p.id::text = split_part(s.name, '/', 2))
+       order by s.name
+       limit p_limit
+     ) o
+
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs -t 남은 사진 사본 찾기
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ❯ tests/persistence/picture-orphans.test.ts (13 tests | 1 failed) 4131ms
+   ❯ 남은 사진 사본 찾기 (13)
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 423ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 319ms
+     ✓ 끝나지 않은 작업의 이번 시도 사본은 임대가 지나도 돌려주지 않고 다음 시도가 맡은 뒤에만 돌려준다 300ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 299ms
+     ✓ 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 343ms
+     × 여러 상태의 오래된 사본 가운데 돌려준 것만 Storage가 소유자에게 지우게 한다 409ms
+     ✓ moti가 만들지 않은 이름은 오래돼도 돌려주지 않는다 307ms
+     ✓ 한도가 0이면 M0002다 291ms
+     ✓ 한도가 201이면 M0002다 292ms
+     ✓ 한도가 null이면 M0002다 289ms
+     ✓ 소유자가 아닌 세션은 M0001, 익명은 42501이다 291ms
+     ✓ 남은 사본 저장소 어댑터는 이름만 돌려주고 소유자가 아닌 세션이면 예외를 던진다 294ms
+     ✓ Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다 272ms
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/worker-price.test.ts (28 tests | 28 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/share-add.test.ts (20 tests | 20 skipped)
+ ↓ tests/persistence/worker-collect.test.ts (19 tests | 19 skipped)
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (14 tests | 14 skipped)
+ ✓ tests/persistence/picture-orphans-old.test.ts (12 tests) 3623ms
+   ✓ 남은 사진 사본 찾기 (12)
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 346ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 305ms
+     ✓ 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 336ms
+     ✓ 돌려준 사본은 소유자가 지울 수 있고 돌려주지 않은 오래된 사본은 Storage도 지우지 못한다 322ms
+ ↓ tests/persistence/worker-runs.test.ts (13 tests | 13 skipped)
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (12 tests | 12 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/scheduled-run.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/service/picture-sweep.test.ts (2 tests | 2 skipped)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/persistence/picture-orphans.test.ts > 남은 사진 사본 찾기 > 여러 상태의 오래된 사본 가운데 돌려준 것만 Storage가 소유자에게 지우게 한다
+AssertionError: expected [ …(4) ] to deeply equal [ …(5) ]
+
+- Expected
++ Received
+
+  [
+    "ffa97b94-b1fa-40b7-83b5-badba1085eae/472126e7-4e60-4503-86ae-43790fbca593/12947fbd-e230-4935-8073-e0ca7b8ee9a5-1.webp",
+    "ffa97b94-b1fa-40b7-83b5-badba1085eae/97fac5c0-e324-4d08-8d51-49f5ef0b2da1/4645f821-0b8e-4960-94a6-93c9a2522eab-1.webp",
+-   "ffa97b94-b1fa-40b7-83b5-badba1085eae/98279a9a-0cae-4f12-84c8-aebea98aa708/6cbd95c7-7a3e-486b-b904-2bc838ab53e6-1.webp",
+    "ffa97b94-b1fa-40b7-83b5-badba1085eae/c69f14d5-6d3b-45a6-91ac-4d17f17053c5/a574c902-1d43-42fa-b6e1-161cda0b1848-1.webp",
+    "ffa97b94-b1fa-40b7-83b5-badba1085eae/f046e23d-f5f9-4495-8ceb-b37af385c431/ebd396ed-b10a-4e57-ac18-16ffdb20ef66-1.webp",
+  ]
+
+ ❯ tests/persistence/picture-orphans.test.ts:202:18
+    200|     const after = await stored();
+    201|
+    202|     expect(data).toEqual(returned.toSorted());
+       |                  ^
+    203|     expect(before.filter((name) => !after.includes(name))).toEqual(dat…
+    204|     expect(after).toEqual(kept.toSorted());
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed | 22 skipped (24)
+      Tests  1 failed | 24 passed | 320 skipped (345)
+   Start at  15:02:06
+   Duration  10.85s (tests 82%, import 17%)
+
+    Isolate  24 workers spawned · ~57ms startup each (spawn + environment, per file)
+             at least ~1.30s faster with isolate: false — reuses workers across files instead of one per file
+
+
+=== green: fixed migration, new tests
+
+> moti@0.1.0 test:database
+> node scripts/with-test-database.mjs -t 남은 사진 사본 찾기
+
+Starting an isolated native Supabase database with committed migrations.
+Running persistence and service checks against real PostgREST, Storage and PostgreSQL without Next.
+
+ RUN  v5.1.0 /Users/seungmin/Desktop/repo/moti
+
+ ✓ tests/persistence/picture-orphans.test.ts (13 tests) 4111ms
+   ✓ 남은 사진 사본 찾기 (13)
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 403ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 314ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 303ms
+     ✓ 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 346ms
+     ✓ 여러 상태의 오래된 사본 가운데 돌려준 것만 Storage가 소유자에게 지우게 한다 404ms
+     ✓ moti가 만들지 않은 이름은 오래돼도 돌려주지 않는다 315ms
+ ↓ tests/persistence/library-restore.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-organize.test.ts (40 tests | 40 skipped)
+ ↓ tests/persistence/worker-price.test.ts (28 tests | 28 skipped)
+ ↓ tests/persistence/picture-storage.test.ts (27 tests | 27 skipped)
+ ↓ tests/persistence/metadata-jobs.test.ts (26 tests | 26 skipped)
+ ↓ tests/persistence/share-add.test.ts (20 tests | 20 skipped)
+ ↓ tests/persistence/worker-collect.test.ts (19 tests | 19 skipped)
+ ↓ tests/persistence/library-security.test.ts (19 tests | 19 skipped)
+ ↓ tests/service/collection-runner.test.ts (16 tests | 16 skipped)
+ ↓ tests/persistence/library-store.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-keys.test.ts (14 tests | 14 skipped)
+ ↓ tests/persistence/worker-runs.test.ts (13 tests | 13 skipped)
+ ↓ tests/persistence/share-keys.test.ts (12 tests | 12 skipped)
+ ↓ tests/persistence/metadata-wake.test.ts (12 tests | 12 skipped)
+ ↓ tests/service/library-organize.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/library-service.test.ts (10 tests | 10 skipped)
+ ↓ tests/service/picture-copy.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/scheduled-run.test.ts (6 tests | 6 skipped)
+ ↓ tests/service/share-links.test.ts (4 tests | 4 skipped)
+ ↓ tests/service/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/persistence/library-backup.test.ts (3 tests | 3 skipped)
+ ↓ tests/service/picture-sweep.test.ts (2 tests | 2 skipped)
+
+ Test Files  1 passed | 22 skipped (23)
+      Tests  13 passed | 320 skipped (333)
+   Start at  15:00:47
+   Duration  7.06s (tests 72%, import 26%, transform 1%, worker 1%)
+
+    Isolate  23 workers spawned · ~56ms startup each (spawn + environment, per file)
+             at least ~1.23s faster with isolate: false — reuses workers across files instead of one per file
+
+DB 테스트의 실패·skip·todo는 완료가 아닙니다.
++ actual - expected
+
++ 'skipped'
+- 'passed'
+

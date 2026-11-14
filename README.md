@@ -41,4 +41,4 @@ Domain·Persistence·Service·API의 검증 범위와 데이터 정리는 [테�
 
 ## 다음 단계
 
-실제 저장·단일 계정 인증·보관함 화면, 상품 정보와 사진 수집, 정리와 구매 기록, 백업과 복원, iPhone 공유 단축어의 추가 전용 저장 키, 전용 작업 키로 하루 세 번 부르는 정기 수집과 매일 가격 확인을 연결했습니다. 정기 실행은 저장소 소유자가 GitHub에 비밀값 `MOTI_WORKER_TOKEN`과 변수 `MOTI_WORKER_URL`을 넣기 전에는 건너뜁니다([정기 수집](docs/changes/scheduled-runs.md), [가격 확인](docs/changes/price-check.md)). 남은 사진 사본 정리는 아직 연결하지 않았습니다. 실제 iPhone 단축어, Google 로그인과 운영 Supabase는 배포 전에 따로 확인합니다. [구현 순서](docs/backend-implementation.md)와 [체크포인트](docs/implementation-checkpoint.md)에 상태를 기록합니다. 배포는 별도 승인 후 진행합니다.
+실제 저장·단일 계정 인증·보관함 화면, 상품 정보와 사진 수집, 정리와 구매 기록, 백업과 복원, iPhone 공유 단축어의 추가 전용 저장 키, 전용 작업 키로 하루 세 번 부르는 정기 수집과 매일 가격 확인, 열 때 남은 사진 정리를 연결했습니다. 정기 실행은 저장소 소유자가 GitHub에 비밀값 `MOTI_WORKER_TOKEN`과 변수 `MOTI_WORKER_URL`을 넣기 전에는 건너뜁니다([정기 수집](docs/changes/scheduled-runs.md), [가격 확인](docs/changes/price-check.md)). 어떤 상품도 쓰지 않는 사진 사본은 소유자가 보관함을 열 때 지웁니다([남은 사진 정리](docs/changes/picture-sweep.md)). 실제 iPhone 단축어, Google 로그인과 운영 Supabase는 배포 전에 따로 확인합니다. [구현 순서](docs/backend-implementation.md)와 [체크포인트](docs/implementation-checkpoint.md)에 상태를 기록합니다. 배포는 별도 승인 후 진행합니다.

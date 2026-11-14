@@ -1,0 +1,43 @@
+# Red: the orphan query in SQL (step 1). Without 20261119000000_picture_sweep.sql there is no moti_picture_orphans
+# (PostgREST answers PGRST202), no moti.stored_pictures and no moti.picture_orphans. All 11 tests in
+# tests/persistence/picture-orphans.test.ts fail at the call, after their setup (uploads, an expired lease, a second claim
+# and a backdated storage.objects.created_at) succeeded. The catalog check that pins the public function list fails too.
+# Command: npm run test:database -- -t "남은 사진 사본 찾기|FORCE RLS"
+# (migration moved out of the folder; other persistence/service tests filtered out, so the runner exits 1 on skips).
+ ❯ tests/persistence/library-security.test.ts (19 tests | 1 failed | 18 skipped) 314ms
+     × 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다 313ms
+ ❯ tests/persistence/picture-orphans.test.ts (11 tests | 11 failed) 3378ms
+     × 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 392ms
+     × 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 322ms
+     × 끝나지 않은 작업의 이번 시도 사본은 임대가 지나도 돌려주지 않고 다음 시도가 맡은 뒤에만 돌려준다 290ms
+     × 다른 계정 접두사의 객체는 돌려주지 않는다 299ms
+     × 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 332ms
+     × 돌려준 사본은 소유자가 지울 수 있고 돌려주지 않은 오래된 사본은 Storage도 지우지 못한다 320ms
+     × 한도가 0이면 M0002다 289ms
+     × 한도가 201이면 M0002다 293ms
+     × 한도가 null이면 M0002다 287ms
+     × 소유자가 아닌 세션은 M0001, 익명은 42501이다 290ms
+     × Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다 264ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [ 'moti_backup', …(28) ] to deeply equal [ 'moti_backup', …(29) ]
+ ❯ tests/persistence/library-security.test.ts:79:65
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { …(2) }
+ ❯ tests/persistence/picture-orphans.test.ts:100:29
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { …(2) }
+ ❯ tests/persistence/picture-orphans.test.ts:107:29
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { data: [], code: null }
+ ❯ tests/persistence/picture-orphans.test.ts:116:29
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { …(2) }
+ ❯ tests/persistence/picture-orphans.test.ts:129:29
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { …(2) }
+ ❯ tests/persistence/picture-orphans.test.ts:137:30
+AssertionError: expected null to deeply equal [ Array(1) ]
+ ❯ tests/persistence/picture-orphans.test.ts:149:18
+AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { data: null, code: 'M0002' }
+ ❯ tests/persistence/picture-orphans.test.ts:155:34
+AssertionError: expected 'PGRST202' to be 'M0001' // Object.is equality
+ ❯ tests/persistence/picture-orphans.test.ts:160:64
+AssertionError: expected [] to deeply equal [ { …(7) }, { …(7) } ]
+ ❯ tests/persistence/picture-orphans.test.ts:178:76
+ Test Files  2 failed | 20 skipped (22)
+      Tests  12 failed | 317 skipped (329)

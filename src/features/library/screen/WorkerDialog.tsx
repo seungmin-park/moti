@@ -96,7 +96,7 @@ function Runs({ panel, runs }: { panel: KeyPanelState; runs: WorkerRunResponse[]
       )}
       <p className="form-note">
         <Info size={16} aria-hidden="true" />
-        사진은 moti를 열 때 가져와요.
+        사진 복사와 남은 사진 정리는 moti를 열 때 해요.
       </p>
     </section>
   );

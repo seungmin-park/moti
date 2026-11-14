@@ -95,6 +95,14 @@ claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트
 
 객체 이름은 SQL(`moti.picture_object`)만 만들고 claim으로 돌려준다. 공개 계약과 화면에는 같은 출처 경로만 있다. Storage 정책은 `moti_storage`의 보안 정의자 함수가 `moti_rpc`로 실행해 기존 RLS로 소유자의 행만 본다. 설계 비교와 검증은 [changes/pictures.md](changes/pictures.md)에 있다.
 
+남은 사본 정리(5c)는 깨우기의 응답 뒤에 돈다. `library/application/picture-sweep.ts`의 `sweepPictures`가 소유자 RPC `moti_picture_orphans`에 이름을 200개까지 묻고 `PictureStore.discard`에 그대로 넘긴다. SQL은 `may_discard`와 같은 조건(상품이 쓰지 않음, 수집 중인 작업의 이번 시도가 아님)에 10분 여유와 `picture_object`의 이름 형식을 더해 이름만 돌려주고, Storage가 지울 때 `may_discard`로 다시 확인한다. `storage.objects`를 읽는 것은 마이그레이션 소유자로 실행하는 `moti.stored_pictures` 하나다.
+
+```text
+화면: 보관함을 처음 받음 → POST /api/library/metadata → 202 → after(): moti_picture_orphans(200) → 소유자 토큰으로 remove(이름) → may_discard
+```
+
+설계와 검증은 [changes/picture-sweep.md](changes/picture-sweep.md)에 있다.
+
 ## 상품 정리
 
 소유자 변경의 전환 규칙은 SQL에 있다. 의도마다 RPC(`moti_edit_product`, `moti_purchase_product`, `moti_record_purchase`, `moti_return_to_wish`, `moti_rename_collection`)가 상품 행(이름 바꾸기는 컬렉션 행) 하나만 잠그고 같은 값이면 그대로 돌려주며, 아니면 화면이 본 `revision`을 확인한 뒤 쓴다. 구매 전환은 메모·컬렉션 열을 건드리지 않는다. HTTP는 자원마다 PATCH 하나이고 `change.type`이 의도를 고른다. 저장소 어댑터는 의도별 RPC를 표 하나로 고른다. 이름·메모·구매일·실구매가 규칙은 순수 모듈 `wishlist/product-fields.ts`를 화면과 서버 명령이 함께 쓴다.
@@ -125,7 +133,7 @@ claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트
 ```text
 단축어: POST /api/share/links → 키 형식 → share-context(쿠키 없는 익명 클라이언트) → 본문 → parseLink → moti_share_add(moti_share 역할) → { kind } + message
 소유자: GET/POST /api/share-keys, DELETE /api/share-keys/{id} → 보관함 관문 → moti_share_key_*(moti_rpc)
-화면: 보관함을 받음 → 시도 0인 대기 상품 → POST /api/library/metadata → moti_metadata_wake → 응답 뒤 두 개씩 40초 수집
+화면: 보관함을 처음 받음 → POST /api/library/metadata → moti_metadata_wake → 응답 뒤 두 개씩 40초 수집
 ```
 
 키의 힘은 함수 본문이 아니라 `moti_share` 역할의 열 단위 권한과 정책이 정하고, catalog 테스트가 목록을 고정한다. 키 검사·링크 검사·사용 창은 PostgREST로 직접 불러도 지켜지도록 SQL에 있다. `share-context.ts`와 단축어 경로는 ESLint가 `next/headers`·`@supabase/ssr`·쿠키 컨텍스트를 막는다. 설계 비교와 검증은 [changes/share.md](changes/share.md)에 있다.
@@ -141,7 +149,7 @@ GitHub: POST /api/scheduled-runs → 키 형식 → worker-context(쿠키 없는
             가격: decidePriceCheck → price(같은 통화의 하나뿐인 가격 또는 지킨 이유, 고른 시각이 울타리)
         → finish → 셈
 소유자: GET/POST /api/worker-keys, DELETE /api/worker-keys/{id} → 보관함 관문 → moti_worker_*(moti_rpc)
-화면: 보관함을 받음 → 시도 0인 대기 또는 사진 waiting → POST /api/library/metadata → 새 세대로 재대기 → 응답 뒤 소유자 토큰으로 사진 복사
+화면: 보관함을 처음 받음 → POST /api/library/metadata → 사진 waiting을 새 세대로 재대기 → 응답 뒤 소유자 토큰으로 사진 복사
 ```
 
-작업자의 힘은 `moti_worker` 역할의 열 단위 권한과 정책이 정하고 catalog 테스트가 목록을 고정한다. 키·실행 임대·대상 선택·정산 검사는 PostgREST로 직접 불러도 지켜지도록 SQL에 있다. 매일 가격 확인(5b)은 같은 실행의 두 번째 분기다. 가격 규칙(상품 이름이 있고 서로 다른 가격이 하나)은 순수 함수 `worker/domain/price-check.ts`의 `decidePriceCheck`, 통화 비교·서울 날짜·구매완료 울타리는 SQL에 있다. 상품의 `priceCheck`(마지막 확인 시각과 지킨 이유)가 보관함 계약으로 나가고 화면이 지킨 가격을 알린다. 설계와 검증은 [changes/price-check.md](changes/price-check.md)에 있다. 작업자는 Storage에 닿지 않는다. ESLint가 `src/features/worker`와 예약 경로에서 사진 모듈을, 예약 경로에서 `next/headers`·`@supabase/ssr`·쿠키 컨텍스트를 막는다. 설계 비교와 검증은 [changes/scheduled-runs.md](changes/scheduled-runs.md)에 있다.
+작업자의 힘은 `moti_worker` 역할의 열 단위 권한과 정책이 정하고 catalog 테스트가 목록을 고정한다. 키·실행 임대·대상 선택·정산 검사는 PostgREST로 직접 불러도 지켜지도록 SQL에 있다. 매일 가격 확인(5b)은 같은 실행의 두 번째 분기다. 가격 규칙(상품 이름이 있고 서로 다른 가격이 하나)은 순수 함수 `worker/domain/price-check.ts`의 `decidePriceCheck`, 통화 비교·서울 날짜·구매완료 울타리는 SQL에 있다. 상품의 `priceCheck`(마지막 확인 시각과 지킨 이유)가 보관함 계약으로 나가고 화면이 지킨 가격을 알린다. 설계와 검증은 [changes/price-check.md](changes/price-check.md)에 있다. 작업자는 Storage에 닿지 않는다. ESLint가 `src/features/worker`와 예약 경로에서 사진 모듈과 정리 모듈을, 예약 경로에서 `next/headers`·`@supabase/ssr`·쿠키 컨텍스트를 막는다. 설계 비교와 검증은 [changes/scheduled-runs.md](changes/scheduled-runs.md)에 있다.

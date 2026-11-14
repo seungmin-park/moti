@@ -15,8 +15,9 @@ import {
 import type { AuthRequestContext } from "@/features/auth/presentation/auth-handlers";
 import type { LibraryRestoreResult } from "@/features/library/application/commands";
 import { createLibraryService } from "@/features/library/application/library-service";
+import { sweepPictures } from "@/features/library/application/picture-sweep";
 import { followUpRestore } from "@/features/library/application/restore-follow-up";
-import { createPictureStore } from "@/features/library/infrastructure/product-pictures";
+import { createPictureOrphanStore, createPictureStore } from "@/features/library/infrastructure/product-pictures";
 import { createSupabaseLibraryStore } from "@/features/library/infrastructure/supabase-library-store";
 import type { LibraryRequestContext } from "@/features/library/presentation/library-handlers";
 import { createShareKeyService } from "@/features/share/application/share-service";
@@ -73,6 +74,13 @@ function scheduleCollections(config: AuthConfig, accessToken: string | null, req
   after(() => runWithin(requests, runner.run, { concurrency: WAKE_CONCURRENCY, deadline: Date.now() + WAKE_WINDOW_MS, now: Date.now }));
 }
 
+// Alongside the woken collections and inside the same window: one round of two calls, each bounded like the rest.
+function scheduleSweep(config: AuthConfig, accessToken: string | null) {
+  if (!accessToken) return;
+  const client = afterResponseClient(config, accessToken);
+  after(() => sweepPictures({ orphans: createPictureOrphanStore(client), pictures: createPictureStore(client) }));
+}
+
 function scheduleRestoreFollowUp(config: AuthConfig, accessToken: string | null, result: LibraryRestoreResult) {
   if (!accessToken) return;
   const client = afterResponseClient(config, accessToken);
@@ -103,6 +111,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
       workerKeys: createWorkerKeyService({ read: unavailable, issue: unavailable, revoke: unavailable }),
       wake: unavailable,
       collectAll: () => {},
+      sweep: () => {},
     };
   }
   const { config, client } = connection;
@@ -119,6 +128,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
     workerKeys: createWorkerKeyService(createSupabaseWorkerKeyStore(client)),
     wake: (command) => createSupabaseCollectionStore(client).wake(command),
     collectAll: (requests) => scheduleCollections(config, accessToken, requests),
+    sweep: () => scheduleSweep(config, accessToken),
   };
 }
 

@@ -161,10 +161,12 @@ function given(access: Access) {
   });
   // collectAll is a mock: handing the woken products to collection after the response is the requirement.
   const collectAll = vi.fn<(requests: CollectionRequest[]) => void>();
+  // sweep is a mock too: scheduling the leftover-picture cleanup after the wake's response is the requirement.
+  const sweep = vi.fn<() => void>();
   const handlers = createLibraryHandlers(async () => ({
-    access, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll,
+    access, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll, sweep,
   }));
-  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll };
+  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll, sweep };
 }
 
 const get = () => new Request(`${origin}/api/library`);
@@ -1249,47 +1251,52 @@ describe("DELETE /api/worker-keys/{keyId}", () => {
 });
 
 describe("POST /api/library/metadata", () => {
-  it("Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집을 맡긴다", async () => {
-    const { handlers, wake, collectAll } = given(allowed);
+  it("Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집과 남은 사진 정리를 맡긴다", async () => {
+    const { handlers, wake, collectAll, sweep } = given(allowed);
     const response = await handlers.postMetadataWake(post("/api/library/metadata", {}));
     expect(response.status).toBe(202);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(metadataWakeResponseSchema.parse(await response.json())).toEqual({ products: [product] });
     expect(wake).toHaveBeenCalledWith({ limit: 8 });
     expect(collectAll).toHaveBeenCalledExactlyOnceWith([{ productId: product.id, generation: 1 }]);
+    expect(sweep).toHaveBeenCalledExactlyOnceWith();
   });
 
-  it("Given 깨울 상품 없음 When 깨우면 Then 빈 목록이고 수집을 맡기지 않는다", async () => {
-    const { handlers, wake, collectAll } = given(allowed);
+  it("Given 깨울 상품 없음 When 깨우면 Then 빈 목록이고 수집은 맡기지 않지만 남은 사진 정리는 맡긴다", async () => {
+    const { handlers, wake, collectAll, sweep } = given(allowed);
     wake.mockResolvedValueOnce({ products: [] });
     const response = await handlers.postMetadataWake(post("/api/library/metadata", {}));
     expect(metadataWakeResponseSchema.parse(await response.json())).toEqual({ products: [] });
     expect(collectAll).not.toHaveBeenCalled();
+    expect(sweep).toHaveBeenCalledExactlyOnceWith();
   });
 
   it.each([
     ["다른 출처", () => post("/api/library/metadata", {}, { origin: "https://evil.example" }), 403, "cross_origin"],
     ["다른 필드", () => post("/api/library/metadata", { limit: 100 }), 400, "invalid_input"],
     ["JSON이 아닌 형식", () => post("/api/library/metadata", "{}", { "content-type": "text/plain" }), 415, "unsupported_media_type"],
-  ] as const)("Given %s When 깨우면 Then 거절하고 깨우지 않는다", async (_name, request, status, code) => {
-    const { handlers, wake, collectAll } = given(allowed);
+  ] as const)("Given %s When 깨우면 Then 거절하고 깨우지도 정리하지도 않는다", async (_name, request, status, code) => {
+    const { handlers, wake, collectAll, sweep } = given(allowed);
     const response = await handlers.postMetadataWake(request());
     expect(response.status).toBe(status);
     expect((await errorOf(response)).error).toBe(code);
     expect(wake).not.toHaveBeenCalled();
     expect(collectAll).not.toHaveBeenCalled();
+    expect(sweep).not.toHaveBeenCalled();
   });
 
-  it("Given 세션 없음 When 깨우면 Then 401이고 깨우지 않는다", async () => {
-    const { handlers, wake } = given({ kind: "signed_out" });
+  it("Given 세션 없음 When 깨우면 Then 401이고 깨우지도 정리하지도 않는다", async () => {
+    const { handlers, wake, sweep } = given({ kind: "signed_out" });
     expect((await handlers.postMetadataWake(post("/api/library/metadata", {}))).status).toBe(401);
     expect(wake).not.toHaveBeenCalled();
+    expect(sweep).not.toHaveBeenCalled();
   });
 
-  it("Given 저장소 오류 When 깨우면 Then 503이고 수집을 맡기지 않는다", async () => {
-    const { handlers, wake, collectAll } = given(allowed);
+  it("Given 저장소 오류 When 깨우면 Then 503이고 수집도 정리도 맡기지 않는다", async () => {
+    const { handlers, wake, collectAll, sweep } = given(allowed);
     wake.mockRejectedValueOnce(new LibraryError("storage_unavailable", "down"));
     expect((await handlers.postMetadataWake(post("/api/library/metadata", {}))).status).toBe(503);
     expect(collectAll).not.toHaveBeenCalled();
+    expect(sweep).not.toHaveBeenCalled();
   });
 });

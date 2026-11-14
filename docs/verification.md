@@ -2,6 +2,8 @@
 
 CI 작업 `mockup`은 `app`으로, Supabase 없는 브라우저 검사 `test:e2e`는 `test:ui`로 이름을 바꿨다([변경 기록](changes/naming.md)). 아래 이전 항목의 "브라우저 e2e"는 지금의 `npm run test:ui`다.
 
+남은 사진 정리(5c)의 검증은 [변경 기록](changes/picture-sweep.md)에 있다. 단위 1,385개, 실제 DB 333개(persistence 276, service 57), 실제 HTTP 46개, 실제 스택 브라우저 50개, `tests/ui` 50개가 통과했다. 남은 사본은 실제 업로드·임대 만료·다음 시도와 `storage.objects.created_at` 되돌리기로 만들었고, Storage 지우기 실패는 아무도 듣지 않는 주소로 대신했다. 운영 Storage, 호스팅의 `after()`, 실제 iPhone은 검증하지 않았다.
+
 매일 가격 확인(5b)의 검증은 [변경 기록](changes/price-check.md)에 있다. 단위 1,377개, 실제 DB 318개(persistence 263, service 55), 실제 HTTP 45개, 실제 스택 브라우저 50개, `tests/ui` 50개가 통과했다. 쇼핑몰은 service에서 고정 페이지로, 실제 HTTP와 브라우저에서 앱의 주소 정책이 막는 루프백 링크로 대신했다. 실제 쇼핑몰의 가격 페이지, GitHub 예약 실행, 호스팅, 운영 Supabase는 검증하지 않았다.
 
 정기 수집과 전용 작업 키(5a)의 검증은 [변경 기록](changes/scheduled-runs.md)에 있다. 단위 1,342개, 실제 DB 287개(persistence 235, service 52), 실제 HTTP 44개, 실제 스택 브라우저 48개, `tests/ui` 50개가 통과했다. GitHub의 예약 호출은 실제 HTTP와 브라우저 검사에서 Node `fetch`로, 워크플로 스크립트는 가짜 `curl`로 흉내 냈다. 실제 GitHub 예약 실행, 호스팅의 `maxDuration`·`Authorization` 전달·배포 보호, 운영 Storage, Supabase 로그, 데이터센터 IP를 막는 쇼핑몰은 검증하지 않았다.
