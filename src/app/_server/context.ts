@@ -99,6 +99,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
         createCollection: unavailable,
         openPicture: unavailable,
         changeProduct: unavailable,
+        deleteProduct: unavailable,
         renameCollection: unavailable,
         exportLibrary: unavailable,
         restoreLibrary: unavailable,

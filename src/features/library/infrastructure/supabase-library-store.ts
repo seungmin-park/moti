@@ -332,6 +332,13 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
         ...parameters,
       })));
     },
+    async deleteProduct({ productId, revision }) {
+      const response = readResponse(z.object({ id: z.uuid() }), await rpc("moti_delete_product", {
+        p_product_id: productId,
+        p_revision: revision,
+      }));
+      return { productId: response.id as ProductId };
+    },
     async renameCollection({ collectionId, revision, name }) {
       return toCollection(readResponse(collectionRowSchema, await rpc("moti_rename_collection", {
         p_collection_id: collectionId,

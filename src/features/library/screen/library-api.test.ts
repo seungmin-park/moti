@@ -248,6 +248,24 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     share_key_missing: { kind: "unavailable", message: retryLater },
     worker_key_missing: { kind: "unavailable", message: retryLater },
   },
+  // A delete has no fields to point at: anything the server refused as input means the screen is out of date.
+  "product.delete": {
+    ...signedIn,
+    storage_unavailable: { kind: "unavailable", message: retryLater },
+    cross_origin: { kind: "unavailable", message: reload },
+    unsupported_media_type: { kind: "unavailable", message: retryLater },
+    payload_too_large: { kind: "unavailable", message: retryLater },
+    invalid_input: { kind: "unavailable", message: reload },
+    collection_missing: { kind: "unavailable", message: retryLater },
+    collection_duplicate: { kind: "unavailable", message: retryLater },
+    identity_conflict: { kind: "unavailable", message: retryLater },
+    product_missing: { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." },
+    metadata_not_retryable: { kind: "unavailable", message: retryLater },
+    revision_conflict: { kind: "stale", message: "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 삭제해 주세요." },
+    picture_missing: { kind: "unavailable", message: retryLater },
+    share_key_missing: { kind: "unavailable", message: retryLater },
+    worker_key_missing: { kind: "unavailable", message: retryLater },
+  },
 };
 
 function errorBody(endpoint: Endpoint, code: ErrorCode) {
@@ -439,6 +457,22 @@ describe("보관함 API 클라이언트", () => {
     expect(init?.method).toBe("PATCH");
     expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
     expect(JSON.parse(String(init?.body))).toEqual(body);
+  });
+
+  it("Given 상품 삭제 When 요청하면 Then 상품 경로에 DELETE로 revision만 보내고 200 id를 돌려준다", async () => {
+    const { fetcher, api } = respond({ id: product.id }, { status: 200 });
+    await expect(api.deleteProduct("../" + product.id, { revision: 2 })).resolves.toEqual({ ok: true, value: { id: product.id } });
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe(`/api/products/..%2F${product.id}`);
+    expect(init?.method).toBe("DELETE");
+    expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({ revision: 2 });
+  });
+
+  it("Given 상품 삭제에 계약과 다른 200 본문 When 요청하면 Then 연결 안내로 실패한다", async () => {
+    const { api } = respond({ product }, { status: 200 });
+    await expect(api.deleteProduct(product.id, { revision: 1 }))
+      .resolves.toEqual({ ok: false, failure: { kind: "unavailable", message: connection } });
   });
 
   it("Given 컬렉션 이름 바꾸기 When 요청하면 Then 컬렉션 경로에 PATCH로 revision과 이름을 보내고 200 컬렉션을 돌려준다", async () => {

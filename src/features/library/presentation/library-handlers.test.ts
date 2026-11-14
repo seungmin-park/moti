@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Access } from "../../auth/domain/access";
-import { toLinkSaveCommand, type LibraryRestoreResult, type PictureViewResult } from "../application/commands";
+import {
+  toLinkSaveCommand,
+  type LibraryRestoreResult,
+  type PictureViewResult,
+  type ProductDeleteCommand,
+  type ProductDeleteResult,
+} from "../application/commands";
 import {
   LibraryError,
   type Collection,
@@ -42,6 +48,7 @@ import {
   metadataRetryResponseSchema,
   metadataWakeResponseSchema,
   productChangeResponseSchema,
+  productDeleteResponseSchema,
 } from "./library-dto";
 
 const origin = "https://moti.test";
@@ -122,6 +129,7 @@ function given(access: Access) {
     createCollection: vi.fn(async () => collection),
     openPicture: vi.fn(async (): Promise<PictureViewResult> => ({ kind: "found", url: signedUrl })),
     changeProduct: vi.fn(async (): Promise<Product> => product),
+    deleteProduct: vi.fn(async (command: ProductDeleteCommand): Promise<ProductDeleteResult> => ({ productId: command.productId })),
     renameCollection: vi.fn(async (): Promise<Collection> => collection),
     exportLibrary: vi.fn(async (): Promise<LibraryBackup> => backup),
     restoreLibrary: vi.fn(async (): Promise<LibraryRestoreResult> => ({ library: { products: [product], collections: [collection] }, replacedPictures: [] })),
@@ -673,6 +681,109 @@ describe("PATCH /api/products/{productId}", () => {
     const large = { revision: 1, change: { type: "details", title: null, note: "가".repeat(6000), collectionIds: [] } };
     expect((await handlers.patchProduct(...patch(large))).status).toBe(413);
     expect(service.changeProduct).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /api/products/{productId}", () => {
+  const productId = product.id;
+  const remove = (body: unknown, headers: Record<string, string> = {}, id: string = productId) =>
+    [new Request(`${origin}/api/products/${id}`, {
+      method: "DELETE",
+      headers: { origin, "content-type": "application/json", ...headers },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    }), { params: Promise.resolve({ productId: id }) }] as const;
+
+  it("Given 화면이 본 revision When 상품을 삭제하면 Then 200과 지운 상품 id를 돌려주고 소문자 id로 서비스를 부른다", async () => {
+    const { handlers, service, collect } = given(allowed);
+
+    const response = await handlers.deleteProduct(...remove({ revision: 3 }, {}, productId.toUpperCase()));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(productDeleteResponseSchema.parse(await response.json())).toEqual({ id: productId });
+    expect(service.deleteProduct).toHaveBeenCalledExactlyOnceWith({ productId, revision: 3 });
+    expect(collect).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["깨진 JSON", "{"],
+    ["빈 본문", ""],
+    ["revision 누락", {}],
+    ["알 수 없는 필드", { revision: 1, force: true }],
+    ["0 revision", { revision: 0 }],
+    ["소수 revision", { revision: 1.5 }],
+    ["문자열 revision", { revision: "1" }],
+    ["저장할 수 있는 범위를 넘는 revision", { revision: 2147483648 }],
+  ])("Given %s When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다", async (_, body) => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.deleteProduct(...remove(body));
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).error).toBe("invalid_input");
+    expect(service.deleteProduct).not.toHaveBeenCalled();
+  });
+
+  it("Given UUID가 아닌 상품 When 삭제하면 Then 400이고 서비스를 부르지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    const response = await handlers.deleteProduct(...remove({ revision: 1 }, {}, "not-a-uuid"));
+    expect(response.status).toBe(400);
+    expect(service.deleteProduct).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["revision_conflict", 409],
+    ["product_missing", 404],
+    ["invalid_input", 400],
+    ["storage_unavailable", 503],
+  ] as const)("Given 저장소가 %s로 거절 When 상품을 삭제하면 Then %i이다", async (code, status) => {
+    const { handlers, service } = given(allowed);
+    service.deleteProduct.mockRejectedValueOnce(new LibraryError(code, "거절"));
+    const response = await handlers.deleteProduct(...remove({ revision: 1 }));
+    expect(response.status).toBe(status);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect((await errorOf(response)).error).toBe(code);
+  });
+
+  it("Given 다른 출처의 요청 When 상품을 삭제하면 Then 403이고 세션과 서비스를 건드리지 않는다", async () => {
+    const { handlers, service, signOut } = given(allowed);
+    const response = await handlers.deleteProduct(...remove({ revision: 1 }, { origin: "https://evil.test" }));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(service.deleteProduct).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ kind: "signed_out" } as Access, 401, "signed_out"],
+    [{ kind: "unconfigured" } as Access, 503, "unconfigured"],
+  ])("Given 거절된 접근 %# When 상품을 삭제하면 Then 서비스를 부르지 않는다", async (access, status, code) => {
+    const { handlers, service } = given(access);
+    const response = await handlers.deleteProduct(...remove({ revision: 1 }));
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(service.deleteProduct).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 Google 계정 When 상품을 삭제하면 Then 403이고 세션을 한 번 종료한다", async () => {
+    const { handlers, service, signOut } = given({ kind: "forbidden" });
+    const response = await handlers.deleteProduct(...remove({ revision: 1 }));
+    expect(response.status).toBe(403);
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(service.deleteProduct).not.toHaveBeenCalled();
+  });
+
+  it("Given 허용 계정이지만 DB가 소유자를 거절 When 상품을 삭제하면 Then 403이고 세션을 종료한다", async () => {
+    const { handlers, service, signOut } = given(allowed);
+    service.deleteProduct.mockRejectedValueOnce(new LibraryError("unauthorized", "denied"));
+    const response = await handlers.deleteProduct(...remove({ revision: 1 }));
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("forbidden");
+    expect(signOut).toHaveBeenCalledOnce();
+  });
+
+  it("Given JSON이 아닌 본문 When 상품을 삭제하면 Then 415이고 서비스를 부르지 않는다", async () => {
+    const { handlers, service } = given(allowed);
+    expect((await handlers.deleteProduct(...remove({ revision: 1 }, { "content-type": "text/plain" }))).status).toBe(415);
+    expect(service.deleteProduct).not.toHaveBeenCalled();
   });
 });
 

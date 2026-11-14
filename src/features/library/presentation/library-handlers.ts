@@ -33,6 +33,7 @@ import {
   toLinkSaveCommand,
   toPictureViewCommand,
   toProductChangeCommand,
+  toProductDeleteCommand,
   type LibraryRestoreResult,
 } from "../application/commands";
 import type { LibraryService } from "../application/library-service";
@@ -51,12 +52,14 @@ import {
   metadataRetryRequestSchema,
   metadataWakeRequestSchema,
   productChangeRequestSchema,
+  productDeleteRequestSchema,
   toCollectionResponse,
   toLibraryReadResponse,
   toLinkSaveResponse,
   toMetadataRetryResponse,
   toMetadataWakeResponse,
   toProductChangeResponse,
+  toProductDeleteResponse,
   type ErrorCode,
   type ErrorResponse,
 } from "./library-dto";
@@ -254,6 +257,13 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
       if (productChangeRequest instanceof Response) return productChangeRequest;
       const command = toProductChangeCommand(productId, productChangeRequest, seoulToday(new Date()));
       return json(200, toProductChangeResponse(await service.changeProduct(command)));
+    }, { write: true }),
+    deleteProduct: handle<ProductRoute>(async ({ service }, request, route) => {
+      const { productId } = await route.params;
+      const productDeleteRequest = await readRequest(request, (value) => productDeleteRequestSchema.parse(value));
+      if (productDeleteRequest instanceof Response) return productDeleteRequest;
+      const result = await service.deleteProduct(toProductDeleteCommand(productId, productDeleteRequest));
+      return json(200, toProductDeleteResponse(result));
     }, { write: true }),
     postMetadataRetry: handle<ProductRoute>(async ({ retry, collect }, request, route) => {
       const { productId } = await route.params;

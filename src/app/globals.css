@@ -1501,6 +1501,20 @@ h1 {
 .retry-error {
   margin: 0 0 16px;
 }
+.delete-product {
+  border-top: 1px solid var(--line);
+  margin-top: 23px;
+  padding-top: 14px;
+}
+.delete-button {
+  min-height: 44px;
+}
+.delete-button:disabled {
+  opacity: 0.55;
+}
+.delete-confirm .button {
+  min-height: 44px;
+}
 .duplicate-notice {
   background: var(--surface);
   color: var(--ink-soft);

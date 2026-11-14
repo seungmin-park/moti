@@ -77,7 +77,7 @@ describe("실제 DB 소유자 경계", () => {
        where n.nspname = 'public' and p.proname like 'moti_%'`,
     );
     expect(functions.rows.map((row) => row.proname).toSorted()).toEqual([
-      "moti_backup", "moti_create_collection", "moti_edit_product", "moti_metadata_claim", "moti_metadata_complete", "moti_metadata_fail",
+      "moti_backup", "moti_create_collection", "moti_delete_product", "moti_edit_product", "moti_metadata_claim", "moti_metadata_complete", "moti_metadata_fail",
       "moti_metadata_retry", "moti_metadata_wake", "moti_picture_locate", "moti_picture_orphans", "moti_purchase_product",
       "moti_record_purchase", "moti_rename_collection", "moti_restore_library", "moti_return_to_wish", "moti_save_link", "moti_share_add",
       "moti_share_key_issue", "moti_share_key_read", "moti_share_key_revoke", "moti_snapshot",

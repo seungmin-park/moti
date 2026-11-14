@@ -16,6 +16,8 @@ import type {
   MetadataWakeResponse,
   ProductChangeRequest,
   ProductChangeResponse,
+  ProductDeleteRequest,
+  ProductDeleteResponse,
   ProductResponse,
 } from "../presentation/library-dto";
 import type { WorkerRunResponse } from "../../worker/presentation/worker-dto";
@@ -29,7 +31,7 @@ export type FormError = { field: FieldName | null; message: string };
 // Only the fields the owner touched. Every other field shows the live product, so collection results and a re-read
 // reach the untouched fields with no extra step.
 export type DetailDraft = { title?: string; note?: string; collectionIds?: string[]; date?: string; price?: string };
-export type DetailForm = "retry" | "details" | "record" | "status";
+export type DetailForm = "retry" | "details" | "record" | "status" | "delete";
 export type DetailNotice = { form: DetailForm; kind: "error" | "saved"; field: FieldName | null; message: string };
 export type BackupStep =
   | { name: "menu" }
@@ -43,11 +45,15 @@ export type BackupNotice = { kind: "error" | "info"; message: string };
 export type ScreenDialog =
   | { kind: "add"; draft: LinkDraft; saving: boolean; creating: string | null; error: FormError | null }
   | { kind: "collection"; renaming: string | null; name: string; saving: boolean; error: FormError | null }
-  | { kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; draft: DetailDraft; notice: DetailNotice | null }
+  // `confirming`: the owner pressed 삭제 and the dialog asks before anything is sent.
+  | {
+    kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; draft: DetailDraft; notice: DetailNotice | null;
+    confirming?: true;
+  }
   | { kind: "backup"; step: BackupStep; notice: BackupNotice | null }
   | { kind: "worker" };
 export type ProductChange = ProductChangeRequest["change"];
-export type ProductIntent = "retry" | ProductChange["type"];
+export type ProductIntent = "retry" | "delete" | ProductChange["type"];
 // The purchase toast offers undo only while the product still has the revision the purchase gave it.
 export type Toast = { kind: "purchased"; productId: string; revision: number } | { kind: "notice"; message: string };
 export type LibraryScreenState =
@@ -75,6 +81,7 @@ export type ApiCall =
   | { type: "collection.rename"; collectionId: string; body: CollectionRenameRequest }
   | { type: "metadata.retry"; productId: string; body: MetadataRetryRequest }
   | { type: "product.change"; productId: string; body: ProductChangeRequest }
+  | { type: "product.delete"; productId: string; body: ProductDeleteRequest }
   | { type: "library.poll" }
   | { type: "backup.export" }
   | { type: "backup.file"; file: File }
@@ -99,6 +106,9 @@ export type ScreenEvent =
   | { type: "detail.edit"; field: "title" | "note" | "date" | "price"; value: string }
   | { type: "detail.toggle"; collectionId: string }
   | { type: "detail.save"; form: "details" | "record"; today: string }
+  | { type: "detail.deleteAsk" }
+  | { type: "detail.deleteCancel" }
+  | { type: "product.delete"; productId: string }
   | { type: "product.purchase"; productId: string }
   | { type: "product.wish"; productId: string }
   | { type: "toast.undo" }
@@ -111,6 +121,7 @@ export type ScreenEvent =
   | { type: "metadata.retry"; productId: string }
   | { type: "metadata.settled"; productId: string; outcome: ApiOutcome<MetadataRetryResponse> }
   | { type: "change.settled"; productId: string; intent: ProductChange["type"]; outcome: ApiOutcome<ProductChangeResponse> }
+  | { type: "delete.settled"; productId: string; outcome: ApiOutcome<ProductDeleteResponse> }
   | { type: "poll" }
   | { type: "poll.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "backup.open" }
@@ -356,9 +367,48 @@ function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Trans
     }
     case "detail.save":
       return onDetailSave(state, dialog, event.form, event.today);
+    case "detail.deleteAsk":
+      return stay({ ...state, dialog: { ...dialog, confirming: true, notice: null } });
+    case "detail.deleteCancel":
+      return stay({ ...state, dialog: withoutConfirm(dialog) });
     default:
       return stay(state);
   }
+}
+
+function withoutConfirm({ confirming, ...dialog }: DetailDialog): DetailDialog {
+  void confirming;
+  return dialog;
+}
+
+// Only the confirmation step sends the delete, so one press of 삭제 never removes a product.
+function onDelete(state: Ready, productId: string): Transition {
+  const product = findProduct(state, productId);
+  if (!product || !canWrite(state) || !detailOf(state, productId)?.confirming) return stay(state);
+  return {
+    state: { ...state, writing: { productId, intent: "delete" }, toast: null, dialog: withDetailNotice(state.dialog, productId, null) },
+    call: { type: "product.delete", productId, body: { revision: product.revision } },
+  };
+}
+
+function onDeleted(state: Ready, productId: string, outcome: ApiOutcome<ProductDeleteResponse>): Transition {
+  const next: Ready = { ...state, writing: null };
+  const dialog = detailOf(next, productId);
+  if (outcome.ok) {
+    return stay({
+      ...next,
+      library: { ...next.library, products: next.library.products.filter((item) => item.id !== productId) },
+      dialog: dialog ? null : next.dialog,
+      toast: { kind: "notice", message: "상품을 삭제했어요" },
+    });
+  }
+  const { failure } = outcome;
+  if (failure.kind === "redirect") return leave(failure.to);
+  const shownAt: Partial<Ready> = dialog
+    ? { dialog: { ...withoutConfirm(dialog), notice: { form: "delete", kind: "error", field: null, message: failure.message } } }
+    : { toast: { kind: "notice", message: failure.message } };
+  if (failure.kind === "stale") return { state: { ...next, ...shownAt, refreshing: true }, call: refresh };
+  return stay({ ...next, ...shownAt });
 }
 
 function onPurchase(state: Ready, productId: string, to: "purchased" | "wish"): Transition {
@@ -425,12 +475,17 @@ function settledLibrary(state: Ready, library: LibraryReadResponse): Ready {
     return before ? mergeProduct(before, product) : product;
   });
   let dialog = state.dialog;
+  let toast = state.toast;
   if (dialog?.kind === "add") {
     dialog = { ...dialog, draft: { ...dialog.draft, collectionIds: dialog.draft.collectionIds.filter((id) => ids.has(id)) } };
   }
   if (dialog?.kind === "detail") {
     const { productId, draft } = dialog;
-    if (!products.some((product) => product.id === productId)) dialog = null;
+    if (!products.some((product) => product.id === productId)) {
+      // The re-read after a refused write found the product gone: the dialog closes, and its reason stays on screen.
+      if (dialog.notice?.kind === "error") toast = { kind: "notice", message: dialog.notice.message };
+      dialog = null;
+    }
     else if (draft.collectionIds) dialog = { ...dialog, draft: { ...draft, collectionIds: draft.collectionIds.filter((id) => ids.has(id)) } };
   }
   return {
@@ -438,6 +493,7 @@ function settledLibrary(state: Ready, library: LibraryReadResponse): Ready {
     library: { products, collections: library.collections },
     collectionId: state.collectionId !== null && ids.has(state.collectionId) ? state.collectionId : null,
     dialog,
+    toast,
     refreshing: false,
   };
 }
@@ -718,6 +774,10 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       return stay({ ...state, toast: null });
     case "change.settled":
       return onChanged(state, event.productId, event.intent, event.outcome);
+    case "product.delete":
+      return onDelete(state, event.productId);
+    case "delete.settled":
+      return onDeleted(state, event.productId, event.outcome);
     case "poll":
       return { state, call: { type: "library.poll" } };
     case "poll.settled":
@@ -820,6 +880,8 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
         intent: call.body.change.type,
         outcome: await api.changeProduct(call.productId, call.body),
       };
+    case "product.delete":
+      return { type: "delete.settled", productId: call.productId, outcome: await api.deleteProduct(call.productId, call.body) };
     case "library.poll":
       return { type: "poll.settled", outcome: await api.read() };
     case "backup.export":
