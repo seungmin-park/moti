@@ -1,9 +1,17 @@
 {
   "$schema": "https://supabase.com/docs/cli/supabase-lock/v1.schema.json",
+  "linked": {
+    "branch": {
+      "isDefault": true,
+      "ref": "sxoicstoifyhexlzwbmn"
+    },
+    "observedAt": "2026-11-14T16:21:53.110Z",
+    "project": "sxoicstoifyhexlzwbmn"
+  },
   "lockfileVersion": 1,
   "services": {
     "analytics": {
-      "resolution": "unlinked",
+      "resolution": "unobserved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/analytics:v1.50.15-r1@sha256:2b03ec3120effe5d33c1e2ec4570a932fb60ce6a6851b4920a22388b4e8356c1",
         "natives": {
@@ -27,7 +35,11 @@
       "specifier": "linked"
     },
     "auth": {
-      "resolution": "unlinked",
+      "linked": {
+        "raw": "v2.197.0",
+        "version": "v2.197.0"
+      },
+      "resolution": "resolved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/auth:v2.197.0-r0@sha256:7eb303831d170865840dbb3f9018b48561c988704ad1d9a2bafabb4e93e92da5",
         "natives": {
@@ -52,32 +64,36 @@
     },
     "database": {
       "line": "stock",
+      "linked": {
+        "raw": "17.11.0.019",
+        "version": "17.11.0.019"
+      },
       "majorVersion": 17,
-      "resolution": "unlinked",
+      "resolution": "resolved",
       "resolved": {
-        "image": "ghcr.io/supabase/cli/postgres:17.11.0.018-r0@sha256:4f5cf9d03718b200df8c8e4735081eaa55a74d11dca848f5c8283203921e5751",
+        "image": "ghcr.io/supabase/cli/postgres:17.11.0.019-r0@sha256:b154311f02fee93dc5c9b248483b2c4d34b5d53d9cb7bb69e1af34cb650556de",
         "natives": {
           "darwin-arm64": {
-            "archive": "5033846ff2dc56a992e9bf929d62d132bd2819656e040d4a359632121a9722e7",
-            "manifest": "9e6d77b467111e6b6dd822ebf5b100214ca5837b563556e97227b93332ae87ce"
+            "archive": "a2627baa652b2aa0dbaef75ff958b470007b032a11e388bd6fe97c3a28f4ab4d",
+            "manifest": "bcdc61b185a969fa9c92bf74b30895ef74ee44596ee94e4f4a5e453c0e0f1572"
           },
           "linux-amd64": {
-            "archive": "80c80a56481e65491eaafe1609eedafe0b35ee2ff10773adfb9ab34e5ebfa8c5",
-            "manifest": "56c4b951f5dd16870fca927e221c2c289d23bd42514027594fab13ede672d9b1"
+            "archive": "04b5033d5bea6370732bd909387a180ec9b9ed263f59f34c82a5cd06dd131585",
+            "manifest": "4009a9870eaf36c04d9bd90391e4efdeafddea919f64b9596429de99f56b09de"
           },
           "linux-arm64": {
-            "archive": "e066fcea166bf302ba24779d32ff22150905860fe7fb067c415cff7efe7e5f3e",
-            "manifest": "42883bbb35d4f165706eabc4bf66002636eb500ea1ff55915c539e970f768339"
+            "archive": "821bc779666c569dab9d95b93175d359e4945978487e7e5d1401e02fd02f3a2e",
+            "manifest": "bb831068bb6874a9c8b0ddae5c3d6623cdcf8dca58aed67c7dd46712e5baf4aa"
           }
         },
         "revision": 0,
-        "upstreamImage": "supabase/postgres:17.11.0.018",
-        "upstreamVersion": "17.11.0.018"
+        "upstreamImage": "supabase/postgres:17.11.0.019",
+        "upstreamVersion": "17.11.0.019"
       },
       "specifier": "linked"
     },
     "functions": {
-      "resolution": "unlinked",
+      "resolution": "unobserved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/edge-runtime:v1.78.1-r0@sha256:a38ced78be2ce14a251bb7e26f3daaf9c7d1970661d6985b59b2daae7183c359",
         "natives": {
@@ -101,7 +117,7 @@
       "specifier": "linked"
     },
     "imgproxy": {
-      "resolution": "unlinked",
+      "resolution": "unobserved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/imgproxy:v3.26.0-r0@sha256:5871582cf6c5140d3b50b21e0d1aa236fdf46ee6133e3bfec1baf63545e01cf0",
         "natives": {
@@ -125,7 +141,7 @@
       "specifier": "linked"
     },
     "mail": {
-      "resolution": "unlinked",
+      "resolution": "unobserved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/mailpit:v1.31.3-r0@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d",
         "natives": {
@@ -149,7 +165,7 @@
       "specifier": "linked"
     },
     "pgmeta": {
-      "resolution": "unlinked",
+      "resolution": "unobserved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/pgmeta:v0.100.0-r0@sha256:1dc3ce4f710e9696ec1374f89d0dc84291104c9a1ce030f9ac999670d4d74a08",
         "natives": {
@@ -173,7 +189,7 @@
       "specifier": "linked"
     },
     "pooler": {
-      "resolution": "unlinked",
+      "resolution": "unobserved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/pooler:v2.10.0-r0@sha256:c4badc5b631ed9a56b25d2726de251ba9b86d6d2a5dc08c339cb95bf3512798a",
         "natives": {
@@ -197,7 +213,7 @@
       "specifier": "linked"
     },
     "realtime": {
-      "resolution": "unlinked",
+      "resolution": "unobserved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/realtime:v2.154.0-r0@sha256:e6b4e8032dcb0a83f355a860b061aa9b3a189f23d4e62ac9ae1f8cd5494ac54d",
         "natives": {
@@ -221,7 +237,11 @@
       "specifier": "linked"
     },
     "rest": {
-      "resolution": "unlinked",
+      "linked": {
+        "raw": "14.18",
+        "version": "v14.18"
+      },
+      "resolution": "unpublished",
       "resolved": {
         "image": "ghcr.io/supabase/cli/postgrest:v16.5-r0@sha256:11421115f972012e05e515bbb28df07f38cb7a966b8da251d2d1d3e5b34527cd",
         "natives": {
@@ -245,31 +265,35 @@
       "specifier": "linked"
     },
     "storage": {
-      "resolution": "unlinked",
+      "linked": {
+        "raw": "1.94.2",
+        "version": "v1.94.2"
+      },
+      "resolution": "resolved",
       "resolved": {
-        "image": "ghcr.io/supabase/cli/storage:v1.90.1-r0@sha256:21cffda72ebee5b43ee08f4f3add0f2b884cf751edca82759d7f81f69dffd9aa",
+        "image": "ghcr.io/supabase/cli/storage:v1.94.2-r0@sha256:98be14f7c9a1827b2b951a3005c37642a7d5139818e9df3e7bebc932578594dc",
         "natives": {
           "darwin-arm64": {
-            "archive": "f9954fb4cea6bbb93dec7f5dd6064ae8acfeb5642a0eb5f64d0cf40866cff7f2",
-            "manifest": "7c9ca7e1f6114d164215073ea70c89ace3f0e638c5a08644adecc10ff80560bc"
+            "archive": "b2e004473f1af6b3cf23ecd31b9af262bab32a5a18c4959d1e5014dd1661f5b0",
+            "manifest": "b09bdd2e731029c78ce591cba81f3c5e25d09a915e22ec493dff9c98c3062050"
           },
           "linux-amd64": {
-            "archive": "ea1d86e68d1c71a6f715b21093577ea40e51f8547b0ddac20077c3dc31adf56e",
-            "manifest": "79f017444d2754525c1ac9b31c4705119007696841926616672a9792f5274490"
+            "archive": "cb1b506282118b12ef1ae6ed450037408db9fb8f99dc89f9062b43ac7c2ddb0e",
+            "manifest": "054bd98e6f08a64fdb85b555ef786f3ffe6f32d61757c6ef480ca3f3bf0395b2"
           },
           "linux-arm64": {
-            "archive": "c9376533b4e1c35e636011c0ffe222852c51b76aa61842037f9019fd6f91d291",
-            "manifest": "ad1f68a3bf9004d1fd87fe383864d0bb52ad018a7f60e4953efff54f626b1096"
+            "archive": "dceb698ef576ca4d0e1f5eda2d6a784851265a8c745c3879d3c8b245ca3b0790",
+            "manifest": "b6f64cd3062a2d516c4f0edbe24788a6aa5d2c23fa7e66222474aca36bdb7ac2"
           }
         },
         "revision": 0,
-        "upstreamImage": "supabase/storage-api:v1.90.1",
-        "upstreamVersion": "v1.90.1"
+        "upstreamImage": "supabase/storage-api:v1.94.2",
+        "upstreamVersion": "v1.94.2"
       },
       "specifier": "linked"
     },
     "studio": {
-      "resolution": "unlinked",
+      "resolution": "unobserved",
       "resolved": {
         "image": "ghcr.io/supabase/cli/studio:2026.11.09-sha-1567384-r0@sha256:1f724b57e15a3f917a0a85d0bb2a8a103534c5de2ce3b5858f591c872384aa8d",
         "natives": {

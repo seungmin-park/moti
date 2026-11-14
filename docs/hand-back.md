@@ -2,7 +2,7 @@
 
 기능 단위 1~5c의 구현과 병합이 끝났다. 기준은 `main`의 `d63f86d`(PR #16)이다. 이 문서는 pstack 순서의 마지막 단계(Verify and hand back)다. 세 가지를 정리한다. 완료 판정의 근거, 소유자가 실제로 겪을 흐름과 각 흐름을 어디까지 검증했는지, 배포 전에 필요한 외부 설정과 승인 항목이다.
 
-검증은 모두 로컬과 CI에서 했다. 로컬과 CI 모두 격리된 native Supabase 스택(PostgreSQL·PostgREST·Auth·Storage)과 빌드한 앱을 쓴다. 로그인은 로컬 Auth 세션이고, iPhone은 iPhone 크기 WebKit이다. 실제 Google OAuth, 실제 iPhone, 운영 Supabase, 호스팅은 한 번도 확인하지 않았다. GitHub 예약은 값을 넣기 전의 건너뛰기만 한 번 관찰했다. 배포와 외부 계정 설정은 별도 승인 대상이다.
+검증은 모두 로컬과 CI에서 했다. 로컬과 CI 모두 격리된 native Supabase 스택(PostgreSQL·PostgREST·Auth·Storage)과 빌드한 앱을 쓴다. 로그인은 로컬 Auth 세션이고, iPhone은 iPhone 크기 WebKit이다. 실제 Google OAuth, 실제 iPhone, 운영 Supabase, 호스팅은 한 번도 확인하지 않았다. GitHub 예약은 값을 넣기 전의 건너뛰기만 한 번 관찰했다. 배포와 외부 계정 설정은 별도 승인 대상이다. 이 문단은 인계 시점의 상태다. 그 뒤 소유자와 함께 진행한 운영 설정과 실제 확인은 [운영 설정 기록](#운영-설정-기록)에 있다.
 
 ## 완료 판정
 
@@ -36,7 +36,7 @@
 ### 1. Supabase 프로젝트 (승인: 리전·요금제)
 
 - 프로젝트를 만든다. 서울 리전과 Free 요금제로 시작하기를 추천했다. 무료 한도와 비활동 정지는 Supabase 정책을 따르고, moti는 가용성을 보장하지 않는다.
-- 저장소의 마이그레이션 아홉 개를 적용한다(운영 DB 쓰기, 승인 필요). 예: `npx supabase link --project-ref <ref>` 뒤 `npx supabase db push`. 마이그레이션이 비공개 버킷 `product-pictures`, Storage 정책, 역할(`moti_rpc`·`moti_share`·`moti_worker`)과 RPC를 만든다.
+- 저장소의 마이그레이션 아홉 개를 적용한다(운영 DB 쓰기, 승인 필요). `npx supabase login`(브라우저 인증, 소유자가 직접) 뒤 `npx supabase link --project-ref <ref>`, `npx supabase db push --remote --dry-run`으로 목록을 보고 `npx supabase db push --remote`로 적용한다. CLI 3.1.0의 `db push`는 `--remote`가 없으면 로컬 DB에 적용한다. `link`는 비밀번호를 묻지 않고, 원격 명령은 CLI의 임시 로그인 역할로 접속한다. `link`는 `supabase/supabase.lock`의 서비스 버전을 운영과 맞추고 프로젝트 ref를 적는다. 마이그레이션이 비공개 버킷 `product-pictures`, Storage 정책, 역할(`moti_rpc`·`moti_share`·`moti_worker`)과 RPC를 만든다.
 - Data API의 노출 스키마에 `moti`와 `moti_storage`를 더하지 않는다. 앱은 `public`의 RPC만 부른다.
 - 배포 전에 두 가지를 확인한다. 하나는 운영 프로젝트가 RPC 인자(공유 키·작업 키의 평문)를 Postgres·API 로그에 남기는지다(4c·5a의 열린 항목). 다른 하나는 복원 시간이다. 복원은 행 잠금을 최대 5초 기다린 뒤 보관함을 바꾼다. 그 둘을 합친 시간이 `authenticated` 문 시간 제한(로컬은 8초, Supabase 문서의 기본값도 8초) 안인지 본다.
 
@@ -99,6 +99,17 @@
 - 두 값을 넣기 전에는 워크플로가 아무것도 하지 않고 건너뛴다. 넣은 뒤에는 "자동 확인"의 최근 실행에 기록이 생기는지 본다. GitHub 예약은 몇 시간 늦거나 건너뛸 수 있다(관찰한 첫 실행도 약 4시간 늦었다). 그러니 기록이 늦어도 바로 설정 실패로 보지 않는다. 화면은 활성 키에 26시간 넘게 실행이 없으면 알린다. 수동 실행(`workflow_dispatch`)은 별도 승인 뒤에만 한다.
 - 저장소는 공개다. Actions 로그에는 실행 시각, 성공·실패, HTTP 상태와 오류 코드(409·429 알림 등)가 남는다. 단계 머리의 환경변수 줄에는 `MOTI_WORKER_URL`의 값도 남는다. 변수는 가려지지 않으므로 운영 주소가 공개된다. 작업 키(비밀값)와 셈·이유·링크·이름은 남지 않는다.
 
+## 운영 설정 기록
+
+2026-11-15에 소유자와 함께 1~4단계를 진행했다. 값과 비밀은 적지 않는다.
+
+- 1단계. Supabase 프로젝트는 서울(`ap-northeast-2`), Free, Postgres 17이다. Data API는 켜고 `public` 스키마를 노출한다. 마이그레이션 9개를 `db push --remote`로 적용했고 `migration list --remote`가 로컬과 같은 9개를 보였다. 읽기 전용 조회로 비공개 버킷(WebP, 1MiB), 세 역할(로그인·RLS 우회 없음), `moti` 테이블 8개의 강제 RLS, `public` RPC 30개의 실행 권한(소유자용 23개는 `authenticated`만, 키용 7개는 `anon`만, PUBLIC 없음), Storage 정책 셋, 문 시간 제한(`authenticated` 8초, `anon` 3초)을 확인했다. `db advisors --remote`는 ERROR 0, WARN 30, INFO 9였다. WARN은 모두 보안 정의자 RPC를 API로 실행할 수 있다는 경고이고 의도한 구조다. INFO는 덮는 인덱스가 없는 외래 키와 아직 쓰이지 않은 인덱스다.
+- `link`가 맞춘 버전으로 로컬 스택이 운영과 같은 Postgres(17.11.0.019), Auth(v2.197.0), Storage(v1.94.2)를 쓴다. PostgREST는 운영이 14.18이고 CLI가 그 버전을 내려받을 수 없어 로컬은 v16.5다. 로컬·CI의 HTTP 검사가 운영 PostgREST를 대신하지 못한다.
+- 2단계. Google OAuth 동의 화면은 테스트 상태이고 소유자만 테스트 사용자다. Supabase는 Google만 켜고 이메일·익명 로그인, 새 가입, 수동 연결을 껐다.
+- 3단계. Vercel Hobby에 배포했다. 팀 이름이 붙은 기본 주소는 Vercel의 배포 보호가 앞에서 막는다(302로 Vercel 로그인). 그래서 팀 이름이 없는 운영 도메인을 쓴다. 함수 지역은 처음에 `iad1`이었고 `icn1`으로 바꿔 다시 배포했다(`x-vercel-id: icn1::icn1::`). 운영 도메인에서 로그인 없이 `/login` 200, `GET /api/library` 401, `/auth/login` 303(Supabase Google 로그인), 키 없는 `POST /api/share/links`·`/api/scheduled-runs` 401을 확인했다. 단축어와 예약 실행 경로가 배포 보호에 막히지 않는다.
+- 4단계. 가입을 연 동안 소유자가 로그인해 "이 Google 계정은 사용할 수 없어요"로 끝났고 Auth에 사용자 한 명이 생겼다. `owner_config`에 한 행을 넣고 호스팅 subject를 같은 값으로 바꿔 다시 배포했다. 소유자의 실제 Google 로그인으로 빈 보관함이 열렸다. 다른 Google 계정은 아직 시험하지 않았다.
+- 5단계. 네이버 스마트스토어 상품과 `naver.me` 짧은 주소는 운영에서 둘 다 `blocked_by_site`였다(0.1~0.2초). 같은 주소를 가정 회선에서 `check-real-pages.mjs`로 읽어도 4xx였고, `curl`에 스마트스토어는 429를 돌려줬다. 데이터센터 IP와 무관하게 페이지 읽기로는 스마트스토어를 수집할 수 없다. 링크와 컬렉션은 남았고 다시 가져오기도 같은 결과였다. 가정 회선의 `check-real-pages.mjs`로 무신사·29CM·11번가·오늘의집은 성공, 쿠팡·G마켓은 같은 차단이었다([verification.md](verification.md)). 운영에서 성공하는 쇼핑몰 확인, 6·7단계는 아직이다.
+
 ## 후속 과제
 
 모두 기록만 하고 구현하지 않았다. 자세한 내용은 각 변경 기록의 "남은 범위"에 있다.
@@ -112,7 +123,9 @@
 - 완료 뒤 서명 업로드 주소로 바뀐 사본은 상품이 그 이름을 가리켜 정리가 지우지 않는다([picture-sweep.md](changes/picture-sweep.md)).
 - 쌓인 남은 사본은 열 때마다 200개씩 줄어든다. 업로드한 뒤 멈추고 아무도 다시 가져오지 않는 작업의 사본은 남는다.
 - 응답 뒤 작업(`after()`)의 실패는 어디에도 기록하지 않는다.
-- 상품 삭제와 컬렉션 삭제는 목업에 없어 만들지 않았다. 유출된 키로 담긴 링크는 복원으로만 지울 수 있다.
+- 상품 삭제와 컬렉션 삭제는 목업에 없어 만들지 않았다. 유출된 키로 담긴 링크는 복원으로만 지울 수 있다. 실제로 써 보니 수집이 막힌 상품과 같은 상품의 짧은 주소가 남아 상품 삭제가 먼저 필요하다.
+- 수집이 막힌 상품은 사진과 위시 가격을 직접 넣을 수 없다. 소유자는 상품 사진을 복사해 붙여 넣는 방식을 원한다.
+- 네이버 스마트스토어처럼 페이지 읽기를 막는 쇼핑몰은 공식 API 같은 다른 경로가 필요하다.
 - 4MiB를 넘는 보관함은 한 번에 복원할 수 없다.
 
 5a의 남은 범위에 있던 "정리(5c 전까지)"와 "가격(5b 전까지)"은 5c·5b가 다뤘다. 그 뒤에도 남은 한계는 위 항목과 각 변경 기록에 있다.
