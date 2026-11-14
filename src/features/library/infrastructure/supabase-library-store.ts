@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { collectionErrorCodes, imageErrorCodes } from "../../metadata/domain/collection-error";
+import { collectionErrorCodes, imageErrorCodes, priceCheckCodes } from "../../metadata/domain/collection-error";
 import type { LibraryRestoreCommand, ProductChange } from "../application/commands";
 import type { LibraryStore } from "../application/library-store";
 import { PICTURE_BUCKET, PICTURE_LINK_SECONDS, pictureObjectSchema } from "./product-pictures";
@@ -78,6 +78,8 @@ export const productRowSchema = z.object({
   metadata_image: z.enum(["copied", "absent", "failed", "waiting"]).nullable(),
   metadata_image_error_code: z.enum(imageErrorCodes).nullable(),
   ...lastSuccessColumns,
+  price_checked_at: timestamp.nullable(),
+  price_check_code: z.enum(priceCheckCodes).nullable(),
   picture_version: z.uuid().nullable(),
 }).refine((row) => {
   const metadataConsistent =
@@ -88,7 +90,8 @@ export const productRowSchema = z.object({
         : row.metadata_error_code === null && row.metadata_completed_at === null;
   const imageConsistent = (row.metadata_phase === "ready") === (row.metadata_image !== null) &&
     (row.metadata_image === "failed") === (row.metadata_image_error_code !== null);
-  return hasConsistentPurchase(row) && hasConsistentLastSuccess(row) && metadataConsistent && imageConsistent;
+  const checkConsistent = row.price_check_code === null || row.price_checked_at !== null;
+  return hasConsistentPurchase(row) && hasConsistentLastSuccess(row) && metadataConsistent && imageConsistent && checkConsistent;
 });
 
 const libraryRowSchema = z.object({
@@ -176,6 +179,7 @@ export function toProduct(row: ProductRow): Product {
     purchase: toPurchase(row),
     metadata,
     lastSuccessfulPrice: toLastSuccessfulPrice(row),
+    priceCheck: row.price_checked_at === null ? null : { checkedAt: row.price_checked_at, code: row.price_check_code },
     picture: row.picture_version === null ? null : { version: row.picture_version },
   };
 }

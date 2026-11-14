@@ -1,0 +1,47 @@
+# Red (injected defect): the scheduled run over real HTTP (step 7). The app was built with the run's price branch emptied
+# (diff below), then the source was restored before the run, so persistence and service (which import the source)
+# pass and only the built app lacks the check. The new HTTP test fails: the run answers 200 done with no price kept and
+# no reason. The other 44 HTTP tests pass. The runner stops after a failed HTTP phase, so the browser phase did not run.
+# Command: npm run build (with the defect) && npm run test:database (source restored).
+#
+# diff --git a/src/features/worker/application/scheduled-run.ts b/src/features/worker/application/scheduled-run.ts
+# index 2b3972d..46d5e70 100644
+# --- a/src/features/worker/application/scheduled-run.ts
+# +++ b/src/features/worker/application/scheduled-run.ts
+# @@ -43,8 +43,7 @@ export function createScheduledRunService({ store, source, read, now }: {
+#    // Reads the page and settles today's check. Never a name or a picture: the database compares the currency and keeps
+#    // the previous price when it cannot.
+#    async function check(lease: WorkerRunLease, item: WorkerPriceCheck): Promise<void> {
+# -    const facts = await factsOf(item.sourceUrl);
+# -    await store.price(lease, item, typeof facts === "string" ? { kind: "kept", code: facts } : decidePriceCheck(facts));
+# +    void lease; void item; void decidePriceCheck;
+#    }
+#  
+#    return {
+ Test Files  21 passed (21)
+      Tests  315 passed (315)
+Verified 260 persistence and 55 service tests with no skipped assertions.
+ ✓ tests/http/library-api.test.ts (10 tests) 3377ms
+ ✓ tests/http/library-backup.test.ts (7 tests) 2867ms
+ ✓ tests/http/share-links.test.ts (6 tests) 2262ms
+ ✓ tests/http/library-organize.test.ts (5 tests) 1997ms
+ ✓ tests/http/product-pictures.test.ts (4 tests) 1670ms
+ ✓ tests/http/metadata-collection.test.ts (4 tests) 1646ms
+ ❯ tests/http/scheduled-runs.test.ts (5 tests | 1 failed) 1811ms
+     × 작업 키로 부르면 수집이 끝난 위시 상품의 가격을 확인한다. 앱의 주소 정책이 막은 링크는 이전 가격을 지키고 같은 서울 날짜에는 다시 확인하지 않는다 354ms
+ ✓ tests/http/share-keys.test.ts (2 tests) 799ms
+ ✓ tests/http/worker-keys.test.ts (2 tests) 773ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/http/scheduled-runs.test.ts > 실제 HTTP 예약 실행 > 작업 키로 부르면 수집이 끝난 위시 상품의 가격을 확인한다. 앱의 주소 정책이 막은 링크는 이전 가격을 지키고 같은 서울 날짜에는 다시 확인하지 않는다
+AssertionError: expected { stop: 'done', …(3) } to deeply equal { stop: 'done', …(3) }
+- Expected
++ Received
+-   "failures": {
+-     "blocked_address": 1,
+-   },
++   "failures": {},
+-     "kept": 1,
++     "kept": 0,
+ ❯ tests/http/scheduled-runs.test.ts:116:69
+ Test Files  1 failed | 8 passed (9)
+      Tests  1 failed | 44 passed (45)

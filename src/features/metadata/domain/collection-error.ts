@@ -36,6 +36,13 @@ export type ImageErrorCode = keyof typeof imageErrors;
 export const collectionErrorCodes = Object.keys(collectionErrors) as [CollectionErrorCode, ...CollectionErrorCode[]];
 export const imageErrorCodes = Object.keys(imageErrors) as [ImageErrorCode, ...ImageErrorCode[]];
 
+// Every reason a daily price check keeps the previous price: the page could not be read, showed no product, did not
+// show one price, or showed it in another currency than the stored one. Every check is tried again the next day.
+export type PriceCheckCode = FetchErrorCode | "no_product_data" | "no_single_price" | "other_currency" | "internal";
+export const priceCheckCodes = Object.keys({
+  ...fetchErrors, no_product_data: true, no_single_price: true, other_currency: true, internal: true,
+} satisfies Record<PriceCheckCode, unknown>) as [PriceCheckCode, ...PriceCheckCode[]];
+
 export function isCollectionErrorCode(value: unknown): value is CollectionErrorCode {
   return typeof value === "string" && Object.hasOwn(collectionErrors, value);
 }

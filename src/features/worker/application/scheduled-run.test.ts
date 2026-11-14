@@ -3,24 +3,32 @@ import type { PageRead, PageReader, PageSource } from "../../metadata/applicatio
 import type { PageFacts } from "../../metadata/domain/page-facts";
 import { WorkerError, type WorkerCounts, type WorkerSecret } from "../domain/worker";
 import { RUN_LANES, RUN_MAX_ITEMS, RUN_START_WINDOW_MS, createScheduledRunService } from "./scheduled-run";
-import type { WorkerItem, WorkerJob, WorkerRunLease, WorkerRunStore } from "./worker-store";
+import type { WorkerItem, WorkerJob, WorkerPriceCheck, WorkerRunLease, WorkerRunStore } from "./worker-store";
 
 const secret = `moti_wk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_AbCdE"}` as WorkerSecret;
 const lease: WorkerRunLease = { secret, run: "11111111-1111-4111-8111-111111111111", lease: "22222222-2222-4222-8222-222222222222" };
 const counts: WorkerCounts = { collections: { collected: 0, failed: 0 }, prices: { confirmed: 0, kept: 0 }, failures: {} };
 const job = (index: number): WorkerJob => ({ id: `job-${index}`, leaseToken: `lease-${index}`, sourceUrl: `https://shop.example/${index}` });
-const facts = (title: string | null): PageFacts =>
-  ({ title, prices: [{ amount: "12,000", currency: "KRW" }], imageUrl: "https://img.example/a.jpg" });
+const check = (index: number): WorkerPriceCheck =>
+  ({ productId: `product-${index}`, fence: `2026-11-14T05:17:00.12345${index % 10}+00:00`, sourceUrl: `https://shop.example/p/${index}` });
+const facts = (title: string | null, prices: PageFacts["prices"] = [{ amount: "12,000", currency: "KRW" }]): PageFacts =>
+  ({ title, prices, imageUrl: "https://img.example/a.jpg" });
 
-// A store that hands out `items` in order, then none.
-function given({ items = 0, page = { ok: true, page: { html: "<html>", url: "https://shop.example/x", status: 200 } } as PageRead } = {}) {
+// A store that hands out `items` collections, then `prices` price checks, then none.
+function given({ items = 0, prices = 0, page = { ok: true, page: { html: "<html>", url: "https://shop.example/x", status: 200 } } as PageRead } = {}) {
   let handed = 0;
+  let checked = 0;
   let clock = 0;
   const store = {
     begin: vi.fn<WorkerRunStore["begin"]>(async () => lease),
-    next: vi.fn<WorkerRunStore["next"]>(async (): Promise<WorkerItem> => (handed < items ? { kind: "collection", job: job(handed++) } : { kind: "none" })),
+    next: vi.fn<WorkerRunStore["next"]>(async (): Promise<WorkerItem> => {
+      if (handed < items) return { kind: "collection", job: job(handed++) };
+      if (checked < prices) return { kind: "price", check: check(checked++) };
+      return { kind: "none" };
+    }),
     complete: vi.fn<WorkerRunStore["complete"]>(async () => "applied"),
     fail: vi.fn<WorkerRunStore["fail"]>(async () => "applied"),
+    price: vi.fn<WorkerRunStore["price"]>(async () => "applied"),
     finish: vi.fn<WorkerRunStore["finish"]>(async (_lease, stop) => ({ stop, ...counts })),
   };
   const source = { read: vi.fn<PageSource["read"]>(async () => page) };
@@ -144,6 +152,53 @@ describe("예약 실행", () => {
     expect(await service.run({ secret })).toEqual({ kind: "finished", stop: "deadline", ...counts });
     expect(store.next).toHaveBeenCalledTimes(RUN_LANES * 2);
     expect(store.complete).not.toHaveBeenCalled();
+  });
+
+  it("Given 수집이 끝난 뒤 가격을 확인할 상품 둘 When 실행하면 Then 각 페이지의 하나의 가격을 집은 확인 그대로 보내고 이름·사진은 쓰지 않는다", async () => {
+    const { service, store, source } = given({ items: 1, prices: 2 });
+
+    expect(await service.run({ secret })).toEqual({ kind: "finished", stop: "done", ...counts });
+
+    expect(source.read.mock.calls.map(([url]) => url).toSorted())
+      .toEqual(["https://shop.example/0", "https://shop.example/p/0", "https://shop.example/p/1"]);
+    expect(store.complete).toHaveBeenCalledOnce();
+    expect(store.price).toHaveBeenCalledTimes(2);
+    expect(store.price).toHaveBeenCalledWith(lease, check(0), { kind: "price", price: { amountMinor: 12000, currency: "KRW" } });
+    expect(store.price).toHaveBeenCalledWith(lease, check(1), { kind: "price", price: { amountMinor: 12000, currency: "KRW" } });
+    expect(store.fail).not.toHaveBeenCalled();
+  });
+
+  it.each<[string, Partial<{ page: PageRead; facts: PageFacts; throws: boolean }>, string]>([
+    ["옵션마다 가격이 다른 페이지", { facts: facts("북유럽 램프", [{ amount: "12000", currency: "KRW" }, { amount: "15000", currency: "KRW" }]) }, "no_single_price"],
+    ["상품 이름이 없는 페이지", { facts: facts(null) }, "no_product_data"],
+    ["쇼핑몰이 막은 페이지", { page: { ok: false, code: "blocked_by_site", status: 403 } }, "blocked_by_site"],
+    ["읽다가 예외가 난 페이지", { throws: true }, "internal"],
+  ])("Given %s When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다", async (_name, { page, facts: found, throws }, code) => {
+    const { service, store, source, read } = given({ prices: 2, ...(page ? { page } : {}) });
+    if (found) read.mockReturnValue(found);
+    if (throws) source.read.mockRejectedValue(new Error("socket"));
+
+    expect(await service.run({ secret })).toMatchObject({ kind: "finished", stop: "done" });
+
+    expect(store.price.mock.calls.map(([, item, outcome]) => [item.productId, outcome]).toSorted())
+      .toEqual([["product-0", { kind: "kept", code }], ["product-1", { kind: "kept", code }]]);
+    expect(store.fail).not.toHaveBeenCalled();
+  });
+
+  it.each(["key_rejected", "run_lost"] as const)("Given 가격 정산이 %s로 거절됨 When 실행하면 Then 모든 줄을 멈추고 끝내지 않는다", async (code) => {
+    const { service, store } = given({ prices: 10 });
+    store.price.mockRejectedValueOnce(new WorkerError(code, "gone"));
+
+    expect(await service.run({ secret })).toEqual({ kind: "refused", code });
+    expect(store.finish).not.toHaveBeenCalled();
+    expect(store.next.mock.calls.length).toBeLessThanOrEqual(RUN_LANES);
+  });
+
+  it("Given 가격을 확인할 상품이 끝없이 있음 When 실행하면 Then 수집과 같은 한도로 60개까지만 시작한다", async () => {
+    const { service, store } = given({ items: 10, prices: 1000 });
+
+    expect(await service.run({ secret })).toMatchObject({ kind: "finished", stop: "deadline" });
+    expect(store.complete.mock.calls.length + store.price.mock.calls.length).toBe(RUN_MAX_ITEMS);
   });
 
   it("Given 끝내기가 실패 When 실행하면 Then 예외 없이 저장소 장애로 거절한다", async () => {

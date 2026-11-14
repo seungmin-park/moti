@@ -27,6 +27,7 @@ const queued: ProductResponse = {
   purchase: { status: "wish" },
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
+  priceCheck: null,
   picture: null,
 };
 
@@ -114,6 +115,7 @@ describe("상품 상세 문구", () => {
       arrival: null,
       canRetry: false,
       picture: { kind: "placeholder", icon: "waiting", text: "사진을 가져오는 중" },
+      priceKept: null,
     });
   });
 
@@ -193,6 +195,43 @@ describe("수집 결과와 다시 가져오기", () => {
     };
     expect(toProductCardView(ready, [])).toMatchObject({ title: "무선 헤드폰 블랙", status: null, price: { value: "₩289,000" } });
     expect(toProductDetailView(ready, null)).toMatchObject({ title: "무선 헤드폰 블랙", canRetry: false });
+  });
+});
+
+describe("매일 가격 확인이 이전 가격을 지켰을 때", () => {
+  const priced: ProductResponse = {
+    ...queued,
+    metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image: { outcome: "absent" } },
+    lastSuccessfulPrice: { amountMinor: 9000, currency: "KRW", checkedAt: "2026-11-11T00:00:00.000Z" },
+  };
+  // 00:30 in Seoul on the 14th, still the 13th in UTC.
+  const kept = (code: NonNullable<ProductResponse["priceCheck"]>["code"]): ProductResponse =>
+    ({ ...priced, priceCheck: { checkedAt: "2026-11-13T15:30:00.000Z", code } });
+
+  it.each([
+    ["timeout", "쇼핑몰이 제때 응답하지 않았어요."],
+    ["blocked_by_site", "쇼핑몰이 자동 확인을 막았어요."],
+    ["no_product_data", "페이지에서 상품 정보를 찾지 못했어요."],
+    ["no_single_price", "페이지에서 가격을 하나로 정하지 못했어요."],
+    ["other_currency", "페이지의 가격이 저장한 가격과 다른 통화예요."],
+  ] as const)("Given 확인이 %s로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다", (code, reason) => {
+    expect(toProductDetailView(kept(code), null).priceKept).toBe(`2026. 11. 14.에 가격을 다시 확인하지 못해 이전 가격을 보여줘요. ${reason}`);
+  });
+
+  it("Given 이전 가격을 지킨 확인 When 카드와 상세의 가격을 보이면 Then 가격과 마지막 확인 날은 마지막으로 확인한 가격 그대로다", () => {
+    const price = { value: "₩9,000", checked: "마지막 확인 2026. 11. 11." };
+    expect(toProductCardView(kept("timeout"), []).price).toEqual(price);
+    expect(toProductDetailView(kept("timeout"), null).price).toEqual(price);
+  });
+
+  it.each<[string, ProductResponse]>([
+    ["확인한 적 없음", priced],
+    ["가격을 확인함", kept(null)],
+    ["그 뒤에 소유자의 수집이 새 가격을 씀", { ...kept("timeout"), lastSuccessfulPrice: { amountMinor: 8000, currency: "KRW", checkedAt: "2026-11-13T16:00:00.000Z" } }],
+    ["보여줄 이전 가격이 없음", { ...kept("no_single_price"), lastSuccessfulPrice: null }],
+    ["구매완료", { ...kept("timeout"), purchase: { status: "purchased", date: null, price: null } }],
+  ])("Given %s When 상세로 보이면 Then 이전 가격 줄이 없다", (_name, product) => {
+    expect(toProductDetailView(product, null).priceKept).toBeNull();
   });
 });
 

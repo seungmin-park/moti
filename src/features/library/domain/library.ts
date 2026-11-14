@@ -1,4 +1,4 @@
-import type { CollectionErrorCode, ImageErrorCode } from "../../metadata/domain/collection-error";
+import type { CollectionErrorCode, ImageErrorCode, PriceCheckCode } from "../../metadata/domain/collection-error";
 import type { SavedLink } from "../../wishlist/link";
 
 export type ProductId = string & { readonly __productId: unique symbol };
@@ -17,6 +17,9 @@ export type MetadataState = { generation: number; attempts: number } & (
 );
 // The last good private copy. `version` changes only when a newer copy replaces it.
 export type Picture = { version: string };
+// The latest daily price check. `code` says why it kept the previous price; null when it confirmed one or has not
+// settled. A check newer than the last good price with a code means the shown price is an earlier one.
+export type PriceCheck = { checkedAt: string; code: PriceCheckCode | null };
 export type Product = SavedLink & {
   id: ProductId;
   revision: number;
@@ -28,6 +31,7 @@ export type Product = SavedLink & {
   purchase: Purchase;
   metadata: MetadataState;
   lastSuccessfulPrice: (Money & { checkedAt: string }) | null;
+  priceCheck: PriceCheck | null;
   picture: Picture | null;
 };
 export type Collection = {

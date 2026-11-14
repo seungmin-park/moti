@@ -176,10 +176,18 @@ function isLater(incoming: ProductResponse["metadata"], shown: ProductResponse["
   return phaseOrder[incoming.phase] >= phaseOrder[shown.phase];
 }
 
-// The shown title moves with collection: it is the collected name unless the owner set one at the same revision.
+// The shown title moves with collection: it is the collected name unless the owner set one at the same revision. The
+// price moves with the daily check too, which never touches anything the owner set.
 function withProgress(shown: ProductResponse, incoming: ProductResponse): ProductResponse {
   if (!isLater(incoming.metadata, shown.metadata)) return shown;
-  return { ...shown, title: incoming.title, metadata: incoming.metadata, lastSuccessfulPrice: incoming.lastSuccessfulPrice, picture: incoming.picture };
+  return {
+    ...shown,
+    title: incoming.title,
+    metadata: incoming.metadata,
+    lastSuccessfulPrice: incoming.lastSuccessfulPrice,
+    priceCheck: incoming.priceCheck,
+    picture: incoming.picture,
+  };
 }
 
 // Write responses and full reads. A higher revision carries owner changes made since; a lower one was read before

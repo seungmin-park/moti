@@ -28,6 +28,7 @@ function product(id: string, path: string, overrides: Partial<ProductResponse> =
     purchase: { status: "wish" },
     metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-10T00:00:01.000Z", image: { outcome: "absent" } },
     lastSuccessfulPrice: null,
+    priceCheck: null,
     picture: null,
     ...overrides,
   };

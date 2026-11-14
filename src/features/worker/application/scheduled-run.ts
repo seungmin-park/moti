@@ -1,11 +1,14 @@
-import { decideOutcome, type CollectedPage, type PageReader, type PageSource } from "../../metadata/application/collection";
-import type { CollectionErrorCode } from "../../metadata/domain/collection-error";
+import { decideOutcome, type PageReader, type PageSource } from "../../metadata/application/collection";
+import type { FetchErrorCode } from "../../metadata/domain/collection-error";
+import type { PageFacts } from "../../metadata/domain/page-facts";
+import { decidePriceCheck } from "../domain/price-check";
 import { WorkerError, type WorkerErrorCode } from "../domain/worker";
 import type { ScheduledRunCommand, ScheduledRunResult } from "./commands";
-import type { WorkerItem, WorkerJob, WorkerRunLease, WorkerRunStore } from "./worker-store";
+import type { WorkerItem, WorkerJob, WorkerPriceCheck, WorkerRunLease, WorkerRunStore } from "./worker-store";
 
 // One run fits the route's 60 s: begin (5 s), new items only in the first 20 s, the last item's page (15 s) between
-// two steps (5 s each), then finish (5 s): 55 s at worst. Three lanes, at most 60 items.
+// two steps (5 s each), then finish (5 s): 55 s at worst. A collection and a price check cost the same: next, one page,
+// one settle. Three lanes, at most 60 items of either kind.
 export const RUN_LANES = 3;
 export const RUN_START_WINDOW_MS = 20_000;
 export const RUN_MAX_ITEMS = 60;
@@ -20,22 +23,28 @@ export function createScheduledRunService({ store, source, read, now }: {
   read: PageReader;
   now: () => number;
 }) {
-  async function pageOf(job: WorkerJob): Promise<CollectedPage | CollectionErrorCode> {
-    const fetched = await source.read(job.sourceUrl);
-    if (!fetched.ok) return fetched.code;
-    const outcome = decideOutcome(read(fetched.page.html, fetched.page.url));
-    return outcome.kind === "complete" ? outcome.page : outcome.code;
+  // What the page states, or why it could not be read. A throw on the way is the worker's own problem: internal.
+  async function factsOf(url: string): Promise<PageFacts | FetchErrorCode | "internal"> {
+    try {
+      const fetched = await source.read(url);
+      return fetched.ok ? read(fetched.page.html, fetched.page.url) : fetched.code;
+    } catch {
+      return "internal";
+    }
   }
 
   // Reads the page and settles the job. The worker never copies the picture: the owner's screen does.
   async function collect(lease: WorkerRunLease, job: WorkerJob): Promise<void> {
-    let page: CollectedPage | CollectionErrorCode;
-    try {
-      page = await pageOf(job);
-    } catch {
-      page = "internal";
-    }
-    await (typeof page === "string" ? store.fail(lease, job, page) : store.complete(lease, job, page));
+    const facts = await factsOf(job.sourceUrl);
+    const outcome = typeof facts === "string" ? { kind: "fail" as const, code: facts } : decideOutcome(facts);
+    await (outcome.kind === "complete" ? store.complete(lease, job, outcome.page) : store.fail(lease, job, outcome.code));
+  }
+
+  // Reads the page and settles today's check. Never a name or a picture: the database compares the currency and keeps
+  // the previous price when it cannot.
+  async function check(lease: WorkerRunLease, item: WorkerPriceCheck): Promise<void> {
+    const facts = await factsOf(item.sourceUrl);
+    await store.price(lease, item, typeof facts === "string" ? { kind: "kept", code: facts } : decidePriceCheck(facts));
   }
 
   return {
@@ -77,7 +86,7 @@ export function createScheduledRunService({ store, source, read, now }: {
             return;
           }
           try {
-            await collect(lease, item.job);
+            await (item.kind === "collection" ? collect(lease, item.job) : check(lease, item.check));
             failures = 0;
           } catch (error) {
             if (!goesOn(error)) return;

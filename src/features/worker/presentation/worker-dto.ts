@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { collectionErrorCodes } from "../../metadata/domain/collection-error";
 import type { ScheduledRunResult, WorkerKeyIssueResult, WorkerReadResult } from "../application/commands";
-import { WORKER_SECRET_PATTERN, type WorkerCounts, type WorkerKey, type WorkerRun } from "../domain/worker";
+import { WORKER_SECRET_PATTERN, workerFailureCodes, type WorkerCounts, type WorkerKey, type WorkerRun } from "../domain/worker";
 
 export const SCHEDULED_RUNS_PATH = "/api/scheduled-runs";
 // What the owner sets in GitHub. Nothing runs until both are set; the screen shows these names.
@@ -12,8 +11,9 @@ const count = z.number().int().min(0);
 const countsSchema = {
   collections: z.object({ collected: count, failed: count }).strict(),
   prices: z.object({ confirmed: count, kept: count }).strict(),
-  // Reasons from the closed list and how often each happened. Never a link, a name or a key.
-  failures: z.partialRecord(z.enum(collectionErrorCodes), z.number().int().min(1)),
+  // Why collections failed and why price checks kept the previous price, from the closed lists, and how often each
+  // happened. Never a link, a name or a key.
+  failures: z.partialRecord(z.enum(workerFailureCodes), z.number().int().min(1)),
 };
 
 export const scheduledRunResponseSchema = z.object({ stop: z.enum(["done", "deadline"]), ...countsSchema }).strict();

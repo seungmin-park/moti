@@ -1,0 +1,22 @@
+# Red: the daily price check's decision (step 1). decidePriceCheck keeps its signature and always answers kept/internal,
+# so every case fails: one price, the same price written twice, four ways to have no single price, and a page without a name.
+# Command: npx vitest run src/features/worker/domain/price-check.test.ts
+ ❯ src/features/worker/domain/price-check.test.ts (7 tests | 7 failed) 7ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/worker/domain/price-check.test.ts > 매일 가격 확인의 판단 > Given 상품 페이지에 서로 다른 가격이 하나 When 판단하면 Then 그 가격을 비교할 값으로 낸다
+AssertionError: expected { kind: 'kept', code: 'internal' } to deeply equal { kind: 'price', price: { …(2) } }
+ ❯ src/features/worker/domain/price-check.test.ts:10:77
+ FAIL  src/features/worker/domain/price-check.test.ts > 매일 가격 확인의 판단 > Given 같은 가격이 여러 곳에 적힘 When 판단하면 Then 하나의 가격이다
+AssertionError: expected { kind: 'kept', code: 'internal' } to deeply equal { kind: 'price', price: { …(2) } }
+ ❯ src/features/worker/domain/price-check.test.ts:18:10
+ FAIL  src/features/worker/domain/price-check.test.ts > 매일 가격 확인의 판단 > Given 옵션마다 다른 가격 When 판단하면 Then 이전 가격을 지키고 이유는 no_single_price다
+ FAIL  src/features/worker/domain/price-check.test.ts > 매일 가격 확인의 판단 > Given 같은 숫자의 다른 통화 When 판단하면 Then 이전 가격을 지키고 이유는 no_single_price다
+ FAIL  src/features/worker/domain/price-check.test.ts > 매일 가격 확인의 판단 > Given 가격이 없음 When 판단하면 Then 이전 가격을 지키고 이유는 no_single_price다
+ FAIL  src/features/worker/domain/price-check.test.ts > 매일 가격 확인의 판단 > Given 읽을 수 없는 가격뿐 When 판단하면 Then 이전 가격을 지키고 이유는 no_single_price다
+AssertionError: expected { kind: 'kept', code: 'internal' } to deeply equal { kind: 'kept', …(1) }
+ ❯ src/features/worker/domain/price-check.test.ts:27:44
+ FAIL  src/features/worker/domain/price-check.test.ts > 매일 가격 확인의 판단 > Given 상품 이름을 찾지 못한 페이지 When 가격이 하나 있어도 Then 상품 페이지로 보지 않고 no_product_data다
+AssertionError: expected { kind: 'kept', code: 'internal' } to deeply equal { kind: 'kept', …(1) }
+ ❯ src/features/worker/domain/price-check.test.ts:31:82
+ Test Files  1 failed (1)
+      Tests  7 failed (7)

@@ -43,6 +43,7 @@ function product(id: string, addedAt: string, collectionIds: string[] = []): Pro
     purchase: { status: "wish" },
     metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
     lastSuccessfulPrice: null,
+    priceCheck: null,
     picture: null,
   };
 }
@@ -772,6 +773,15 @@ describe("상품을 화면에 합치기", () => {
   it("Given 같은 revision When 받으면 Then 앞선 수집 결과만 반영하고 소유자 값은 바꾸지 않는다", () => {
     const merged = mergeProduct(lamp, readyLampAt(1, "같은 revision의 다른 메모"));
     expect(merged).toEqual({ ...lamp, title: readyLamp.title, metadata: readyLamp.metadata, lastSuccessfulPrice: readyLamp.lastSuccessfulPrice, picture: null });
+  });
+
+  it("Given 같은 revision의 수집이 끝난 상품 When 예약 실행이 가격을 확인한 뒤 읽은 결과를 받으면 Then 가격과 그 확인을 함께 반영한다", () => {
+    const checked: ProductResponse = {
+      ...readyLamp,
+      lastSuccessfulPrice: { amountMinor: 59000, currency: "KRW", checkedAt: "2026-11-11T00:00:05.000Z" },
+      priceCheck: { checkedAt: "2026-11-14T05:17:03.000Z", code: "timeout" },
+    };
+    expect(mergeProduct(readyLamp, checked)).toEqual(checked);
   });
 
   it("Given 방금 저장한 상품 When 저장 전에 시작한 확인 결과가 오면 Then 이름·수집 상태를 되돌리지 않는다", () => {

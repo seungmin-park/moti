@@ -69,6 +69,7 @@ const product = {
   purchase: { status: "wish" },
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
+  priceCheck: null,
   picture: null,
 } satisfies Product;
 const backup = {
@@ -210,6 +211,32 @@ describe("GET /api/library", () => {
       metadata: { phase: "ready", image: { outcome: "failed", errorCode: "upload_failed" } },
       picture: { src: `/api/products/${product.id}/picture?v=${version}` },
     });
+  });
+
+  it("Given 오늘 가격을 다시 확인하지 못한 상품 When 보관함을 읽으면 Then 마지막 확인 가격과 함께 그 확인의 시각과 이유를 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    const kept = {
+      ...product,
+      lastSuccessfulPrice: { amountMinor: 9000, currency: "KRW", checkedAt: "2026-11-12T00:00:00.000Z" },
+      priceCheck: { checkedAt: "2026-11-14T05:17:03.000Z", code: "timeout" as const },
+    };
+    service.snapshot.mockResolvedValueOnce({ products: [kept, { ...product, id: "66666666-6666-4666-8666-666666666666" as ProductId }], collections: [] });
+
+    const body = libraryReadResponseSchema.parse(await (await handlers.getLibrary(get())).json());
+
+    expect(body.products.map(({ lastSuccessfulPrice, priceCheck }) => ({ lastSuccessfulPrice, priceCheck }))).toEqual([
+      { lastSuccessfulPrice: kept.lastSuccessfulPrice, priceCheck: { checkedAt: "2026-11-14T05:17:03.000Z", code: "timeout" } },
+      { lastSuccessfulPrice: null, priceCheck: null },
+    ]);
+  });
+
+  it.each([
+    { checkedAt: "2026-11-14T05:17:03.000Z", code: "attempts_exhausted" },
+    { checkedAt: "2026-11-14T05:17:03.000Z", code: "other_currency", url: "https://shop.example" },
+    { code: "timeout" },
+  ])("Given 계약 밖의 가격 확인 $code When 계약으로 검증하면 Then 거절한다", (priceCheck) => {
+    const body = { products: [{ ...JSON.parse(JSON.stringify(product)), priceCheck }], collections: [] };
+    expect(libraryReadResponseSchema.safeParse(body).success).toBe(false);
   });
 
   it.each([

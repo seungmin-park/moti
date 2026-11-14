@@ -1262,6 +1262,18 @@ h1 {
   color: var(--muted);
   margin-top: 5px;
 }
+.detail-price > .price-kept {
+  display: flex;
+  gap: 6px;
+  align-items: start;
+  margin-top: 10px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.price-kept svg {
+  flex: none;
+  margin-top: 2px;
+}
 .collection-options {
   border: 0;
   margin: 0 0 20px;

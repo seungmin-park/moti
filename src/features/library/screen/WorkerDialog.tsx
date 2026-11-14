@@ -107,8 +107,8 @@ export function WorkerDialog({ panel, runs, send }: { panel: KeyPanelState; runs
   return (
     <Dialog title="자동 확인" onClose={() => send({ type: "dialog.close" })}>
       <p className="dialog-intro">
-        하루 세 번(오전 6:17, 오후 2:17, 오후 10:17) GitHub Actions가 moti를 불러 아직 가져오지 못한 상품 정보를 가져와요.
-        GitHub이 실행을 늦추거나 건너뛸 수 있어요.
+        하루 세 번(오전 6:17, 오후 2:17, 오후 10:17) GitHub Actions가 moti를 불러 아직 가져오지 못한 상품 정보를 가져오고,
+        위시 상품의 가격을 하루 한 번 다시 확인해요. GitHub이 실행을 늦추거나 건너뛸 수 있어요.
       </p>
       <KeyPanel panel={panel} endpoint="worker" text={workerKeyText} send={send} />
       <GitHubValues />

@@ -1,0 +1,47 @@
+# Red (injected defect): the daily price check on the real database (step 4). With the run's price branch emptied (diff
+# below, removed afterwards) the run still picks each due check but never reads its page or settles it, so the two
+# service tests that expect a new price and three kept prices with their reasons fail on the run's counts. The third
+# (a purchased product is never read) passes here too: it guards the pick, which the persistence purchased cases prove.
+# Command: npm run test:database -- -t "매일 가격 확인" (other tests filtered out, so the runner exits 1 on skips).
+#
+# diff --git a/src/features/worker/application/scheduled-run.ts b/src/features/worker/application/scheduled-run.ts
+# index 2b3972d..46d5e70 100644
+# --- a/src/features/worker/application/scheduled-run.ts
+# +++ b/src/features/worker/application/scheduled-run.ts
+# @@ -43,8 +43,7 @@ export function createScheduledRunService({ store, source, read, now }: {
+#    // Reads the page and settles today's check. Never a name or a picture: the database compares the currency and keeps
+#    // the previous price when it cannot.
+#    async function check(lease: WorkerRunLease, item: WorkerPriceCheck): Promise<void> {
+# -    const facts = await factsOf(item.sourceUrl);
+# -    await store.price(lease, item, typeof facts === "string" ? { kind: "kept", code: facts } : decidePriceCheck(facts));
+# +    void lease; void item; void decidePriceCheck;
+#    }
+#  
+#    return {
+ ❯ tests/service/scheduled-run.test.ts (6 tests | 2 failed | 3 skipped) 1007ms
+     × 수집이 끝난 위시 상품을 다음 날 확인하면 같은 통화의 새 가격으로 바꾸고 이름·사진은 그대로다. 같은 날 다음 실행은 다시 읽지 않는다 385ms
+     × 가격이 여럿인 페이지, 다른 통화, 막힌 쇼핑몰은 이전 가격과 그 시각을 지키고 이유를 실행 기록에 남긴다 312ms
+     ✓ 구매완료로 옮긴 상품은 다음 날에도 확인하지 않는다 303ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/service/scheduled-run.test.ts > 실제 저장소를 쓰는 매일 가격 확인 > 수집이 끝난 위시 상품을 다음 날 확인하면 같은 통화의 새 가격으로 바꾸고 이름·사진은 그대로다. 같은 날 다음 실행은 다시 읽지 않는다
+AssertionError: expected { Object (kind, stop, ...) } to deeply equal { Object (kind, stop, ...) }
+- Expected
++ Received
+-     "confirmed": 1,
++     "confirmed": 0,
+ ❯ tests/service/scheduled-run.test.ts:157:50
+ FAIL  tests/service/scheduled-run.test.ts > 실제 저장소를 쓰는 매일 가격 확인 > 가격이 여럿인 페이지, 다른 통화, 막힌 쇼핑몰은 이전 가격과 그 시각을 지키고 이유를 실행 기록에 남긴다
+AssertionError: expected { Object (kind, stop, ...) } to deeply equal { Object (kind, stop, ...) }
+- Expected
++ Received
+-   "failures": {
+-     "blocked_by_site": 1,
+-     "no_single_price": 1,
+-     "other_currency": 1,
+-   },
++   "failures": {},
+-     "kept": 3,
++     "kept": 0,
+ ❯ tests/service/scheduled-run.test.ts:186:20
+ Test Files  1 failed | 20 skipped (21)
+      Tests  2 failed | 1 passed | 311 skipped (314)

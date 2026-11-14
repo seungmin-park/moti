@@ -1,0 +1,32 @@
+# Red: the run's price branch (step 3). The lane hands a price item to a check() that keeps its signature and does
+# nothing, so no price settles: 8 tests fail (one price per page sent as picked, four reasons to keep the price, a
+# refused key or lost run during a price settle, and price checks sharing the 60-item cap). The 16 existing run tests
+# pass on the restructured collection branch.
+# Command: npx vitest run src/features/worker/application/scheduled-run.test.ts
+     × Given 수집이 끝난 뒤 가격을 확인할 상품 둘 When 실행하면 Then 각 페이지의 하나의 가격을 집은 확인 그대로 보내고 이름·사진은 쓰지 않는다 4ms
+     × Given 옵션마다 가격이 다른 페이지 When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다 1ms
+     × Given 상품 이름이 없는 페이지 When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다 0ms
+     × Given 쇼핑몰이 막은 페이지 When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다 0ms
+     × Given 읽다가 예외가 난 페이지 When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다 0ms
+     × Given 가격 정산이 key_rejected로 거절됨 When 실행하면 Then 모든 줄을 멈추고 끝내지 않는다 0ms
+     × Given 가격 정산이 run_lost로 거절됨 When 실행하면 Then 모든 줄을 멈추고 끝내지 않는다 0ms
+     × Given 가격을 확인할 상품이 끝없이 있음 When 실행하면 Then 수집과 같은 한도로 60개까지만 시작한다 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 수집이 끝난 뒤 가격을 확인할 상품 둘 When 실행하면 Then 각 페이지의 하나의 가격을 집은 확인 그대로 보내고 이름·사진은 쓰지 않는다
+AssertionError: expected [ 'https://shop.example/0' ] to deeply equal [ 'https://shop.example/0', …(2) ]
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 옵션마다 가격이 다른 페이지 When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다
+AssertionError: expected [] to deeply equal [ [ 'product-0', …(1) ], …(1) ]
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 상품 이름이 없는 페이지 When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다
+AssertionError: expected [] to deeply equal [ [ 'product-0', …(1) ], …(1) ]
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 쇼핑몰이 막은 페이지 When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다
+AssertionError: expected [] to deeply equal [ [ 'product-0', …(1) ], …(1) ]
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 읽다가 예외가 난 페이지 When 가격을 확인하면 Then 그 이유로 이전 가격을 지키라고 보내고 실행은 이어간다
+AssertionError: expected [] to deeply equal [ [ 'product-0', …(1) ], …(1) ]
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 가격 정산이 key_rejected로 거절됨 When 실행하면 Then 모든 줄을 멈추고 끝내지 않는다
+AssertionError: expected { Object (kind, stop, ...) } to deeply equal { kind: 'refused', …(1) }
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 가격 정산이 run_lost로 거절됨 When 실행하면 Then 모든 줄을 멈추고 끝내지 않는다
+AssertionError: expected { Object (kind, stop, ...) } to deeply equal { kind: 'refused', code: 'run_lost' }
+ FAIL  src/features/worker/application/scheduled-run.test.ts > 예약 실행 > Given 가격을 확인할 상품이 끝없이 있음 When 실행하면 Then 수집과 같은 한도로 60개까지만 시작한다
+AssertionError: expected 10 to be 60 // Object.is equality
+ Test Files  1 failed (1)
+      Tests  8 failed | 16 passed (24)

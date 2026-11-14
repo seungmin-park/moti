@@ -1,0 +1,40 @@
+# Red (injected defect): what the owner sees, on the real stack (step 6, browser). The app was built with the screen's
+# price lines taken out (diff below: the detail's priceKept null, the run line without price counts), then the source
+# was restored. Persistence 260, service 55 and HTTP 45 pass; in the browser phase the new test fails on both devices
+# at the run line, and the 48 existing browser tests pass.
+# Command: npm run build (with the defect) && npm run test:database (source restored).
+#
+# --- product-view.good.ts	2026-11-14 02:43:05
+# +++ src/features/library/screen/product-view.ts	2026-11-14 02:43:22
+# @@ -206,6 +206,6 @@
+#      arrival: arrival && arrivals[arrival],
+#      canRetry: canRetry(product),
+#      picture: pictureOf(product, `${product.title} 사진`),
+# -    priceKept: keptPriceOf(product),
+# +    priceKept: product.id === "" ? keptPriceOf(product) : null,
+#    };
+#  }
+# --- worker-view.good.ts	2026-11-14 02:43:05
+# +++ src/features/library/screen/worker-view.ts	2026-11-14 02:43:22
+# @@ -52,11 +52,10 @@
+#  // failed or kept their price. Only `cut` reads as an error.
+#  export function workerRunView(run: WorkerRunResponse): WorkerRunView {
+#    const { collected, failed } = run.collections;
+# -  const { confirmed, kept } = run.prices;
+#    return {
+#      id: run.id,
+#      when: moment.format(new Date(run.startedAt)),
+# -    counts: `수집 ${collected} · 실패 ${failed} · 가격 확인 ${confirmed + kept}${kept > 0 ? ` (이전 가격 유지 ${kept})` : ""}`,
+# +    counts: `수집 ${collected} · 실패 ${failed}`,
+#      state: stateLines[run.state],
+#      failed: run.state === "cut",
+#      failures: Object.entries(run.failures)
+Verified 260 persistence and 55 service tests with no skipped assertions.
+Verified 45 HTTP tests against the running app with no skipped assertions.
+  ✘  25 [desktop-chromium] › tests/browser/worker-dialog.spec.ts:209:1 › 예약 실행이 가격을 확인하면 자동 확인은 가격 셈과 이유를 보이고, 상세는 이전 가격을 보여준다고 서울 날짜와 이유로 말한다 (5.6s)
+  ✘  50 [iphone-webkit] › tests/browser/worker-dialog.spec.ts:209:1 › 예약 실행이 가격을 확인하면 자동 확인은 가격 셈과 이유를 보이고, 상세는 이전 가격을 보여준다고 서울 날짜와 이유로 말한다 (5.9s)
+    Error: expect(locator).toContainText(expected) failed
+    Expected substring: "수집 0 · 실패 0 · 가격 확인 1 (이전 가격 유지 1)"
+    Received string:    "최근 실행11월 14일 오전 2:47수집 0 · 실패 0할 일을 모두 마쳤어요.1건 · 안전을 위해 열지 않는 주소예요.사진은 moti를 열 때 가져와요."
+  2 failed
+  48 passed (1.4m)

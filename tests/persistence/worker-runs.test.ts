@@ -333,6 +333,7 @@ const WORKER_FUNCTIONS = [
   "moti_worker_fail(text,uuid,uuid,uuid,uuid,text)",
   "moti_worker_finish(text,uuid,uuid,text)",
   "moti_worker_next(text,uuid,uuid)",
+  "moti_worker_price(text,uuid,uuid,uuid,timestamp with time zone,bigint,text,text)",
 ];
 
 const WORKER_GRANTS = [
@@ -373,6 +374,12 @@ const WORKER_GRANTS = [
   "column moti.products.metadata_image_error_code UPDATE",
   "column moti.products.metadata_phase UPDATE",
   "column moti.products.title UPDATE",
+  // The daily price check: which wish products are due, its fence and why it kept a price. Never a name or a picture.
+  "column moti.products.last_success_at SELECT",
+  "column moti.products.metadata_phase SELECT",
+  "column moti.products.price_checked_at SELECT",
+  "column moti.products.price_check_code UPDATE",
+  "column moti.products.price_checked_at UPDATE",
   "function moti.is_clean_title(text) EXECUTE",
   "function moti.is_collection_error(text) EXECUTE",
   "function moti.is_image_error(text) EXECUTE",
@@ -396,6 +403,8 @@ const WORKER_GRANTS = [
   "column moti.worker_runs.lease_until INSERT",
   "column moti.worker_runs.lease_until UPDATE",
   "column moti.worker_runs.owner_id INSERT",
+  "column moti.worker_runs.prices_confirmed UPDATE",
+  "column moti.worker_runs.prices_kept UPDATE",
   "column moti.worker_runs.stop_reason UPDATE",
   "function moti.has_google_identity(uuid,text) EXECUTE",
   "function moti.worker_run_owner(text,uuid,uuid) EXECUTE",

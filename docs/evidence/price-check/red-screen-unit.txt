@@ -1,0 +1,33 @@
+# Red: what the owner sees of the daily price check (step 6, screen units). The detail view's priceKept is always null,
+# the run line counts collections only, failureReason knows collection reasons only, and a later read's priceCheck is
+# not merged, all with their final signatures. 8 tests fail: the run line with and without prices, the kept-price line
+# for five reasons, and the merge. Guards that hold either way pass: the card and detail price stay the last checked
+# price, and no line shows for an unchecked, confirmed, superseded, unpriced or purchased product.
+# Command: npx vitest run src/features/library/screen
+     × Given 끝난 실행 When 보이면 Then 서울 시각, 수집·실패 셈, 멈춘 이유와 이유별 실패를 보인다 5ms
+     × Given 가격을 확인한 실행 When 보이면 Then 확인한 가격 수와 이전 가격을 지킨 수를 보이고 가격 이유도 이유별로 센다 3ms
+     × Given 확인이 timeout로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다 3ms
+     × Given 확인이 blocked_by_site로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다 0ms
+     × Given 확인이 no_product_data로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다 0ms
+     × Given 확인이 no_single_price로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다 0ms
+     × Given 확인이 other_currency로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다 0ms
+     × Given 같은 revision의 수집이 끝난 상품 When 예약 실행이 가격을 확인한 뒤 읽은 결과를 받으면 Then 가격과 그 확인을 함께 반영한다 7ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/library/screen/product-view.test.ts > 매일 가격 확인이 이전 가격을 지켰을 때 > Given 확인이 timeout로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다
+AssertionError: expected null to be '2026. 11. 14.에 가격을 다시 확인하지 못해 이전 가격을 …' // Object.is equality
+ FAIL  src/features/library/screen/product-view.test.ts > 매일 가격 확인이 이전 가격을 지켰을 때 > Given 확인이 blocked_by_site로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다
+AssertionError: expected null to be '2026. 11. 14.에 가격을 다시 확인하지 못해 이전 가격을 …' // Object.is equality
+ FAIL  src/features/library/screen/product-view.test.ts > 매일 가격 확인이 이전 가격을 지켰을 때 > Given 확인이 no_product_data로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다
+AssertionError: expected null to be '2026. 11. 14.에 가격을 다시 확인하지 못해 이전 가격을 …' // Object.is equality
+ FAIL  src/features/library/screen/product-view.test.ts > 매일 가격 확인이 이전 가격을 지켰을 때 > Given 확인이 no_single_price로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다
+AssertionError: expected null to be '2026. 11. 14.에 가격을 다시 확인하지 못해 이전 가격을 …' // Object.is equality
+ FAIL  src/features/library/screen/product-view.test.ts > 매일 가격 확인이 이전 가격을 지켰을 때 > Given 확인이 other_currency로 이전 가격을 지킴 When 상세로 보이면 Then 서울 날짜와 이유로 이전 가격을 보여준다고 말한다
+AssertionError: expected null to be '2026. 11. 14.에 가격을 다시 확인하지 못해 이전 가격을 …' // Object.is equality
+ FAIL  src/features/library/screen/screen-state.test.ts > 상품을 화면에 합치기 > Given 같은 revision의 수집이 끝난 상품 When 예약 실행이 가격을 확인한 뒤 읽은 결과를 받으면 Then 가격과 그 확인을 함께 반영한다
+AssertionError: expected { …(16) } to deeply equal { …(16) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 최근 실행 표시 > Given 끝난 실행 When 보이면 Then 서울 시각, 수집·실패 셈, 멈춘 이유와 이유별 실패를 보인다
+AssertionError: expected { …(6) } to deeply equal { …(6) }
+ FAIL  src/features/library/screen/worker-view.test.ts > 최근 실행 표시 > Given 가격을 확인한 실행 When 보이면 Then 확인한 가격 수와 이전 가격을 지킨 수를 보이고 가격 이유도 이유별로 센다
+AssertionError: expected { …(6) } to match object { …(2) }
+ Test Files  3 failed | 4 passed (7)
+      Tests  8 failed | 515 passed (523)

@@ -136,9 +136,12 @@ claim(예약된 이름) → 페이지 → 읽기 → 사진 요청 → 바이트
 
 ```text
 GitHub: POST /api/scheduled-runs → 키 형식 → worker-context(쿠키 없는 익명 클라이언트) → begin(90초 임대)
-        → 세 줄 × 20초: next → 안전한 가져오기 → 읽기 → complete(이름·가격, 사진 waiting) | fail → finish → 셈
+        → 세 줄 × 20초: next → 안전한 가져오기 → 읽기
+            수집: complete(이름·가격, 사진 waiting, 오늘의 가격 확인) | fail
+            가격: decidePriceCheck → price(같은 통화의 하나뿐인 가격 또는 지킨 이유, 고른 시각이 울타리)
+        → finish → 셈
 소유자: GET/POST /api/worker-keys, DELETE /api/worker-keys/{id} → 보관함 관문 → moti_worker_*(moti_rpc)
 화면: 보관함을 받음 → 시도 0인 대기 또는 사진 waiting → POST /api/library/metadata → 새 세대로 재대기 → 응답 뒤 소유자 토큰으로 사진 복사
 ```
 
-작업자의 힘은 `moti_worker` 역할의 열 단위 권한과 정책이 정하고 catalog 테스트가 목록을 고정한다. 키·실행 임대·대상 선택·정산 검사는 PostgREST로 직접 불러도 지켜지도록 SQL에 있다. 작업자는 Storage에 닿지 않는다. ESLint가 `src/features/worker`와 예약 경로에서 사진 모듈을, 예약 경로에서 `next/headers`·`@supabase/ssr`·쿠키 컨텍스트를 막는다. 설계 비교와 검증은 [changes/scheduled-runs.md](changes/scheduled-runs.md)에 있다.
+작업자의 힘은 `moti_worker` 역할의 열 단위 권한과 정책이 정하고 catalog 테스트가 목록을 고정한다. 키·실행 임대·대상 선택·정산 검사는 PostgREST로 직접 불러도 지켜지도록 SQL에 있다. 매일 가격 확인(5b)은 같은 실행의 두 번째 분기다. 가격 규칙(상품 이름이 있고 서로 다른 가격이 하나)은 순수 함수 `worker/domain/price-check.ts`의 `decidePriceCheck`, 통화 비교·서울 날짜·구매완료 울타리는 SQL에 있다. 상품의 `priceCheck`(마지막 확인 시각과 지킨 이유)가 보관함 계약으로 나가고 화면이 지킨 가격을 알린다. 설계와 검증은 [changes/price-check.md](changes/price-check.md)에 있다. 작업자는 Storage에 닿지 않는다. ESLint가 `src/features/worker`와 예약 경로에서 사진 모듈을, 예약 경로에서 `next/headers`·`@supabase/ssr`·쿠키 컨텍스트를 막는다. 설계 비교와 검증은 [changes/scheduled-runs.md](changes/scheduled-runs.md)에 있다.

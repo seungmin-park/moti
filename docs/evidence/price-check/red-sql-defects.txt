@@ -1,0 +1,85 @@
+# Red (injected defects): the four SQL rules of the daily price check. Four defects were put into the migration at once
+# (diff below, removed afterwards), and exactly the four tests that guard them fail; the other 19 price tests pass.
+#   1. Seoul day: a 24-hour window instead of the Seoul date. A product checked or priced just before Seoul midnight is
+#      not picked the next morning ('확인할 가격이 없습니다: none').
+#   2. Names: the price settle also writes title. The test that keeps title, owner_title and the shown name fails.
+#   3. Other currency: any price is confirmed. A USD price replaces the stored KRW price and its time.
+#   4. Purchased: the settle fence forgets purchase_status. A purchase between pick and settle is written over ('applied').
+# owner_title itself has no worker grant (5a's red-review-worker-grant.txt shows the catalog checks fail on one).
+# Command: npm run test:database -- -t "가격 확인|오늘의 가격 확인" (other tests filtered out, so the runner exits 1 on skips).
+#
+# 99,100c99,100
+# <     and (p.price_checked_at is null or (p.price_checked_at at time zone 'Asia/Seoul')::date < v_today)
+# <     and (p.last_success_at is null or (p.last_success_at at time zone 'Asia/Seoul')::date < v_today)
+# ---
+# >     and (p.price_checked_at is null or p.price_checked_at < now() - interval '24 hours')
+# >     and (p.last_success_at is null or p.last_success_at < now() - interval '24 hours')
+# 143c143
+# <   where p.id = p_product and p.owner_id = v_owner and p.price_checked_at = p_checked_at and p.purchase_status = 'wish'
+# ---
+# >   where p.id = p_product and p.owner_id = v_owner and p.price_checked_at = p_checked_at
+# 149c149
+# <   v_code := coalesce(p_code, case when v_currency <> p_currency then 'other_currency' end);
+# ---
+# >   v_code := p_code;
+# 153c153
+# <         price_checked_at = now(), price_check_code = null
+# ---
+# >         price_checked_at = now(), price_check_code = null, title = p_currency
+ ❯ tests/persistence/worker-price.test.ts (23 tests | 4 failed) 6582ms
+     ✓ 남은 수집을 먼저 집고, 그다음 수집이 끝난 위시 상품의 가격 확인을 집어 상품 id·확인 시각·링크만 돌려준다 357ms
+     × 서울 날짜로 오늘 확인했거나 오늘 가격을 얻은 상품, 구매완료, 수집이 끝나지 않은 상품은 집지 않는다. 어제 늦게 확인한 상품은 집는다 311ms
+     ✓ 확인한 적 없는 상품부터, 그다음 가장 오래전에 확인한 상품부터 집는다 289ms
+     ✓ 다른 요청이 잠근 상품은 건너뛴다 283ms
+     × 같은 통화의 가격은 마지막 확인 가격과 시각을 바꾸고 셈한다. 이름·소유자 이름·revision·수집 단계·사진은 그대로다 285ms
+     ✓ 저장한 가격이 없으면 확인한 가격을 처음으로 저장한다 282ms
+     × 다른 통화의 가격은 이전 가격과 시각을 지키고 other_currency로 남기며 유지와 이유로 센다 279ms
+     ✓ 확인하지 못한 이유는 상품에 남기고 이전 가격과 시각을 지키며 이유별로 센다 294ms
+     × 집은 뒤 구매완료로 옮긴 상품의 정산은 stale이고 아무것도 쓰지 않는다 285ms
+     ✓ 한 확인은 한 번만 정산한다. 다른 확인 시각이나 다른 상품의 정산은 stale이다 288ms
+     ✓ 가격과 이유를 함께 보낸 정산은 M0002이고 아무것도 쓰지 않는다 277ms
+     ✓ 가격도 이유도 없는 정산은 M0002이고 아무것도 쓰지 않는다 279ms
+     ✓ 통화 없는 가격의 정산은 M0002이고 아무것도 쓰지 않는다 277ms
+     ✓ 가격 없는 통화의 정산은 M0002이고 아무것도 쓰지 않는다 275ms
+     ✓ 0원의 정산은 M0002이고 아무것도 쓰지 않는다 277ms
+     ✓ 소문자 통화의 정산은 M0002이고 아무것도 쓰지 않는다 280ms
+     ✓ 작업자가 정하지 않는 other_currency의 정산은 M0002이고 아무것도 쓰지 않는다 278ms
+     ✓ 수집에만 있는 attempts_exhausted의 정산은 M0002이고 아무것도 쓰지 않는다 278ms
+     ✓ 목록에 없는 이유의 정산은 M0002이고 아무것도 쓰지 않는다 276ms
+     ✓ 실행 중에 키를 폐기하면 정산은 M0012이고, 닫힌 실행의 정산은 M0013이다 289ms
+     ✓ 수집이 같은 통화의 가격을 쓰면 오늘 확인한 것으로 남기고, 같은 날 그 상품의 가격 확인을 다시 집지 않는다 277ms
+     ✓ 수집한 가격이 다른 통화면 other_currency, 하나의 가격이 없으면 no_single_price로 오늘 확인한 것으로 남긴다 285ms
+     ✓ 수집 중에 구매완료로 옮긴 상품은 가격 확인 열도 그대로다 278ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 집기 > 서울 날짜로 오늘 확인했거나 오늘 가격을 얻은 상품, 구매완료, 수집이 끝나지 않은 상품은 집지 않는다. 어제 늦게 확인한 상품은 집는다
+Error: 확인할 가격이 없습니다: none
+ ❯ tests/persistence/worker-price.test.ts:147:22
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 결과 > 같은 통화의 가격은 마지막 확인 가격과 시각을 바꾸고 셈한다. 이름·소유자 이름·revision·수집 단계·사진은 그대로다
+AssertionError: expected { title: 'KRW', …(15) } to match object { title: '수집한 이름', …(13) }
+- Expected
++ Received
+-   "title": "수집한 이름",
++   "title": "KRW",
+ ❯ tests/persistence/worker-price.test.ts:199:19
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 결과 > 다른 통화의 가격은 이전 가격과 시각을 지키고 other_currency로 남기며 유지와 이유로 센다
+AssertionError: expected { title: 'USD', …(15) } to match object { …(5) }
+- Expected
++ Received
+-   "last_success_amount_minor": "9000",
+-   "last_success_at": 2026-11-11T17:21:47.850Z,
+-   "last_success_currency": "KRW",
+-   "price_check_code": "other_currency",
++   "last_success_amount_minor": "1999",
++   "last_success_at": 2026-11-13T17:21:47.854Z,
++   "last_success_currency": "USD",
++   "price_check_code": null,
+ ❯ tests/persistence/worker-price.test.ts:224:39
+ FAIL  tests/persistence/worker-price.test.ts > 작업자의 가격 확인 결과 > 집은 뒤 구매완료로 옮긴 상품의 정산은 stale이고 아무것도 쓰지 않는다
+AssertionError: expected { data: { kind: 'applied' }, …(1) } to deeply equal { code: null, data: { kind: 'stale' } }
+- Expected
++ Received
+-     "kind": "stale",
++     "kind": "applied",
+ ❯ tests/persistence/worker-price.test.ts:262:72
+ Test Files  1 failed | 20 skipped (21)
+      Tests  4 failed | 19 passed | 287 skipped (310)
