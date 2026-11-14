@@ -28,6 +28,7 @@ import {
   metadataRetryResponseSchema,
   metadataWakeResponseSchema,
   productChangeResponseSchema,
+  productDeleteResponseSchema,
   type CollectionCreateRequest,
   type CollectionCreateResponse,
   type CollectionRenameRequest,
@@ -42,6 +43,8 @@ import {
   type MetadataWakeResponse,
   type ProductChangeRequest,
   type ProductChangeResponse,
+  type ProductDeleteRequest,
+  type ProductDeleteResponse,
 } from "../presentation/library-dto";
 
 export type FieldName = "url" | "option" | "collection" | "title" | "note" | "date" | "price";
@@ -59,6 +62,7 @@ export type Endpoint =
   | "metadata.retry"
   | "metadata.wake"
   | "product.change"
+  | "product.delete"
   | "library.backup"
   | "library.restore"
   | "share.read"
@@ -76,6 +80,7 @@ export type LibraryApi = {
   renameCollection(collectionId: string, body: CollectionRenameRequest): Promise<ApiOutcome<CollectionRenameResponse>>;
   retryMetadata(productId: string, body: MetadataRetryRequest): Promise<ApiOutcome<MetadataRetryResponse>>;
   changeProduct(productId: string, body: ProductChangeRequest): Promise<ApiOutcome<ProductChangeResponse>>;
+  deleteProduct(productId: string, body: ProductDeleteRequest): Promise<ApiOutcome<ProductDeleteResponse>>;
   exportBackup(): Promise<ApiOutcome<BackupFile>>;
   // Sends the chosen file's text unchanged, so the server checks exactly what the screen checked.
   restore(text: string): Promise<ApiOutcome<LibraryReadResponse>>;
@@ -263,6 +268,15 @@ const failures: Record<Endpoint, Mapping> = {
     share_key_missing: retryLater,
     worker_key_missing: retryLater,
   },
+  // A delete has no field to point at, so a refused input means the screen is out of date.
+  "product.delete": {
+    ...session,
+    ...every(retryLater),
+    cross_origin: reload,
+    invalid_input: reload,
+    product_missing: stale("상품을 찾을 수 없어요. 목록을 새로 불러왔어요."),
+    revision_conflict: stale("다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 삭제해 주세요."),
+  },
   "library.backup": {
     ...session,
     storage_unavailable: backupFailed,
@@ -325,7 +339,7 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
     }
   }
 
-  const write = (method: "POST" | "PATCH", body: unknown): RequestInit => ({
+  const write = (method: "POST" | "PATCH" | "DELETE", body: unknown): RequestInit => ({
     method,
     headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify(body),
@@ -359,6 +373,9 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
     ]),
     changeProduct: (productId, body) => request("product.change", `/api/products/${segment(productId)}`, write("PATCH", body), [
       { status: 200, parse: parsed(productChangeResponseSchema) },
+    ]),
+    deleteProduct: (productId, body) => request("product.delete", `/api/products/${segment(productId)}`, write("DELETE", body), [
+      { status: 200, parse: parsed(productDeleteResponseSchema) },
     ]),
     async exportBackup() {
       try {

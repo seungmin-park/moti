@@ -49,6 +49,22 @@ describe("API 문서", () => {
     }
   });
 
+  it("상품 삭제는 상품 경로의 DELETE로 revision만 담은 본문과 200·400·404·409 응답을 문서에 남긴다", () => {
+    const operation = buildApiDocument().paths["/api/products/{productId}"]?.delete as {
+      parameters: { name: string; in: string; required: boolean; schema: { format?: string } }[];
+      requestBody: { required: boolean; content: Record<string, { schema: { properties?: Record<string, unknown>; required?: string[] } }> };
+      responses: Record<string, { content?: Record<string, { schema: { properties?: Record<string, unknown> } }> }>;
+    };
+    expect(operation.parameters).toEqual([expect.objectContaining({ name: "productId", in: "path", required: true, schema: expect.objectContaining({ format: "uuid" }) })]);
+    expect(operation.requestBody.required).toBe(true);
+    const request = operation.requestBody.content["application/json"].schema;
+    expect(Object.keys(request.properties ?? {})).toEqual(["revision"]);
+    expect(request.required).toEqual(["revision"]);
+    expect(Object.keys(operation.responses["200"].content?.["application/json"].schema.properties ?? {})).toEqual(["id"]);
+    expect(Object.keys(operation.responses)).toEqual(expect.arrayContaining(["200", "400", "401", "403", "404", "409", "413", "415", "503"]));
+    expect(operation.responses).not.toHaveProperty("422");
+  });
+
   it("백업 내려받기는 GET 200에 백업 파일 스키마와 첨부 이름 헤더를 문서에 남긴다", () => {
     const operation = buildApiDocument().paths["/api/library/backup"]?.get as {
       responses: Record<string, { content?: Record<string, { schema: { properties?: Record<string, unknown> } }>; headers?: Record<string, unknown> }>;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useId } from "react";
-import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Info, LoaderCircle, RotateCcw } from "lucide-react";
+import { useEffect, useId, useRef, type KeyboardEvent } from "react";
+import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Info, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
 import { Dialog } from "../../wishlist/Dialog";
 import { EARLIEST_PURCHASE_DATE, seoulToday } from "../../wishlist/product-fields";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
@@ -29,12 +29,64 @@ function Saved({ notice, form }: { notice: DetailNotice | null; form: DetailForm
   );
 }
 
+// 삭제 asks inside the dialog first. Escape or 취소 closes only the question, and the focus goes back to 삭제.
+function DeleteProduct({ id, confirming, deleting, blocked, error, send, productId }: {
+  id: string;
+  confirming: boolean;
+  deleting: boolean;
+  blocked: boolean;
+  error: FormError | null;
+  send: (event: ScreenEvent) => void;
+  productId: string;
+}) {
+  const opener = useRef<HTMLButtonElement>(null);
+  const asked = useRef(false);
+  useEffect(() => {
+    if (confirming) {
+      asked.current = true;
+      return;
+    }
+    if (asked.current) opener.current?.focus();
+    asked.current = false;
+  }, [confirming]);
+  const cancelOnEscape = (event: KeyboardEvent) => {
+    if (event.key !== "Escape" || deleting) return;
+    event.preventDefault();
+    send({ type: "detail.deleteCancel" });
+  };
+  const messageId = `${id}-delete-message`;
+  return (
+    <div className="delete-product">
+      {confirming ? (
+        <div className="share-confirm delete-confirm" role="group" aria-labelledby={messageId} onKeyDown={cancelOnEscape}>
+          <p id={messageId}>이 상품을 삭제할까요? 메모, 컬렉션 소속과 구매 기록도 함께 지워지고 되돌릴 수 없어요.</p>
+          <div className="share-key-actions">
+            <button className="button secondary" type="button" autoFocus disabled={deleting} onClick={() => send({ type: "detail.deleteCancel" })}>
+              취소
+            </button>
+            <button className="button primary" type="button" disabled={blocked} onClick={() => send({ type: "product.delete", productId })}>
+              {deleting ? "삭제하는 중…" : "삭제하기"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button ref={opener} className="text-button delete-button" type="button" disabled={blocked} onClick={() => send({ type: "detail.deleteAsk" })}>
+          <Trash2 size={15} aria-hidden="true" />
+          삭제
+        </button>
+      )}
+      <FieldError id={`${id}-delete-form-error`} error={error} field={null} />
+    </div>
+  );
+}
+
 export function ProductDetailDialog({
   product,
   collections,
   arrival,
   draft,
   notice,
+  confirming,
   writing,
   blocked,
   send,
@@ -44,6 +96,8 @@ export function ProductDetailDialog({
   arrival: "added" | "duplicate" | null;
   draft: DetailDraft;
   notice: DetailNotice | null;
+  // The owner pressed 삭제 and the dialog is asking before it sends anything.
+  confirming: boolean;
   // This product's write in flight, if any.
   writing: ProductIntent | null;
   // Any write or re-read in flight: every button that would write waits.
@@ -63,6 +117,7 @@ export function ProductDetailDialog({
   const recordError = errorOf("record");
   const statusError = errorOf("status");
   const retryError = errorOf("retry");
+  const deleteError = errorOf("delete");
   const edit = (field: "title" | "note" | "date" | "price", value: string) => send({ type: "detail.edit", field, value });
   const save = (form: "details" | "record") => send({ type: "detail.save", form, today: seoulToday(new Date()) });
   return (
@@ -254,6 +309,15 @@ export function ProductDetailDialog({
             {purchased ? "위시로 되돌리기" : "구매완료로 이동"}
           </button>
           <FieldError id={errorId("status", null)} error={statusError} field={null} />
+          <DeleteProduct
+            id={id}
+            confirming={confirming}
+            deleting={writing === "delete"}
+            blocked={blocked}
+            error={deleteError}
+            send={send}
+            productId={product.id}
+          />
         </div>
       </div>
     </Dialog>

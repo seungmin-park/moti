@@ -6,6 +6,7 @@ import {
   toLibraryRestoreCommand,
   toLinkSaveCommand,
   toProductChangeCommand,
+  toProductDeleteCommand,
   type LibraryRestoreInput,
   type ProductChangeInput,
 } from "./commands";
@@ -134,6 +135,24 @@ describe("상품 정리 명령", () => {
 
   it("UUID가 아닌 상품은 필드 없는 입력 오류다", () => {
     expect(() => toProductChangeCommand("lamp", { revision: 1, change: { type: "purchase" } }, today))
+      .toThrowError(expect.objectContaining({ code: "invalid_input", field: undefined }));
+  });
+});
+
+describe("상품 삭제 명령", () => {
+  const productId = "22222222-2222-4222-8222-222222222222";
+
+  it("상품은 소문자로, 화면이 본 revision은 그대로 담는다", () => {
+    expect(toProductDeleteCommand(productId.toUpperCase(), { revision: 3 })).toEqual({ productId, revision: 3 });
+  });
+
+  it.each([0, 1.5, 2147483648, Number.NaN])("화면이 본 revision %s가 범위를 벗어나면 필드 없는 입력 오류다", (revision) => {
+    expect(() => toProductDeleteCommand(productId, { revision }))
+      .toThrowError(expect.objectContaining({ code: "invalid_input", field: undefined }));
+  });
+
+  it("UUID가 아닌 상품은 필드 없는 입력 오류다", () => {
+    expect(() => toProductDeleteCommand("lamp", { revision: 1 }))
       .toThrowError(expect.objectContaining({ code: "invalid_input", field: undefined }));
   });
 });

@@ -41,6 +41,9 @@ export type ProductChangeInput = {
     | { type: "purchase.record"; date: string | null; price: { amountMinor: number; currency: string } | null }
     | { type: "wish" };
 };
+// Deletes the product the screen showed at `revision`; a change made elsewhere since then is a conflict.
+export type ProductDeleteCommand = { productId: ProductId; revision: number };
+export type ProductDeleteResult = { productId: ProductId };
 export type CollectionRenameCommand = { collectionId: CollectionId; revision: number; name: string };
 export type LibraryRestoreInput = {
   collections: { name: string; createdAt: string }[];
@@ -143,6 +146,11 @@ function toProductChange(change: ProductChangeInput["change"], today: string): P
 export function toProductChangeCommand(productId: unknown, input: ProductChangeInput, today: string): ProductChangeCommand {
   const { productId: id } = toPictureViewCommand(productId);
   return { productId: id, revision: parseRevision(input.revision), change: toProductChange(input.change, today) };
+}
+
+export function toProductDeleteCommand(productId: unknown, input: { revision: number }): ProductDeleteCommand {
+  const { productId: id } = toPictureViewCommand(productId);
+  return { productId: id, revision: parseRevision(input.revision) };
 }
 
 export function toCollectionRenameCommand(collectionId: unknown, input: { revision: number; name: unknown }): CollectionRenameCommand {

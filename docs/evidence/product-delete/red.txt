@@ -1,0 +1,148 @@
+# 상품 삭제 Red (feat/product-delete, base 1bb2836)
+
+## 1. 단위: npx vitest run src/features/library
+구현 전(명령·DTO·처리기·API 문서·화면 상태·화면 API 클라이언트 없음).
+
+ Test Files  5 failed | 8 passed (13)
+      Tests  53 failed | 828 passed (881)
+
+src/features/library/application/commands.test.ts > 상품 삭제 명령 > 상품은 소문자로, 화면이 본 revision은 그대로 담는다
+src/features/library/application/commands.test.ts > 상품 삭제 명령 > 화면이 본 revision 0가 범위를 벗어나면 필드 없는 입력 오류다
+src/features/library/application/commands.test.ts > 상품 삭제 명령 > 화면이 본 revision 1.5가 범위를 벗어나면 필드 없는 입력 오류다
+src/features/library/application/commands.test.ts > 상품 삭제 명령 > 화면이 본 revision 2147483648가 범위를 벗어나면 필드 없는 입력 오류다
+src/features/library/application/commands.test.ts > 상품 삭제 명령 > 화면이 본 revision NaN가 범위를 벗어나면 필드 없는 입력 오류다
+src/features/library/application/commands.test.ts > 상품 삭제 명령 > UUID가 아닌 상품은 필드 없는 입력 오류다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given product.delete의 worker_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 상품 삭제 When 요청하면 Then 상품 경로에 DELETE로 revision만 보내고 200 id를 돌려준다
+src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 상품 삭제에 계약과 다른 200 본문 When 요청하면 Then 연결 안내로 실패한다
+src/features/library/screen/screen-state.test.ts > 요청 실행 > Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다
+src/features/library/screen/screen-state.test.ts > 상세에서 상품 삭제 > Given 상세 When 삭제를 누르면 Then 요청하지 않고 상세 안에서 확인을 묻고, 취소하면 확인을 닫는다
+src/features/library/screen/screen-state.test.ts > 상세에서 상품 삭제 > Given 삭제 확인 When 확정하면 Then 화면이 본 revision으로 요청하고 끝날 때까지 닫기·다른 쓰기·다시 확정을 막는다
+src/features/library/screen/screen-state.test.ts > 상세에서 상품 삭제 > Given 삭제 요청 중 When 성공하면 Then 상세를 닫고 목록과 컬렉션 개수에서 빼고 삭제했다고 알린다
+src/features/library/screen/screen-state.test.ts > 상세에서 상품 삭제 > Given 다른 곳에서 먼저 바뀐 상품 When 삭제가 거절되면 Then 상세에 알리고 확인을 닫은 뒤 다시 읽고 상품은 남긴다
+src/features/library/screen/screen-state.test.ts > 상세에서 상품 삭제 > Given 이미 지워진 상품 When 삭제가 거절되고 다시 읽은 보관함에 없으면 Then 상세를 닫고 같은 안내를 알림으로 보여준다
+src/features/library/screen/screen-state.test.ts > 상세에서 상품 삭제 > Given 삭제 요청 중 When 일시적으로 실패하거나 세션이 끝나면 Then 상세에 알리고 다시 물을 수 있게 하거나 로그인으로 보낸다
+src/features/library/presentation/api-document.test.ts > API 문서 > 상품 삭제는 상품 경로의 DELETE로 revision만 담은 본문과 200·400·404·409 응답을 문서에 남긴다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 화면이 본 revision When 상품을 삭제하면 Then 200과 지운 상품 id를 돌려주고 소문자 id로 서비스를 부른다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 깨진 JSON When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 빈 본문 When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given revision 누락 When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 알 수 없는 필드 When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 0 revision When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 소수 revision When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 문자열 revision When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 저장할 수 있는 범위를 넘는 revision When 상품을 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given UUID가 아닌 상품 When 삭제하면 Then 400이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 저장소가 revision_conflict로 거절 When 상품을 삭제하면 Then 409이다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 저장소가 product_missing로 거절 When 상품을 삭제하면 Then 404이다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 저장소가 invalid_input로 거절 When 상품을 삭제하면 Then 400이다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 저장소가 storage_unavailable로 거절 When 상품을 삭제하면 Then 503이다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 다른 출처의 요청 When 상품을 삭제하면 Then 403이고 세션과 서비스를 건드리지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 접근 결과 signed_out When 상품을 삭제하면 Then NaN이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 접근 결과 unconfigured When 상품을 삭제하면 Then NaN이고 서비스를 부르지 않는다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 다른 Google 계정 When 상품을 삭제하면 Then 403이고 세션을 한 번 종료한다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given 허용 계정이지만 DB가 소유자를 거절 When 상품을 삭제하면 Then 403이고 세션을 종료한다
+src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId} > Given JSON이 아닌 본문 When 상품을 삭제하면 Then 415이고 서비스를 부르지 않는다
+
+대표 실패 원인:
+   9 TypeError: handlers.deleteProduct is not a function
+   2 AssertionError: expected error to match asymmetric matcher
+   2 TypeError: api.deleteProduct is not a function
+   2 AssertionError: expected null to deeply equal { type: 'library.read' }
+   1 TypeError: toProductDeleteCommand is not a function
+   1 TypeError: Cannot read properties of undefined (reading 'signed_out')
+   1 TypeError: Cannot read properties of undefined (reading 'forbidden')
+   1 TypeError: Cannot read properties of undefined (reading 'unconfigured')
+   1 TypeError: Cannot read properties of undefined (reading 'storage_unavailable')
+   1 TypeError: Cannot read properties of undefined (reading 'cross_origin')
+   1 TypeError: Cannot read properties of undefined (reading 'unsupported_media_type')
+   1 TypeError: Cannot read properties of undefined (reading 'payload_too_large')
+
+## 2. 실제 DB slice: npm run test:database (persistence + service)
+마이그레이션 20261120000000_product_delete.sql과 toProductDeleteCommand·저장소 deleteProduct가 없을 때. PGRST202는 PostgREST가 moti_delete_product를 찾지 못한 것(요구 동작의 부재)이다. 시작·권한 실패는 없었다. 외래키 cascade 확인 검사는 기존 스키마를 확인하는 검사라 Red 때도 통과했다.
+
+ Test Files  2 failed | 23 passed (25)
+      Tests  25 failed | 334 passed (359)
+
+tests/persistence/product-delete.test.ts > 상품 삭제 > 화면이 본 revision으로 지우면 상품·소속·수집 작업이 사라지고 컬렉션은 남으며 id를 돌려준다
+tests/persistence/product-delete.test.ts > 상품 삭제 > 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 지우면 M0008이고 지우지 않으며, 최신 revision이면 지운다
+tests/persistence/product-delete.test.ts > 상품 삭제 > 없는 상품, 이미 지운 상품, 다른 소유자의 상품은 M0006이고 다른 소유자의 상품은 그대로다
+tests/persistence/product-delete.test.ts > 상품 삭제 > revision 0는 M0002이고 지우지 않는다
+tests/persistence/product-delete.test.ts > 상품 삭제 > revision -1는 M0002이고 지우지 않는다
+tests/persistence/product-delete.test.ts > 상품 삭제 > revision null는 M0002이고 지우지 않는다
+tests/persistence/product-delete.test.ts > 상품 삭제 > 같은 revision으로 동시에 8번 지우면 하나만 성공하고 나머지는 M0006이다
+tests/persistence/product-delete.test.ts > 상품 삭제 > 지운 뒤 같은 링크를 다시 담으면 새 id의 새 상품이 된다
+tests/persistence/product-delete.test.ts > 상품 삭제와 진행 중인 수집 > 수집 중에 지우면 늦게 온 완료·실패는 오류 없이 stale이고 상품을 되살리지 않는다
+tests/persistence/product-delete.test.ts > 상품 삭제와 진행 중인 수집 > 삭제와 수집 완료가 동시에 와도 교착 없이 삭제가 성공하고 상품은 남지 않는다
+tests/persistence/product-delete.test.ts > 상품 삭제와 진행 중인 수집 > 다시 가져오기는 지운 상품에 M0006이다
+tests/persistence/product-delete.test.ts > 상품 삭제와 예약 실행 > 지운 상품의 대기 작업과 가격 확인은 고르지 않는다
+tests/persistence/product-delete.test.ts > 상품 삭제와 예약 실행 > 예약 실행이 맡은 수집을 지우면 늦게 온 완료·실패는 stale이고 실행 셈을 올리지 않으며 상품을 되살리지 않는다
+tests/persistence/product-delete.test.ts > 상품 삭제와 예약 실행 > 예약 실행이 고른 가격 확인을 지우면 늦게 온 결과는 stale이고 상품을 되살리지 않는다
+tests/persistence/product-delete.test.ts > 상품 삭제와 사진 사본 > 지운 상품이 보여주던 사본은 10분이 지나면 남은 사본으로 돌려주고 소유자가 Storage에서 지울 수 있다
+tests/persistence/product-delete.test.ts > 상품 삭제와 사진 사본 > 수집 중에 올린 사본도 상품을 지우면 10분 여유가 지난 뒤에만 남은 사본이 된다
+tests/persistence/product-delete.test.ts > 상품 삭제의 소유자 경계 > anonymous는 삭제 RPC를 실행하지 못하고 상품이 남는다
+tests/persistence/product-delete.test.ts > 상품 삭제의 소유자 경계 > stranger는 삭제 RPC를 실행하지 못하고 상품이 남는다
+tests/persistence/product-delete.test.ts > 상품 삭제의 소유자 경계 > 삭제 RPC는 RPC 역할이 소유한 security definer이고 로그인 세션만 실행한다
+tests/service/product-delete.test.ts > 실제 저장소를 쓰는 상품 삭제 서비스 > 상품을 지우면 새로 읽은 보관함에서 상품과 컬렉션 소속이 사라지고 컬렉션은 남는다
+tests/service/product-delete.test.ts > 실제 저장소를 쓰는 상품 삭제 서비스 > 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 지우면 revision_conflict이고 상품은 남는다
+tests/service/product-delete.test.ts > 실제 저장소를 쓰는 상품 삭제 서비스 > 이미 지운 상품을 다시 지우면 product_missing이다
+tests/service/product-delete.test.ts > 실제 저장소를 쓰는 상품 삭제 서비스 > 허용하지 않은 사용자는 서비스에서도 상품을 지우지 못한다
+tests/service/product-delete.test.ts > 실제 저장소를 쓰는 상품 삭제 서비스 > 지운 뒤 같은 링크를 담으면 새 상품으로 담긴다
+tests/service/product-delete.test.ts > 실제 저장소를 쓰는 상품 삭제 서비스 > 지운 상품의 사진 사본은 10분이 지나면 기존 남은 사본 정리가 Storage에서 지운다
+
+대표 실패 원인:
+   6 TypeError: toProductDeleteCommand is not a function
+   2 AssertionError: expected 'PGRST202' to be null
+   2 AssertionError: expected { data: { kind: 'applied' }, …(1) } to deeply equal { data: { kind: 'stale' }, code: null }
+   2 AssertionError: expected [] to deeply equal [ Array(1) ]
+   1 AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { …(2) }
+   1 AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { data: null, code: 'M0008' }
+   1 AssertionError: expected { data: null, code: 'PGRST202' } to deeply equal { data: null, code: 'M0006' }
+   1 AssertionError: expected 'PGRST202' to be 'M0002' // Object.is equality
+   1 AssertionError: expected [] to have a length of 1 but got +0
+   1 AssertionError: expected 'duplicate' to be 'added' // Object.is equality
+   1 AssertionError: expected LibraryError: 보관함 요청을 처리하지 못했어요. { …(2) } to match object { code: 'product_missing' }
+   1 AssertionError: expected { data: { …(4) }, code: null } to deeply equal { data: { kind: 'none' }, code: null }
+   1 AssertionError: expected 'PGRST202' to be '42501' // Object.is equality
+   1 AssertionError: expected 'PGRST202' to be 'M0001' // Object.is equality
+   1 AssertionError: expected [] to deeply equal [ { owner: 'moti_rpc', …(5) } ]
+
+## 3. 실제 HTTP: npm run test:database (마이그레이션·저장소·서비스는 구현, 경로가 DELETE를 내보내지 않은 빌드)
+
+Verified 296 persistence and 63 service tests with no skipped assertions.
+ Test Files  1 failed | 9 passed (10)
+      Tests  7 failed | 46 passed (53)
+
+tests/http/product-delete.test.ts > 실제 HTTP 상품 삭제 > 소유자가 화면이 본 revision으로 DELETE하면 200과 id를 받고 새 세션의 보관함에서도 상품과 소속이 사라진다
+tests/http/product-delete.test.ts > 실제 HTTP 상품 삭제 > 다른 곳에서 먼저 바뀐 상품을 오래된 revision으로 지우면 409 revision_conflict이고, 지운 상품을 다시 지우면 404 product_missing이다
+tests/http/product-delete.test.ts > 실제 HTTP 상품 삭제 > 지운 뒤 같은 링크를 다시 담으면 201로 새 상품이 된다
+tests/http/product-delete.test.ts > 실제 HTTP 상품 삭제 > Given revision 없는 본문 When DELETE하면 Then 계약에 맞는 오류이고 상품을 지우지 않는다
+tests/http/product-delete.test.ts > 실제 HTTP 상품 삭제 > Given 0 revision When DELETE하면 Then 계약에 맞는 오류이고 상품을 지우지 않는다
+tests/http/product-delete.test.ts > 실제 HTTP 상품 삭제 > Given JSON이 아닌 본문 When DELETE하면 Then 계약에 맞는 오류이고 상품을 지우지 않는다
+tests/http/product-delete.test.ts > 실제 HTTP 상품 삭제 > 다른 출처의 DELETE는 소유자 세션이어도 403이고, 세션 없는 DELETE는 401이며 상품은 남는다
+
+대표 실패 원인:
+   2 AssertionError: expected 405 to be 200 // Object.is equality
+   1 AssertionError: expected 405 to be 409 // Object.is equality
+   1 AssertionError: expected 405 to be 400 // Object.is equality
+   1 AssertionError: expected 405 to be 415 // Object.is equality
+   1 AssertionError: expected 405 to be 403 // Object.is equality
+
+## 4. 실제 스택 브라우저
+tests/browser/product-delete.spec.ts는 구현 전에 작성했다. 3번 실행은 HTTP 단계가 실패하면 스크립트가 브라우저 단계 전에 멈추므로 별도 Red 출력은 없다.

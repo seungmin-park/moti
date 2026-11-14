@@ -36,6 +36,8 @@ import {
   metadataWakeResponseSchema,
   productChangeRequestSchema,
   productChangeResponseSchema,
+  productDeleteRequestSchema,
+  productDeleteResponseSchema,
 } from "./library-dto";
 
 type Route = {
@@ -146,6 +148,20 @@ export const libraryRoutes: Route[] = [
       404: { description: "상품이 없다.", schema: errorResponseSchema },
       409: { description: "화면이 본 revision 뒤에 다른 곳에서 상품이 바뀌었다(revision_conflict).", schema: errorResponseSchema },
       422: { description: "선택한 컬렉션이 없다.", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "delete",
+    path: "/api/products/{productId}",
+    summary: "소유자가 상품을 삭제한다. 본문의 revision은 화면이 본 상품의 revision이며, 그 뒤 다른 곳에서 바뀌었으면 지우지 않는다. 컬렉션 소속과 수집 작업도 함께 지우고 컬렉션은 남긴다. 진행 중이던 수집의 늦은 결과는 버린다. 같은 링크는 다시 새 상품으로 담을 수 있다. 사진 사본은 바로 지우지 않고, 10분이 지난 뒤 소유자가 moti를 열 때 남은 사본 정리가 지운다.",
+    parameters: [{ name: "productId", description: "상품 ID", schema: z.uuid() }],
+    request: productDeleteRequestSchema,
+    responses: {
+      200: { description: "ProductDeleteResponse. 지운 상품의 ID", schema: productDeleteResponseSchema },
+      ...writeFailures,
+      ...denied,
+      404: { description: "상품이 없거나 이미 지웠다(product_missing).", schema: errorResponseSchema },
+      409: { description: "화면이 본 revision 뒤에 다른 곳에서 상품이 바뀌었다(revision_conflict). 아무것도 지우지 않는다.", schema: errorResponseSchema },
     },
   },
   {

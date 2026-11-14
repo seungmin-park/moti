@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MAX_METADATA_GENERATION, type MetadataRetryResult, type MetadataWakeResult } from "../../metadata/application/commands";
-import { MAX_REVISION, type LinkSaveResult } from "../application/commands";
+import { MAX_REVISION, type LinkSaveResult, type ProductDeleteResult } from "../application/commands";
 import { collectionErrorCodes, imageErrorCodes, priceCheckCodes } from "../../metadata/domain/collection-error";
 import type { Collection, Library, Picture, Product, ProductId } from "../domain/library";
 
@@ -116,6 +116,9 @@ export const productChangeRequestSchema = z.object({
   ]),
 }).strict();
 export const productChangeResponseSchema = z.object({ product: productResponseSchema }).strict();
+// The body carries only the revision the screen showed, as PATCH does, so a delete never removes a newer product.
+export const productDeleteRequestSchema = z.object({ revision: revisionSchema }).strict();
+export const productDeleteResponseSchema = z.object({ id: z.uuid() }).strict();
 export const collectionRenameRequestSchema = z.object({ revision: revisionSchema, name: z.string() }).strict();
 export const collectionRenameResponseSchema = collectionResponseSchema;
 
@@ -160,9 +163,15 @@ export type MetadataWakeRequest = z.infer<typeof metadataWakeRequestSchema>;
 export type MetadataWakeResponse = z.infer<typeof metadataWakeResponseSchema>;
 export type ProductChangeRequest = z.infer<typeof productChangeRequestSchema>;
 export type ProductChangeResponse = z.infer<typeof productChangeResponseSchema>;
+export type ProductDeleteRequest = z.infer<typeof productDeleteRequestSchema>;
+export type ProductDeleteResponse = z.infer<typeof productDeleteResponseSchema>;
 export type CollectionRenameRequest = z.infer<typeof collectionRenameRequestSchema>;
 export type CollectionRenameResponse = z.infer<typeof collectionRenameResponseSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
+
+export function toProductDeleteResponse(result: ProductDeleteResult): ProductDeleteResponse {
+  return { id: result.productId };
+}
 
 export function toCollectionResponse(collection: Collection): CollectionResponse {
   return {

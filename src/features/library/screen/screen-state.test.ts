@@ -528,6 +528,7 @@ describe("요청 실행", () => {
       createCollection: vi.fn(async () => ({ ok: true as const, value: created })),
       retryMetadata: vi.fn(async () => ({ ok: true as const, value: { product: lamp } })),
       changeProduct: vi.fn(async () => ({ ok: true as const, value: { product: lamp } })),
+      deleteProduct: vi.fn(async () => ({ ok: true as const, value: { id: lamp.id } })),
       renameCollection: vi.fn(async () => ({ ok: true as const, value: { ...desk, name: "작업 공간", revision: 2 } })),
       exportBackup: vi.fn(async () => ({ ok: false as const, failure: unavailable })),
       restore: vi.fn(async () => ({ ok: true as const, value: library })),
@@ -554,6 +555,9 @@ describe("요청 실행", () => {
     await expect(perform(api, { type: "product.change", productId: lamp.id, body: change }))
       .resolves.toEqual({ type: "change.settled", productId: lamp.id, intent: "purchase", outcome: { ok: true, value: { product: lamp } } });
     expect(api.changeProduct).toHaveBeenCalledWith(lamp.id, change);
+    await expect(perform(api, { type: "product.delete", productId: lamp.id, body: { revision: 2 } }))
+      .resolves.toEqual({ type: "delete.settled", productId: lamp.id, outcome: { ok: true, value: { id: lamp.id } } });
+    expect(api.deleteProduct).toHaveBeenCalledWith(lamp.id, { revision: 2 });
     await expect(perform(api, { type: "collection.rename", collectionId: desk.id, body: { revision: 1, name: "작업 공간" } }))
       .resolves.toEqual({ type: "rename.settled", outcome: { ok: true, value: { ...desk, name: "작업 공간", revision: 2 } } });
     expect(api.renameCollection).toHaveBeenCalledWith(desk.id, { revision: 1, name: "작업 공간" });
@@ -1053,6 +1057,93 @@ describe("상세에서 구매완료와 위시로 되돌리기", () => {
     expect(call).toEqual({ type: "library.read" });
     expect(detailOf(state).notice).toEqual({ form: "status", kind: "error", field: null, message: conflict.message });
     expect(state).toMatchObject({ toast: null });
+  });
+});
+
+describe("상세에서 상품 삭제", () => {
+  const deleting = { productId: lamp.id, intent: "delete" as const };
+  const deleted = (outcome: Extract<ScreenEvent, { type: "delete.settled" }>["outcome"]): ScreenEvent =>
+    ({ type: "delete.settled", productId: lamp.id, outcome });
+  const missing: ApiFailure = { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." };
+  const deleteConflict: ApiFailure = { kind: "stale", message: "다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 삭제해 주세요." };
+
+  it("Given 상세 When 삭제를 누르면 Then 요청하지 않고 상세 안에서 확인을 묻고, 취소하면 확인을 닫는다", () => {
+    const asked = transition(ready({ dialog: opened() }), { type: "detail.deleteAsk" });
+    expect(asked.call).toBeNull();
+    expect(detailOf(asked.state)).toEqual(opened({ confirming: true }));
+    expect(detailOf(transition(asked.state, { type: "detail.deleteCancel" }).state)).toEqual(opened());
+  });
+
+  it("Given 확인을 묻지 않은 상세 When 삭제를 확정하면 Then 요청하지 않는다", () => {
+    const start = ready({ dialog: opened() });
+    expect(transition(start, { type: "product.delete", productId: lamp.id })).toEqual({ state: start, call: null });
+  });
+
+  it("Given 삭제 확인 When 확정하면 Then 화면이 본 revision으로 요청하고 끝날 때까지 닫기·다른 쓰기·다시 확정을 막는다", () => {
+    const start = withProducts([{ ...lamp, revision: 4 }, chair], { dialog: opened({ confirming: true }), toast: { kind: "notice", message: "x" } });
+    const asked = transition(start, { type: "product.delete", productId: lamp.id });
+    expect(asked.call).toEqual({ type: "product.delete", productId: lamp.id, body: { revision: 4 } });
+    expect(asked.state).toMatchObject({ writing: deleting, toast: null });
+    for (const event of [
+      { type: "dialog.close" },
+      { type: "detail.deleteCancel" },
+      { type: "product.delete", productId: lamp.id },
+      { type: "product.purchase", productId: lamp.id },
+      { type: "detail.edit", field: "note", value: "늦은 메모" },
+    ] satisfies ScreenEvent[]) {
+      expect(transition(asked.state, event)).toEqual({ state: asked.state, call: null });
+    }
+  });
+
+  it("Given 보관함을 새로 읽는 중 When 삭제를 확정하면 Then 요청하지 않는다", () => {
+    const start = ready({ dialog: opened({ confirming: true }), refreshing: true });
+    expect(transition(start, { type: "product.delete", productId: lamp.id }).call).toBeNull();
+  });
+
+  it("Given 삭제 요청 중 When 성공하면 Then 상세를 닫고 목록과 컬렉션 개수에서 빼고 삭제했다고 알린다", () => {
+    const start = ready({ dialog: opened({ confirming: true }), writing: deleting });
+    expect(visibleProducts(start.library, "wish", desk.id)).toEqual([lamp]);
+
+    const { state, call } = transition(start, deleted({ ok: true, value: { id: lamp.id } }));
+
+    expect(call).toBeNull();
+    expect(state).toMatchObject({ dialog: null, writing: null, toast: { kind: "notice", message: "상품을 삭제했어요" } });
+    const after = state as Ready;
+    expect(after.library.products).toEqual([chair]);
+    expect(after.library.collections).toEqual([desk, room]);
+    expect(visibleProducts(after.library, "wish", desk.id)).toEqual([]);
+    expect(visibleToast(after)).toEqual({ message: "상품을 삭제했어요", undo: false });
+  });
+
+  it("Given 다른 곳에서 먼저 바뀐 상품 When 삭제가 거절되면 Then 상세에 알리고 확인을 닫은 뒤 다시 읽고 상품은 남긴다", () => {
+    const start = ready({ dialog: opened({ confirming: true }), writing: deleting });
+    const { state, call } = transition(start, deleted({ ok: false, failure: deleteConflict }));
+    expect(call).toEqual({ type: "library.read" });
+    expect(detailOf(state)).toEqual(opened({ notice: { form: "delete", kind: "error", field: null, message: deleteConflict.message } }));
+    expect(state).toMatchObject({ writing: null, refreshing: true });
+    expect((state as Ready).library.products).toEqual([lamp, chair]);
+  });
+
+  it("Given 이미 지워진 상품 When 삭제가 거절되고 다시 읽은 보관함에 없으면 Then 상세를 닫고 같은 안내를 알림으로 보여준다", () => {
+    const start = ready({ dialog: opened({ confirming: true }), writing: deleting });
+    const refused = transition(start, deleted({ ok: false, failure: missing }));
+    expect(refused.call).toEqual({ type: "library.read" });
+
+    const { state } = transition(refused.state, { type: "library.settled", outcome: { ok: true, value: { ...library, products: [chair] } } });
+
+    expect(state).toMatchObject({ dialog: null, toast: { kind: "notice", message: missing.message } });
+    expect(visibleToast(state as Ready)).toEqual({ message: missing.message, undo: false });
+  });
+
+  it("Given 삭제 요청 중 When 일시적으로 실패하거나 세션이 끝나면 Then 상세에 알리고 다시 물을 수 있게 하거나 로그인으로 보낸다", () => {
+    const start = ready({ dialog: opened({ confirming: true }), writing: deleting });
+    const failed = transition(start, deleted({ ok: false, failure: unavailable }));
+    expect(failed.call).toBeNull();
+    expect(detailOf(failed.state)).toEqual(opened({ notice: { form: "delete", kind: "error", field: null, message: unavailable.message } }));
+    expect(transition(failed.state, { type: "detail.deleteAsk" }).state).toMatchObject({ dialog: { confirming: true, notice: null } });
+
+    const redirect = { kind: "redirect" as const, to: "/login" };
+    expect(transition(start, deleted({ ok: false, failure: redirect })).state).toEqual({ phase: "leaving", to: "/login" });
   });
 });
 
