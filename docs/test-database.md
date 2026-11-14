@@ -1,6 +1,6 @@
 # 실제 저장 테스트
 
-운영 저장소는 Supabase PostgreSQL이다. 테스트에서는 같은 Supabase의 PostgreSQL·Auth·PostgREST·Storage를 별도 임시 실행한다. Docker 설치는 필요하지 않다. 공식 CLI 3.1.0과 `supabase/supabase.lock`에 고정한 native 서비스를 사용한다. 이 모드는 실험적이며 지원 환경은 Apple Silicon macOS 14 이상과 glibc 2.35 이상 Linux다. [Supabase 공식 설명](https://supabase.com/docs/guides/local-development/docker-and-native-runtimes)
+운영 저장소는 Supabase PostgreSQL이다. 테스트에서는 같은 Supabase의 PostgreSQL·Auth·PostgREST·Storage를 별도 임시 실행한다. Docker 설치는 필요하지 않다. 공식 CLI 3.1.0과 `supabase/supabase.lock`에 고정한 native 서비스를 사용한다. 고정 버전은 운영 프로젝트에 `link`할 때 운영과 같은 Postgres·Auth·Storage로 맞췄다. PostgREST는 운영 버전을 받을 수 없어 CLI에 들어 있는 버전이다([hand-back.md](hand-back.md#운영-설정-기록)). 이 모드는 실험적이며 지원 환경은 Apple Silicon macOS 14 이상과 glibc 2.35 이상 Linux다. [Supabase 공식 설명](https://supabase.com/docs/guides/local-development/docker-and-native-runtimes)
 
 ```sh
 npm ci
