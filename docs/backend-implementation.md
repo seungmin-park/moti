@@ -11,9 +11,9 @@
 - [x] poteto-mode의 Principles와 figure-it-out을 읽는다.
 - [x] Frame. 기존 UI 33개 단위·40개 브라우저 검사와 PR #3 병합을 기준선으로 고정한다.
 - [x] Design the workflow. 직접 SQL 트랜잭션과 Supabase SDK·RPC를 비교하고 SDK·RPC를 선택한다. 아래의 저장 경계와 최초 단위를 따른다.
-- [ ] Run the loop. 아래 기능 단위마다 Red → Green → Refactor와 실제 병합까지 확인한다.
-- [ ] Keep the audit trail. 중요한 결정과 검증 근거를 `backend-decisions.tsv`에 계속 추가한다.
-- [ ] Verify and hand back. 전체 실제 사용자 흐름과 외부 설정·배포 승인 항목을 구체적으로 정리한다.
+- [x] Run the loop. 아래 기능 단위마다 Red → Green → Refactor와 실제 병합까지 확인한다. 5c(PR #16, `d63f86d`)로 모든 단위가 병합됐다.
+- [x] Keep the audit trail. 중요한 결정과 검증 근거를 `backend-decisions.tsv`에 계속 추가한다.
+- [x] Verify and hand back. 전체 실제 사용자 흐름과 외부 설정·배포 승인 항목을 구체적으로 정리한다. [인계 문서](hand-back.md)에 있다. 배포와 실제 기기 검증은 승인 뒤 남은 단계다.
 
 ## 기능 단위
 
