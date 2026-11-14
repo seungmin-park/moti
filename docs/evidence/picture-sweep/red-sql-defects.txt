@@ -1,0 +1,123 @@
+# Red (injected defects): the rules of the orphan query. Each defect was put into a copy of the migration, run alone and
+# removed again (cmp with the original copy after each run). Each one fails only the tests that guard its rule; the
+# other tests in tests/persistence/picture-orphans.test.ts pass.
+#   1. age: no ten-minute margin (stored_pictures(p_owner, now())). The copy made 9 minutes ago is returned.
+#   2. limit: the limit counts the oldest objects before the reference check, as a limit inside stored_pictures would.
+#      Two older copies that products show fill a limit of 1 and the orphan behind them is never returned.
+#   3. reference: no check for the copy a product shows. The shown copy is returned; Storage refuses to delete it, so the
+#      check that compares the answer with Storage's own delete policy (may_discard) fails too.
+#   4. running: no check for a running job's current attempt. Its copy is returned while a late complete may still
+#      record it; Storage refuses it, so the policy comparison fails too.
+# None of the defects touches a grant, so no failure comes from a missing privilege.
+# Command: npm run test:database -- -t "남은 사진 사본 찾기" (other tests filtered out, so the runner exits 1 on skips).
+#
+# --- defect age
+# 26c26
+# <       select s.name from moti.stored_pictures(p_owner, now() - interval '10 minutes') s(name)
+# ---
+# >       select s.name from moti.stored_pictures(p_owner, now()) s(name)
+# --- defect limit
+# 11a12
+# >   order by o.created_at
+# 26c27,30
+# <       select s.name from moti.stored_pictures(p_owner, now() - interval '10 minutes') s(name)
+# ---
+# >       select s.name from (
+# >         select c.name from moti.stored_pictures(p_owner, now() - interval '10 minutes') with ordinality c(name, n)
+# >         order by c.n limit p_limit
+# >       ) s
+# --- defect reference
+# 28,32d27
+# <           select 1 from moti.products p
+# <           where p.picture_job_id is not null
+# <             and moti.picture_object(p.owner_id, p.id, p.picture_job_id, p.picture_attempt) = s.name
+# <         )
+# <         and not exists (
+# --- defect running
+# 32,35d31
+# <         and not exists (
+# <           select 1 from moti.metadata_jobs j
+# <           where j.status = 'running' and moti.picture_object(j.owner_id, j.product_id, j.id, j.attempts) = s.name
+# <         )
+
+=== defect age
+ ❯ tests/persistence/picture-orphans.test.ts (11 tests | 1 failed) 3387ms
+     × 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 402ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 318ms
+     ✓ 끝나지 않은 작업의 이번 시도 사본은 임대가 지나도 돌려주지 않고 다음 시도가 맡은 뒤에만 돌려준다 294ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 299ms
+     ✓ 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 333ms
+     ✓ 돌려준 사본은 소유자가 지울 수 있고 돌려주지 않은 오래된 사본은 Storage도 지우지 못한다 319ms
+     ✓ 한도가 0이면 M0002다 288ms
+     ✓ 한도가 201이면 M0002다 285ms
+     ✓ 한도가 null이면 M0002다 294ms
+     ✓ 소유자가 아닌 세션은 M0001, 익명은 42501이다 289ms
+     ✓ Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다 265ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { data: [ …(2) ], code: null } to deeply equal { …(2) }
+ ❯ tests/persistence/picture-orphans.test.ts:100:29
+ Test Files  1 failed | 21 skipped (22)
+      Tests  1 failed | 10 passed | 318 skipped (329)
+
+=== defect limit
+ ❯ tests/persistence/picture-orphans.test.ts (11 tests | 1 failed) 3374ms
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 402ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 312ms
+     ✓ 끝나지 않은 작업의 이번 시도 사본은 임대가 지나도 돌려주지 않고 다음 시도가 맡은 뒤에만 돌려준다 292ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 296ms
+     × 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 336ms
+     ✓ 돌려준 사본은 소유자가 지울 수 있고 돌려주지 않은 오래된 사본은 Storage도 지우지 못한다 320ms
+     ✓ 한도가 0이면 M0002다 289ms
+     ✓ 한도가 201이면 M0002다 289ms
+     ✓ 한도가 null이면 M0002다 285ms
+     ✓ 소유자가 아닌 세션은 M0001, 익명은 42501이다 288ms
+     ✓ Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다 267ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { data: [], code: null } to deeply equal { …(2) }
+ ❯ tests/persistence/picture-orphans.test.ts:137:30
+ Test Files  1 failed | 21 skipped (22)
+      Tests  1 failed | 10 passed | 318 skipped (329)
+
+=== defect reference
+ ❯ tests/persistence/picture-orphans.test.ts (11 tests | 3 failed) 3387ms
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 404ms
+     × 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 319ms
+     ✓ 끝나지 않은 작업의 이번 시도 사본은 임대가 지나도 돌려주지 않고 다음 시도가 맡은 뒤에만 돌려준다 290ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 296ms
+     × 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 334ms
+     × 돌려준 사본은 소유자가 지울 수 있고 돌려주지 않은 오래된 사본은 Storage도 지우지 못한다 320ms
+     ✓ 한도가 0이면 M0002다 287ms
+     ✓ 한도가 201이면 M0002다 290ms
+     ✓ 한도가 null이면 M0002다 292ms
+     ✓ 소유자가 아닌 세션은 M0001, 익명은 42501이다 288ms
+     ✓ Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다 267ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { data: [ …(2) ], code: null } to deeply equal { …(2) }
+ ❯ tests/persistence/picture-orphans.test.ts:107:29
+AssertionError: expected { data: [ …(2) ], code: null } to deeply equal { data: [ …(2) ], code: null }
+ ❯ tests/persistence/picture-orphans.test.ts:138:30
+AssertionError: expected [ …(2) ] to deeply equal [ Array(1) ]
+ ❯ tests/persistence/picture-orphans.test.ts:149:18
+ Test Files  1 failed | 21 skipped (22)
+      Tests  3 failed | 8 passed | 318 skipped (329)
+
+=== defect running
+ ❯ tests/persistence/picture-orphans.test.ts (11 tests | 2 failed) 3378ms
+     ✓ 상품이 보여주지 않는 사본은 10분이 지나야 돌려준다 397ms
+     ✓ 상품이 보여주는 사본은 오래돼도 돌려주지 않는다 319ms
+     × 끝나지 않은 작업의 이번 시도 사본은 임대가 지나도 돌려주지 않고 다음 시도가 맡은 뒤에만 돌려준다 294ms
+     ✓ 다른 계정 접두사의 객체는 돌려주지 않는다 297ms
+     ✓ 한도는 남은 사본에만 세어 오래된 보이는 사본이 많아도 남은 사본을 찾는다 333ms
+     × 돌려준 사본은 소유자가 지울 수 있고 돌려주지 않은 오래된 사본은 Storage도 지우지 못한다 320ms
+     ✓ 한도가 0이면 M0002다 285ms
+     ✓ 한도가 201이면 M0002다 290ms
+     ✓ 한도가 null이면 M0002다 286ms
+     ✓ 소유자가 아닌 세션은 M0001, 익명은 42501이다 289ms
+     ✓ Storage를 읽는 함수는 마이그레이션 소유자로 실행하고 RPC 역할만 부르며 공개 REST에 드러나지 않는다 267ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { …(2) } to deeply equal { data: [], code: null }
+ ❯ tests/persistence/picture-orphans.test.ts:116:29
+AssertionError: expected [ …(2) ] to deeply equal [ Array(1) ]
+ ❯ tests/persistence/picture-orphans.test.ts:149:18
+ Test Files  1 failed | 21 skipped (22)
+      Tests  2 failed | 9 passed | 318 skipped (329)

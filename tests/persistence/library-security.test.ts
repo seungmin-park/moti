@@ -78,8 +78,8 @@ describe("실제 DB 소유자 경계", () => {
     );
     expect(functions.rows.map((row) => row.proname).toSorted()).toEqual([
       "moti_backup", "moti_create_collection", "moti_edit_product", "moti_metadata_claim", "moti_metadata_complete", "moti_metadata_fail",
-      "moti_metadata_retry", "moti_metadata_wake", "moti_picture_locate", "moti_purchase_product", "moti_record_purchase",
-      "moti_rename_collection", "moti_restore_library", "moti_return_to_wish", "moti_save_link", "moti_share_add",
+      "moti_metadata_retry", "moti_metadata_wake", "moti_picture_locate", "moti_picture_orphans", "moti_purchase_product",
+      "moti_record_purchase", "moti_rename_collection", "moti_restore_library", "moti_return_to_wish", "moti_save_link", "moti_share_add",
       "moti_share_key_issue", "moti_share_key_read", "moti_share_key_revoke", "moti_snapshot",
       "moti_worker_begin", "moti_worker_complete", "moti_worker_fail", "moti_worker_finish", "moti_worker_key_issue",
       "moti_worker_key_revoke", "moti_worker_next", "moti_worker_price", "moti_worker_read",
