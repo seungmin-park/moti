@@ -28,6 +28,8 @@
 
 운영에서 쓰기 시작한 뒤 소유자가 쓸모없는 상품(페이지 읽기를 막는 쇼핑몰, 짧은 주소로 두 번 담긴 같은 상품)을 지울 방법을 요청해 상품 삭제를 `feat/product-delete`에서 구현했다. `chore/production-setup`(1bb2836)에서 시작했다. 새 RPC `moti_delete_product`가 정리 RPC의 규칙(`M0002`·`M0006`·`M0008`)으로 화면이 본 revision의 상품을 지우고, 소속과 수집 작업은 외래키 cascade로 함께 지운다. HTTP는 `DELETE /api/products/{productId}`(본문 `{ revision }`, 200 `{ id }`)이고 화면은 상세의 "삭제"와 상세 안의 확인이다. 사진 사본은 기존 남은 사진 정리가 10분 뒤 지운다. 상세 기록은 `docs/changes/product-delete.md`에 있다. 컬렉션 삭제는 남았다.
 
+2026-11-15 실제 iPhone 시험에서 쿠팡 앱이 단축어에 링크 대신 글("쿠팡을 추천합니다!", 상품 이름, 짧은 링크)을 넘겨 400이 됐다. 그래서 `feat/share-text`(`main` 2e55658에서 시작)를 만들었다. `POST /api/share/links`는 같은 `{ url }` 본문에 글을 받아 첫 http(s) 링크를 담는다. 그 앞의 가장 가까운 줄은 수집 전 이름으로 `products.title`에 처음 값으로 둔다. 수집이 성공하면 바뀌고 소유자 이름은 계속 앞선다. 마이그레이션 `20261121000000_share_text.sql`은 `add_link`·`moti_share_add`에 기본값 null인 `p_title`을 더한다. 이름이 맞지 않으면 기본 이름으로 담고, `moti_share`에는 `title` 열 INSERT만 더 준다. 같은 상품 판별은 `af_*`·`is_retargeting`·`shortlink`·`source_caller`·`onelink_id`·`nl-query`·`nl-au`도 뺀다(`pid`는 `af_*`와 함께일 때만). 이전에 담긴 행은 이전 판별 주소를 그대로 가진다. "공유 저장" 안내는 기기에서 동작한 구성(텍스트도 받기, 입력이 없으면 클립보드, 요청 하나)으로 바꿨다. 상세 기록은 `docs/changes/share-text.md`에 있다.
+
 ## 확인된 UI 검증
 
 lint·typecheck·build 통과. 순수 단위 33개와 최종 headed Playwright 40개가 통과했다. PC Chromium과 iPhone 크기 WebKit에서 실행했다. 실제 iPhone·물리 IME는 미검증이다. 두 화면 크기의 28개 상태에서 초록 UI 스타일·가로 넘침·페이지 오류가 없고 정렬 메뉴·컬렉션 선택 창의 axe 위반은 0개다. 상세 증거는 `docs/changes/controls.md`와 `docs/evidence/controls`에 있다.

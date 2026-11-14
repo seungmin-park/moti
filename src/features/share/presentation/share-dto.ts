@@ -3,9 +3,11 @@ import type { ShareKeyIssueResult, ShareLinkAddResult } from "../application/com
 import { SHARE_SECRET_PATTERN, type ShareKey } from "../domain/share-key";
 
 export const SHARE_LINKS_PATH = "/api/share/links";
-// A link is at most 4,096 characters; the rest is room for JSON escapes, not for other fields.
+// A link is at most 4,096 characters; the rest is room for the shared text around it and JSON escapes, not for other
+// fields. The text has its own cap in characters (readSharedText).
 export const MAX_SHARE_BYTES = 8 * 1024;
 
+// `url` keeps its name so existing Shortcuts keep working, but it may hold the shared text around a link.
 export const shareLinkAddRequestSchema = z.object({ url: z.string() }).strict();
 export const shareLinkAddResponseSchema = z.object({
   result: z.enum(["added", "duplicate"]),

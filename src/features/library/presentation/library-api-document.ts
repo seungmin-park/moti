@@ -271,13 +271,13 @@ export const libraryRoutes: Route[] = [
   {
     method: "post",
     path: SHARE_LINKS_PATH,
-    summary: "iPhone 공유 단축어가 저장 키로 링크 하나를 담는다. 쿠키 세션은 인증이 아니고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 응답은 결과와 단축어가 보여줄 message뿐이고 상품 정보는 돌려주지 않는다. 상품 정보 수집은 소유자가 moti를 열 때 시작한다.",
+    summary: "iPhone 공유 단축어가 저장 키로 링크 하나를 담는다. url에는 링크나 링크가 든 공유 글(5,000자 이하)을 넣는다. 글이면 첫 http(s) 링크를 담고, 그 앞의 가장 가까운 줄을 수집 전 상품 이름으로 둔다. 쿠키 세션은 인증이 아니고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 응답은 결과와 단축어가 보여줄 message뿐이고 상품 정보는 돌려주지 않는다. 상품 정보 수집은 소유자가 moti를 열 때 시작한다.",
     security: "shareKey",
     request: shareLinkAddRequestSchema,
     responses: {
       201: { description: "ShareLinkAddResponse. 새로 담았다(added).", schema: shareLinkAddResponseSchema },
       200: { description: "ShareLinkAddResponse. 이미 담겨 있다(duplicate). 아무것도 바꾸지 않는다.", schema: shareLinkAddResponseSchema },
-      400: { description: "본문이 url 하나만 담은 JSON 객체가 아니거나 상품 링크가 아니다(invalid_link).", schema: shareLinkErrorResponseSchema },
+      400: { description: "본문이 url 하나만 담은 JSON 객체가 아니거나, url에 http(s) 링크가 없거나 상품 링크가 아니다(invalid_link).", schema: shareLinkErrorResponseSchema },
       401: {
         description: "키가 없거나 형식이 다르거나 모르는 키이거나 폐기한 키다. 모두 같은 본문이다(share_key_rejected).",
         schema: shareLinkErrorResponseSchema,

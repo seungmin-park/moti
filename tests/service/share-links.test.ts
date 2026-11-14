@@ -97,4 +97,37 @@ describe("실제 저장소를 쓰는 공유 담기 서비스", () => {
     })]);
     expect((await jobs.wake({ limit: WAKE_LIMIT })).products).toEqual([]);
   });
+
+  it("쇼핑 앱이 넘긴 글로 담으면 그 글의 이름으로 보이고, 실제 수집이 성공하면 페이지의 이름으로 바뀐다", async () => {
+    const offerPage = readFileSync(resolve(import.meta.dirname, "../fixtures/pages/offer.html"), "utf8");
+    const shop: PageSource = { read: vi.fn(async () => ({ ok: true as const, page: { html: offerPage, url: "https://shop.example/headphones", status: 200 } })) };
+    const noImages: ImageSource = { read: async () => ({ ok: false, code: "blocked_by_site" }) };
+    const jobs = createSupabaseCollectionStore(fixture.owner.client);
+    const runner = createCollectionRunner({
+      store: jobs,
+      source: shop,
+      read: readProductPage,
+      copier: createPictureCopier({ source: noImages, normalize: normalizePicture, pictures: createPictureStore(fixture.owner.client) }),
+    });
+    const { secret } = await keys().issue({ replaces: null });
+    // The Coupang app's shape: a greeting, the product's name, then its link (here a shop the test controls).
+    const text = "쿠팡을 추천합니다!\n무선 헤드폰\nhttps://shop.example/headphones?af_channel=mobile_share&pid=af_app_invites";
+
+    expect(await links().add(toShareLinkAddCommand(secret, text))).toEqual({ kind: "added" });
+    expect((await owner().snapshot()).products).toEqual([expect.objectContaining({
+      sourceUrl: "https://shop.example/headphones?af_channel=mobile_share&pid=af_app_invites",
+      identityUrl: "https://shop.example/headphones",
+      title: "무선 헤드폰",
+      metadata: expect.objectContaining({ phase: "queued" }),
+    })]);
+    expect(await links().add(toShareLinkAddCommand(secret, "https://shop.example/headphones"))).toEqual({ kind: "duplicate" });
+
+    const { products } = await jobs.wake({ limit: WAKE_LIMIT });
+    await Promise.all(products.map(({ id, metadata }) => runner.run({ productId: id, generation: metadata.generation })));
+
+    expect((await owner().snapshot()).products).toEqual([expect.objectContaining({
+      title: "무선 헤드폰 블랙",
+      metadata: expect.objectContaining({ phase: "ready" }),
+    })]);
+  });
 });

@@ -9479,7 +9479,7 @@
     },
     "/api/share/links": {
       "post": {
-        "summary": "iPhone 공유 단축어가 저장 키로 링크 하나를 담는다. 쿠키 세션은 인증이 아니고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 응답은 결과와 단축어가 보여줄 message뿐이고 상품 정보는 돌려주지 않는다. 상품 정보 수집은 소유자가 moti를 열 때 시작한다.",
+        "summary": "iPhone 공유 단축어가 저장 키로 링크 하나를 담는다. url에는 링크나 링크가 든 공유 글(5,000자 이하)을 넣는다. 글이면 첫 http(s) 링크를 담고, 그 앞의 가장 가까운 줄을 수집 전 상품 이름으로 둔다. 쿠키 세션은 인증이 아니고 출처도 묻지 않으며 CORS 허용 헤더가 없다. 응답은 결과와 단축어가 보여줄 message뿐이고 상품 정보는 돌려주지 않는다. 상품 정보 수집은 소유자가 moti를 열 때 시작한다.",
         "security": [
           {
             "shareKey": []
@@ -9565,7 +9565,7 @@
             }
           },
           "400": {
-            "description": "본문이 url 하나만 담은 JSON 객체가 아니거나 상품 링크가 아니다(invalid_link).",
+            "description": "본문이 url 하나만 담은 JSON 객체가 아니거나, url에 http(s) 링크가 없거나 상품 링크가 아니다(invalid_link).",
             "content": {
               "application/json": {
                 "schema": {
