@@ -755,7 +755,7 @@ describe("DELETE /api/products/{productId}", () => {
   it.each([
     [{ kind: "signed_out" } as Access, 401, "signed_out"],
     [{ kind: "unconfigured" } as Access, 503, "unconfigured"],
-  ])("Given 접근 결과 $kind When 상품을 삭제하면 Then %i이고 서비스를 부르지 않는다", async (access, status, code) => {
+  ])("Given 거절된 접근 %# When 상품을 삭제하면 Then 서비스를 부르지 않는다", async (access, status, code) => {
     const { handlers, service } = given(access);
     const response = await handlers.deleteProduct(...remove({ revision: 1 }));
     expect(response.status).toBe(status);
