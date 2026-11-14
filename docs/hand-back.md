@@ -101,13 +101,13 @@
 
 ## 운영 설정 기록
 
-2026-11-15에 소유자와 함께 1~4단계를 진행했다. 값과 비밀은 적지 않는다.
+2026-11-15에 소유자와 함께 1~4단계와 5단계 일부를 진행했다. 값과 비밀은 적지 않는다.
 
 - 1단계. Supabase 프로젝트는 서울(`ap-northeast-2`), Free, Postgres 17이다. Data API는 켜고 `public` 스키마를 노출한다. 마이그레이션 9개를 `db push --remote`로 적용했고 `migration list --remote`가 로컬과 같은 9개를 보였다. 읽기 전용 조회로 비공개 버킷(WebP, 1MiB), 세 역할(로그인·RLS 우회 없음), `moti` 테이블 8개의 강제 RLS, `public` RPC 30개의 실행 권한(소유자용 23개는 `authenticated`만, 키용 7개는 `anon`만, PUBLIC 없음), Storage 정책 셋, 문 시간 제한(`authenticated` 8초, `anon` 3초)을 확인했다. `db advisors --remote`는 ERROR 0, WARN 30, INFO 9였다. WARN은 모두 보안 정의자 RPC를 API로 실행할 수 있다는 경고이고 의도한 구조다. INFO는 덮는 인덱스가 없는 외래 키와 아직 쓰이지 않은 인덱스다.
 - `link`가 맞춘 버전으로 로컬 스택이 운영과 같은 Postgres(17.11.0.019), Auth(v2.197.0), Storage(v1.94.2)를 쓴다. PostgREST는 운영이 14.18이고 CLI가 그 버전을 내려받을 수 없어 로컬은 v16.5다. 로컬·CI의 HTTP 검사가 운영 PostgREST를 대신하지 못한다.
 - 2단계. Google OAuth 동의 화면은 테스트 상태이고 소유자만 테스트 사용자다. Supabase는 Google만 켜고 이메일·익명 로그인, 새 가입, 수동 연결을 껐다.
 - 3단계. Vercel Hobby에 배포했다. 팀 이름이 붙은 기본 주소는 Vercel의 배포 보호가 앞에서 막는다(302로 Vercel 로그인). 그래서 팀 이름이 없는 운영 도메인을 쓴다. 함수 지역은 처음에 `iad1`이었고 `icn1`으로 바꿔 다시 배포했다(`x-vercel-id: icn1::icn1::`). 운영 도메인에서 로그인 없이 `/login` 200, `GET /api/library` 401, `/auth/login` 303(Supabase Google 로그인), 키 없는 `POST /api/share/links`·`/api/scheduled-runs` 401을 확인했다. 단축어와 예약 실행 경로가 배포 보호에 막히지 않는다.
-- 4단계. 가입을 연 동안 소유자가 로그인해 "이 Google 계정은 사용할 수 없어요"로 끝났고 Auth에 사용자 한 명이 생겼다. `owner_config`에 한 행을 넣고 호스팅 subject를 같은 값으로 바꿔 다시 배포했다. 소유자의 실제 Google 로그인으로 빈 보관함이 열렸다. 다른 Google 계정은 아직 시험하지 않았다.
+- 4단계. 가입을 잠시 연 동안 소유자가 로그인해 "이 Google 계정은 사용할 수 없어요"로 끝났고 Auth에 사용자 한 명이 생겼다. `owner_config`에 한 행을 넣고 호스팅 subject를 같은 값으로 바꿔 다시 배포했다. 소유자의 실제 Google 로그인으로 빈 보관함이 열렸다. 가입을 다시 닫았는지와 다른 Google 계정은 아직 확인하지 않았다.
 - 5단계. 네이버 스마트스토어 상품과 `naver.me` 짧은 주소는 운영에서 둘 다 `blocked_by_site`였다(0.1~0.2초). 같은 주소를 가정 회선에서 `check-real-pages.mjs`로 읽어도 4xx였고, `curl`에 스마트스토어는 429를 돌려줬다. 데이터센터 IP와 무관하게 페이지 읽기로는 스마트스토어를 수집할 수 없다. 링크와 컬렉션은 남았고 다시 가져오기도 같은 결과였다. 가정 회선의 `check-real-pages.mjs`로 무신사·29CM·11번가·오늘의집은 성공, 쿠팡·G마켓은 같은 차단이었다([verification.md](verification.md)). 운영에서 성공하는 쇼핑몰 확인, 6·7단계는 아직이다.
 
 ## 후속 과제

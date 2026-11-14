@@ -4,7 +4,7 @@ CI 작업 `mockup`은 `app`으로, Supabase 없는 브라우저 검사 `test:e2e
 
 모든 기능 단위의 완료 판정 근거와 흐름별 검증 범위는 [인계 문서](hand-back.md)에 모았다. GitHub는 `main`의 예약으로 워크플로를 한 번 실행했고(2026-11-14T01:27:47Z, run 43540729861), 값을 넣기 전이라 건너뜀 알림만 남겼다. 값을 넣은 실행은 검증하지 않았다.
 
-운영 프로젝트에 `link`한 뒤 로컬 스택의 고정 버전이 운영과 같은 Postgres 17.11.0.019, Auth v2.197.0, Storage v1.94.2로 바뀌었다. 바뀐 lock으로 `npm run verify`를 다시 돌려 단위 1,385개, 실제 DB 333개(persistence 276, service 57), 실제 HTTP 46개, 실제 스택 브라우저 50개, `tests/ui` 50개가 통과했다. PostgREST는 운영(14.18)과 다른 v16.5다. 운영에서 한 설정과 실제 확인은 [인계 문서의 운영 설정 기록](hand-back.md#운영-설정-기록)에 있다. 실제 쇼핑몰은 가정 회선의 `check-real-pages.mjs`로 무신사·29CM·11번가·오늘의집 7개가 이름·가격·사진까지 성공했고, 쿠팡 3개·G마켓 2개·네이버 스마트스토어 2개는 `blocked_by_site`였다(`curl`도 403·429).
+운영 프로젝트에 `link`한 뒤 로컬 스택의 고정 버전이 운영과 같은 Postgres 17.11.0.019, Auth v2.197.0, Storage v1.94.2로 바뀌었다. 바뀐 lock으로 `npm run verify`를 다시 돌려 단위 1,385개, 실제 DB 333개(persistence 276, service 57), 실제 HTTP 46개, 실제 스택 브라우저 50개, `tests/ui` 50개가 통과했다. PostgREST는 운영(14.18)과 다른 v16.5다. 운영에서 한 설정과 실제 확인은 [인계 문서의 운영 설정 기록](hand-back.md#운영-설정-기록)에 있다. 실제 쇼핑몰은 가정 회선의 `check-real-pages.mjs`로 무신사·29CM·11번가·오늘의집 4곳의 상품 7개가 이름·가격·사진까지 성공했고, 쿠팡 3개·G마켓 2개·네이버 스마트스토어 2개는 `blocked_by_site`였다(`curl`도 403·429).
 
 남은 사진 정리(5c)의 검증은 [변경 기록](changes/picture-sweep.md)에 있다. 단위 1,385개, 실제 DB 333개(persistence 276, service 57), 실제 HTTP 46개, 실제 스택 브라우저 50개, `tests/ui` 50개가 통과했다. 남은 사본은 실제 업로드·임대 만료·다음 시도와 `storage.objects.created_at` 되돌리기로 만들었고, Storage 지우기 실패는 아무도 듣지 않는 주소로 대신했다. 운영 Storage, 호스팅의 `after()`, 실제 iPhone은 검증하지 않았다.
 
