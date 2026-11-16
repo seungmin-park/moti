@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type KeyboardEvent } from "react";
-import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Info, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Info, LoaderCircle, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Dialog } from "../../wishlist/Dialog";
 import { EARLIEST_PURCHASE_DATE, seoulToday } from "../../wishlist/product-fields";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
@@ -9,6 +9,7 @@ import { FieldError, fieldProps } from "./AddLinkDialog";
 import type { FieldName } from "./library-api";
 import { ProductPicture } from "./ProductPicture";
 import { toProductDetailView } from "./product-view";
+import { collectionFieldKey } from "./collection-field-keys";
 import {
   detailForms,
   type DetailDraft,
@@ -81,6 +82,121 @@ function DeleteProduct({ id, confirming, deleting, blocked, error, send, product
   );
 }
 
+// The collection checkboxes and, under them, "새 컬렉션": a name field that creates the collection and checks it in the
+// draft. Enter or 만들기 creates, Escape or 취소 closes only the field. The focus then goes to the new checkbox, or back
+// to "새 컬렉션", unless the owner has since moved into another field of the dialog. A refused name takes the focus
+// back to the field. While the collection is being made the checkboxes wait with the rest of the dialog.
+function CollectionOptions({ id, collections, checkedIds, field, error, saving, blocked, send }: {
+  id: string;
+  collections: CollectionResponse[];
+  checkedIds: string[];
+  field: { name: string; creating: boolean } | null;
+  error: FormError | null;
+  saving: boolean;
+  blocked: boolean;
+  send: (event: ScreenEvent) => void;
+}) {
+  const root = useRef<HTMLFieldSetElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
+  // Set when the owner asks to create, so only that answer's error moves the focus.
+  const asked = useRef(false);
+  // The collections shown when the field opened, so a closed field can tell which checkbox it made.
+  const known = useRef<Set<string> | null>(null);
+  const open = field !== null;
+  useEffect(() => {
+    if (open) {
+      known.current ??= new Set(collections.map((collection) => collection.id));
+      return;
+    }
+    const before = known.current;
+    known.current = null;
+    if (!before) return;
+    const active = document.activeElement;
+    const typing = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
+    if (typing && !root.current?.contains(active)) return;
+    const made = collections.find((collection) => !before.has(collection.id) && checkedIds.includes(collection.id));
+    const target = made ? root.current?.querySelector<HTMLInputElement>(`input[data-collection-id="${made.id}"]`) : opener.current;
+    target?.focus();
+  }, [open, collections, checkedIds]);
+  // A rejected name or a failed request: 만들기 may have turned disabled under the pointer, so the focus returns to the
+  // name to fix it.
+  const creating = field?.creating === true;
+  const refused = error !== null;
+  useEffect(() => {
+    if (!open) asked.current = false;
+    if (!asked.current || creating || !refused) return;
+    asked.current = false;
+    nameInput.current?.focus();
+  }, [open, creating, refused, error]);
+  const errorId = `${id}-collection-create-error`;
+  const canCreate = !creating && !blocked;
+  const create = () => {
+    asked.current = true;
+    send({ type: "detail.collectionCreate" });
+  };
+  const keys = (event: KeyboardEvent<HTMLInputElement>) => {
+    const action = collectionFieldKey(event.nativeEvent, canCreate);
+    if (action === null) return;
+    // Enter would submit the details form and Escape would close the dialog: both stay with the field.
+    event.preventDefault();
+    if (action === "create") create();
+    else if (action === "cancel") send({ type: "detail.collectionCancel" });
+  };
+  return (
+    <fieldset ref={root} className="collection-options" disabled={saving}>
+      <legend>컬렉션</legend>
+      {collections.length === 0 && <p className="field-help">아직 만든 컬렉션이 없어요.</p>}
+      {collections.map((collection) => (
+        <label key={collection.id}>
+          <input
+            type="checkbox"
+            data-collection-id={collection.id}
+            disabled={creating}
+            checked={checkedIds.includes(collection.id)}
+            onChange={() => send({ type: "detail.toggle", collectionId: collection.id })}
+          />
+          <span>{collection.name}</span>
+        </label>
+      ))}
+      {field ? (
+        <div className="collection-create" aria-busy={field.creating}>
+          <label className="field">
+            <span>새 컬렉션 이름</span>
+            <input
+              ref={nameInput}
+              autoFocus
+              autoComplete="off"
+              enterKeyHint="done"
+              placeholder="예: 오래 머물고 싶은 방"
+              value={field.name}
+              readOnly={field.creating}
+              onChange={(event) => send({ type: "detail.collectionEdit", name: event.target.value })}
+              onKeyDown={keys}
+              {...fieldProps(error, "collection", errorId)}
+            />
+          </label>
+          <FieldError id={errorId} error={error} field="collection" />
+          <FieldError id={`${id}-collection-create-form-error`} error={error} field={null} />
+          <div className="collection-create-actions">
+            <button className="button secondary" type="button" disabled={!canCreate} onClick={create}>
+              {field.creating ? "만드는 중…" : "만들기"}
+            </button>
+            <button className="text-button" type="button" disabled={field.creating} onClick={() => send({ type: "detail.collectionCancel" })}>
+              취소
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button ref={opener} className="text-button collection-add" type="button" onClick={() => send({ type: "detail.collectionOpen" })}>
+          <Plus size={15} aria-hidden="true" />
+          새 컬렉션
+        </button>
+      )}
+    </fieldset>
+  );
+}
+
 export function ProductDetailDialog({
   product,
   collections,
@@ -88,6 +204,7 @@ export function ProductDetailDialog({
   draft,
   notice,
   confirming,
+  newCollection,
   writing,
   blocked,
   send,
@@ -99,6 +216,8 @@ export function ProductDetailDialog({
   notice: DetailNotice | null;
   // The owner pressed 삭제 and the dialog is asking before it sends anything.
   confirming: boolean;
+  // The open "새 컬렉션" field, if any.
+  newCollection: { name: string; creating: boolean } | null;
   // This product's write in flight, if any.
   writing: ProductIntent | null;
   // Any write or re-read in flight: every button that would write waits.
@@ -111,6 +230,8 @@ export function ProductDetailDialog({
   const phase = product.metadata.phase;
   const purchased = product.purchase.status === "purchased";
   const saving = writing !== null && writing !== "retry";
+  // A collection being made from this dialog: every field waits, so nothing typed meanwhile is dropped.
+  const frozen = saving || newCollection?.creating === true;
   const errorOf = (form: DetailForm): FormError | null =>
     notice?.kind === "error" && notice.form === form ? { field: notice.field, message: notice.message } : null;
   const errorId = (form: DetailForm, field: FieldName | null) => `${id}-${form}-${field ?? "form"}-error`;
@@ -240,7 +361,7 @@ export function ProductDetailDialog({
                   autoComplete="off"
                   placeholder="미입력"
                   value={forms.wishPrice}
-                  readOnly={saving}
+                  readOnly={frozen}
                   onChange={(event) => edit("wishPrice", event.target.value)}
                   {...fieldProps(wishPriceError, "wishPrice", errorId("wishPrice", "wishPrice"))}
                   aria-describedby={
@@ -287,7 +408,7 @@ export function ProductDetailDialog({
               <span>상품 이름</span>
               <input
                 value={forms.title}
-                readOnly={saving}
+                readOnly={frozen}
                 onChange={(event) => edit("title", event.target.value)}
                 {...fieldProps(detailsError, "title", errorId("details", "title"))}
               />
@@ -299,30 +420,30 @@ export function ProductDetailDialog({
                 rows={3}
                 placeholder="마음에 든 이유, 살 때 확인할 것들…"
                 value={forms.note}
-                readOnly={saving}
+                readOnly={frozen}
                 onChange={(event) => edit("note", event.target.value)}
                 {...fieldProps(detailsError, "note", errorId("details", "note"))}
               />
             </label>
             <FieldError id={errorId("details", "note")} error={detailsError} field="note" />
-            <fieldset className="collection-options" disabled={saving}>
-              <legend>컬렉션</legend>
-              {collections.length === 0 && <p className="field-help">아직 만든 컬렉션이 없어요.</p>}
-              {collections.map((collection) => (
-                <label key={collection.id}>
-                  <input
-                    type="checkbox"
-                    checked={forms.collectionIds.includes(collection.id)}
-                    onChange={() => send({ type: "detail.toggle", collectionId: collection.id })}
-                  />
-                  <span>{collection.name}</span>
-                </label>
-              ))}
-            </fieldset>
+            <CollectionOptions
+              id={id}
+              collections={collections}
+              checkedIds={forms.collectionIds}
+              field={newCollection}
+              error={errorOf("collection")}
+              saving={saving}
+              blocked={blocked}
+              send={send}
+            />
             <FieldError id={errorId("details", "collection")} error={detailsError} field="collection" />
             <FieldError id={errorId("details", null)} error={detailsError} field={null} />
             <Saved notice={notice} form="details" />
-            <button className="button secondary full" type="submit" disabled={!forms.detailsChanged || saving || blocked}>
+            <button
+              className="button secondary full"
+              type="submit"
+              disabled={!forms.detailsChanged || saving || blocked}
+            >
               {writing === "details" ? "저장하는 중…" : "변경사항 저장"}
             </button>
           </form>
@@ -348,7 +469,7 @@ export function ProductDetailDialog({
                     min={EARLIEST_PURCHASE_DATE}
                     max={seoulToday(new Date())}
                     value={forms.date}
-                    readOnly={saving}
+                    readOnly={frozen}
                     onChange={(event) => edit("date", event.target.value)}
                     {...fieldProps(recordError, "date", errorId("record", "date"))}
                   />
@@ -361,7 +482,7 @@ export function ProductDetailDialog({
                     inputMode="numeric"
                     placeholder="미입력"
                     value={forms.price}
-                    readOnly={saving}
+                    readOnly={frozen}
                     onChange={(event) => edit("price", event.target.value)}
                     {...fieldProps(recordError, "price", errorId("record", "price"))}
                   />

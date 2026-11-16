@@ -1351,6 +1351,44 @@ h1 {
   accent-color: var(--ink);
   margin: 0;
 }
+.collection-options .collection-add {
+  min-height: 44px;
+  color: var(--ink-soft);
+}
+.collection-create {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.collection-options .collection-create label {
+  display: flex;
+  align-items: stretch;
+  min-height: 0;
+  margin-bottom: 0;
+  cursor: auto;
+}
+.collection-options .collection-create input {
+  width: 100%;
+  height: auto;
+  margin: 0;
+}
+.collection-create .form-error {
+  margin: 8px 0 0;
+}
+.collection-create-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+.collection-create-actions .button,
+.collection-create-actions .text-button {
+  min-height: 44px;
+}
+.collection-create-actions .button:disabled,
+.collection-create-actions .text-button:disabled {
+  opacity: 0.55;
+}
 .collection-picker {
   margin: 0 0 20px;
   min-width: 0;
