@@ -8,6 +8,8 @@ CI 작업 `mockup`은 `app`으로, Supabase 없는 브라우저 검사 `test:e2e
 
 공유한 글에서 링크와 이름 읽기의 검증은 [변경 기록](changes/share-text.md)에 있다. `main`(2e55658)에서 시작한 `feat/share-text`의 로컬 `npm run verify`(종료 0, 리뷰 반영 뒤 다시 실행)에서 단위 1,488개, 실제 DB 372개(persistence 308, service 64), 실제 HTTP 54개, 실제 스택 브라우저 58개, `tests/ui` 50개가 통과했다. 쿠팡 앱 글의 링크·이름, 수집 성공의 이름 교체, 소유자 이름 우선, 백업 왕복, 추적 query 판별을 실제 DB·HTTP로 확인했다. 실제 iPhone 관찰은 이 변경 전 운영 배포에서 한 것이다. 새 서버로 실제 기기, 운영 Supabase, 호스팅은 검증하지 않았고 PR 전이라 CI는 아직 실행하지 않았다.
 
+Safari 단축어가 읽은 페이지로 상품 정보 채우기의 검증은 [변경 기록](changes/share-page.md)에 있다. `main`(924663d)에서 시작한 `feat/share-page`에 독립 리뷰 권고를 반영한 로컬 `npm run verify`(종료 0)에서 단위 1,564개, 실제 DB 396개(persistence 330, service 66), 실제 HTTP 56개, 실제 스택 브라우저 60개, `tests/ui` 50개가 통과했다. 스크립트는 DOM 대역으로 고정 페이지에서 실행했고, 쇼핑몰이 막는 상황의 이름·가격·사진 사본은 실제 DB·Storage·sharp로, 루프백 링크의 이름·가격은 실제 HTTP와 브라우저로 확인했다. 실제 iPhone 단축어, 실제 스마트스토어·쿠팡·G마켓 페이지, 운영 Supabase, 호스팅은 검증하지 않았고 PR 전이라 CI는 아직 실행하지 않았다.
+
 상품 삭제의 검증은 [변경 기록](changes/product-delete.md)에 있다. `chore/production-setup`(1bb2836)에서 시작한 `feat/product-delete`의 로컬 `npm run verify`(종료 0)에서 단위 1,439개, 실제 DB 359개(persistence 296, service 63), 실제 HTTP 53개, 실제 스택 브라우저 56개, `tests/ui` 50개가 통과했다. 진행 중인 수집·예약 실행과의 경쟁, 같은 링크 다시 담기, 지운 상품 사본의 남은 사본 정리를 실제 DB·Storage로 확인했다. 운영 Supabase, 호스팅, 실제 iPhone과 Google OAuth는 검증하지 않았고 PR 전이라 CI는 아직 실행하지 않았다.
 
 남은 사진 정리(5c)의 검증은 [변경 기록](changes/picture-sweep.md)에 있다. 단위 1,385개, 실제 DB 333개(persistence 276, service 57), 실제 HTTP 46개, 실제 스택 브라우저 50개, `tests/ui` 50개가 통과했다. 남은 사본은 실제 업로드·임대 만료·다음 시도와 `storage.objects.created_at` 되돌리기로 만들었고, Storage 지우기 실패는 아무도 듣지 않는 주소로 대신했다. 운영 Storage, 호스팅의 `after()`, 실제 iPhone은 검증하지 않았다.

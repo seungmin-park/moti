@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { ShareKeyResponse } from "../../share/presentation/share-dto";
-import { shareConfirmView, shareKeyView, shareWithoutShortcuts, shortcutSteps } from "./share-view";
+import {
+  safariShortcutIntro,
+  safariShortcutNote,
+  safariShortcutSteps,
+  shareConfirmView,
+  shareKeyView,
+  shareWithoutShortcuts,
+  shortcutSteps,
+} from "./share-view";
 
 describe("단축어 만들기 안내", () => {
   it("Given 실제 iPhone에서 동작한 구성 When 안내를 보이면 Then 받을 항목·입력이 없을 때·요청 하나·알림을 그 순서로 말한다", () => {
@@ -25,6 +33,25 @@ describe("단축어 만들기 안내", () => {
 
   it("Given 공유 메뉴에 단축어가 없는 앱 When 안내를 보이면 Then 링크를 복사하고 홈 화면이나 위젯에서 실행하라고 한다", () => {
     for (const item of ["네이버 앱", "복사", "홈 화면", "위젯", "‘moti에 담기’"]) expect(shareWithoutShortcuts).toContain(item);
+  });
+});
+
+describe("Safari에서 상품 정보까지 담는 두 번째 단축어 안내", () => {
+  it("Given 서버 요청을 막는 쇼핑몰 When 안내를 보이면 Then 첫 단축어를 복제해 Safari 웹 페이지만 받고 스크립트 허용·JavaScript 실행·page 칸을 그 순서로 말한다", () => {
+    expect(safariShortcutSteps).toHaveLength(5);
+    const [copy, allow, script, request, use] = safariShortcutSteps;
+    for (const item of ["‘moti에 담기’", "복제", "‘moti에 담기 (Safari)’", "Safari 웹 페이지", "맨 위"]) expect(copy).toContain(item);
+    // The duplicate keeps the first Shortcut's "Get Clipboard"; the JavaScript step must never get text, so it stops.
+    for (const item of ["‘입력이 없는 경우’", "‘클립보드 가져오기’", "‘중단’"]) expect(copy).toContain(item);
+    for (const item of ["설정 → 앱 → 단축어 → 고급", "‘스크립트 실행 허용’", "설정 → 단축어 → 고급", "이전 iOS"]) expect(allow).toContain(item);
+    for (const item of ["‘웹 페이지에서 JavaScript 실행’", "‘단축어 입력’", "스크립트 복사", "지우고"]) expect(script).toContain(item);
+    for (const item of ["‘URL 콘텐츠 가져오기’", "page", "텍스트", "‘JavaScript 결과’", "url"]) expect(request).toContain(item);
+    for (const item of ["Safari", "공유", "‘moti에 담기 (Safari)’", "처음", "사이트", "‘허용’"]) expect(use).toContain(item);
+  });
+
+  it("Given 아직 기기에서 확인하지 않은 구성 When 안내를 보이면 Then 그렇다고 말하고 가격을 다시 확인하지 못한다는 한계도 말한다", () => {
+    for (const item of ["아직 실제 iPhone에서 확인하지 않았", "가격", "다시 확인"]) expect(safariShortcutNote).toContain(item);
+    for (const item of ["네이버", "쿠팡", "G마켓"]) expect(safariShortcutIntro).toContain(item);
   });
 });
 

@@ -1,0 +1,107 @@
+# Red: Safari 단축어의 페이지 요약 (feat/share-page, origin/main 924663d 위)
+
+## 1. 단위: 같은 서명의 동작 없는 대역
+대역: pageSnapshotHtml→빈 글, snapshotMatchesLink→false, toPageSnapshot→null, createSharedPageReader→항상 null,
+서비스가 요약을 버림, 명령이 page를 null로, 처리기가 page를 읽지 않고 8KiB 한도, 실행기가 sharedPage를 보지 않음,
+스크립트 'completion(null);', Safari 안내가 빈 값, API 문서 설명 그대로.
+
+$ npx vitest run src/features/share src/features/metadata/application/collection.test.ts src/features/library/screen/share-view.test.ts src/features/library/presentation/api-document.test.ts
+⎯⎯⎯⎯⎯⎯ Failed Tests 51 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 단축어 경로는 Bearer 키로만 받는 POST로 결과·거절 응답을 문서에 남기고 소유자 경로는 쿠키 세션을 쓴다
+FAIL  src/features/library/presentation/api-document.test.ts > API 문서 > 커밋한 OpenAPI 문서가 실행 계약에서 생성한 문서와 같다
+FAIL  src/features/library/screen/share-view.test.ts > Safari에서 상품 정보까지 담는 두 번째 단축어 안내 > Given 서버 요청을 막는 쇼핑몰 When 안내를 보이면 Then 첫 단축어를 복제해 Safari 웹 페이지만 받고 스크립트 허용·JavaScript 실행·page 칸을 그 순서로 말한다
+FAIL  src/features/library/screen/share-view.test.ts > Safari에서 상품 정보까지 담는 두 번째 단축어 안내 > Given 아직 기기에서 확인하지 않은 구성 When 안내를 보이면 Then 그렇다고 말하고 가격을 다시 확인하지 못한다는 한계도 말한다
+FAIL  src/features/metadata/application/collection.test.ts > 수집 실행기 > Given Safari 단축어가 읽어 둔 페이지가 있는 작업 When 실행하면 Then 쇼핑몰 페이지를 다시 읽지 않고 그 결과와 사진 주소로 끝낸다
+FAIL  src/features/share/application/commands.test.ts > 공유한 링크 명령 > Safari 단축어가 읽은 페이지 요약을 그대로 싣는다. 링크와 맞는지는 서비스가 본다
+FAIL  src/features/share/application/share-service.test.ts > 공유 담기 서비스의 페이지 요약 > Given 링크와 같은 호스트의 요약 When 담으면 Then 읽은 이름이 수집 전 이름이 되고 요약 결과를 첫 작업에 맡긴다
+FAIL  src/features/share/domain/page-snapshot.test.ts > 받은 페이지 요약으로 만든 HTML > Given 비어 있는 요약 When 문서를 만들면 Then 제목만 있는 빈 head다
+FAIL  src/features/share/domain/page-snapshot.test.ts > 받은 페이지 요약으로 만든 HTML > Given 제목·메타·JSON-LD When 문서를 만들면 Then 받은 순서대로 head의 같은 자리에 둔다
+FAIL  src/features/share/domain/page-snapshot.test.ts > 받은 페이지 요약으로 만든 HTML > Given 태그를 닫으려는 값 When 문서를 만들면 Then 모든 글자를 이스케이프해 받은 값이 새 요소를 만들지 못한다
+FAIL  src/features/share/domain/page-snapshot.test.ts > 요약한 페이지와 공유한 링크 > http와 https는 같은 페이지로 본다
+FAIL  src/features/share/domain/page-snapshot.test.ts > 요약한 페이지와 공유한 링크 > 같은 주소는 같은 페이지로 본다
+FAIL  src/features/share/domain/page-snapshot.test.ts > 요약한 페이지와 공유한 링크 > 경로와 query가 다른 같은 호스트는 같은 페이지로 본다
+FAIL  src/features/share/domain/page-snapshot.test.ts > 요약한 페이지와 공유한 링크 > 대소문자만 다른 호스트는 같은 페이지로 본다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 너무 길어 주소를 비운 요약 When 읽으면 Then 요약을 쓰지 않는다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 다른 호스트의 페이지 When 읽으면 Then 요약을 쓰지 않는다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 받은 값이 태그를 닫으려 해도 When 읽으면 Then 글자 그대로의 이름으로만 읽는다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 상품 정보가 없는 요약 When 읽으면 Then 쓰지 않아 서버 수집으로 넘어간다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 상품 페이지의 요약 When 같은 호스트의 링크로 읽으면 Then 이름·하나뿐인 가격·사진 주소를 수집과 같은 규칙으로 얻는다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 aggregate-offer When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 aggregate-range When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 conflict When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 graph When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 meta-only When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 offer When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 several-products When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 title-only When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 수집 고정 페이지 twitter-only When 요약해 읽으면 Then 서버가 그 페이지를 읽은 결과와 같다
+FAIL  src/features/share/infrastructure/shared-page-reader.test.ts > Safari 단축어의 페이지 요약 읽기 > Given 하위 도메인이 다른 페이지 When 읽으면 Then 요약을 쓰지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 1000자를 넘는 제목 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 101개의 메타 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 17개의 JSON-LD When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 4096자를 넘는 주소 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 64KiB를 넘는 JSON 글 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given JSON이 아닌 글 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given null When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 객체로 보낸 요약 When 공유하면 Then 201이고 링크와 함께 요약을 저장소에 넘긴다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 다른 필드가 든 요약 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 단축어의 JavaScript 결과(JSON 글)로 보낸 요약 When 공유하면 Then 객체로 보낸 것과 같이 넘긴다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 두 칸이 아닌 메타 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 따옴표가 많아 두 번 이스케이프된 64KiB 가까운 요약 When 공유하면 Then 8KiB 한도를 넘어도 받는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 빈 글 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 빠진 필드 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 숫자 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 요약이 아닌 JSON 글 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/presentation/share-handlers.test.ts > POST /api/share/links: Safari 단축어의 페이지 요약 > Given 합쳐서 64KiB를 넘는 요약 When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다
+FAIL  src/features/share/shortcut/page-snapshot-script.test.ts > Safari 단축어의 페이지 요약 스크립트 > Given 문서가 예상과 달라 실행 중 오류가 나도 When 실행하면 Then 단축어가 멈추지 않도록 빈 요약으로 끝낸다
+FAIL  src/features/share/shortcut/page-snapshot-script.test.ts > Safari 단축어의 페이지 요약 스크립트 > Given 상품 페이지 When 실행하면 Then 주소·제목·대표 주소·상품 메타·JSON-LD만 JSON 글로 한 번 돌려준다
+FAIL  src/features/share/shortcut/page-snapshot-script.test.ts > Safari 단축어의 페이지 요약 스크립트 > Given 세션 값이 든 페이지 When 실행하면 Then 본문·일반 스크립트·토큰 메타·폼 값은 보내지 않는다
+FAIL  src/features/share/shortcut/page-snapshot-script.test.ts > Safari 단축어의 페이지 요약 스크립트 > Given 아주 큰 페이지 When 실행하면 Then 칸마다 한도를 지키고 전체를 64KiB 안에 두며 상품 JSON-LD를 먼저 남긴다
+FAIL  src/features/share/shortcut/page-snapshot-script.test.ts > Safari 단축어의 페이지 요약 스크립트 > Given 읽을 것이 없는 페이지 When 실행하면 Then 빈 요약을 돌려준다
+Test Files  9 failed | 2 passed (11)
+Tests  51 failed | 151 passed (202)
+
+## 2. 실제 DB: 마이그레이션 20261122000000_share_page.sql 없이
+$ npm run test:database
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 가격과 사진이 없는 읽은 페이지도 이름만으로 맡긴다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(0원)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(121자 이름)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(http(s)가 아닌 사진 주소)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(가격 없는 통화)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(계정이 든 사진 주소)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(소문자 통화)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(앞뒤 공백 이름)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(이름 없음)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 검사를 지나지 못하는 읽은 페이지(통화 없는 가격)는 버리고 링크는 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 새로 담은 상품의 첫 작업에만 읽은 페이지를 두고, 상품은 읽은 이름으로 보인다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 실패로 끝나도 읽은 페이지를 지우고, 다시 가져오기의 새 작업에는 없다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 어댑터는 읽은 페이지를 함께 담고 수집 어댑터가 같은 값으로 돌려받는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 예약 작업자는 읽은 페이지가 있는 작업을 맡지 않고 소유자의 수집에 남긴다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 이미 담긴 상품은 읽은 페이지로 덮지 않고 작업도 그대로다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 읽은 페이지 열에 직접 준 권한은 저장 키 역할의 넣기와 예약 작업자의 거르기뿐이다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 읽은 페이지 인자를 모르는 이전 앱의 호출도 그대로 담는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 임대가 끝나 다시 맡은 같은 세대의 작업은 읽은 페이지를 그대로 받는다
+FAIL  tests/persistence/share-page.test.ts > Safari 단축어가 읽은 페이지를 첫 작업에 맡기기 > 작업을 맡으면 읽은 페이지를 함께 받고, 끝내면 지운다
+FAIL  tests/service/share-links.test.ts > 실제 저장소를 쓰는 공유 담기 서비스 > Safari 단축어가 읽은 페이지로 담으면 쇼핑몰이 서버 요청을 막아도 소유자가 열 때 이름·가격·사진을 채운다
+FAIL  tests/service/share-links.test.ts > 실제 저장소를 쓰는 공유 담기 서비스 > 다른 호스트의 페이지 요약이나 이미 담은 링크의 요약은 쓰지 않는다
+Test Files  2 failed | 24 passed (26)
+Tests  21 failed | 373 passed (394)
+원인(요약): PGRST202(moti_share_add에 p_shared_* 인자 없음), "column j.shared_title does not exist", 열 권한 목록 [].
+'이전 앱의 호출' 검사도 shared_* 열을 읽어 실패했다(열이 없음). 기존 persistence·service 373개는 통과했다.
+
+## 3. 실제 HTTP: 마이그레이션·서버 구현을 넣고 처리기만 page를 버리는 대역으로 빌드
+$ npm run build && npm run test:database
+AssertionError: expected { …(16) } to match object { …(3) }
+AssertionError: expected 201 to be 400 // Object.is equality
+FAIL  tests/http/share-links.test.ts > 실제 HTTP 단축어 경로 > Safari 단축어처럼 JavaScript 결과를 page 칸에 보내면 201이고 이름이 바로 보이며, 깨우면 쇼핑몰을 읽지 않고 이름·가격을 채운다
+FAIL  tests/http/share-links.test.ts > 실제 HTTP 단축어 경로 > 형식이 다른 page는 400 invalid_page이고, 한도를 넘는 본문은 413이며, 둘 다 아무것도 담지 않는다
+Test Files  1 failed | 9 passed (10)
+Test Files  26 passed (26)
+Tests  2 failed | 54 passed (56)
+Tests  394 passed (394)
+Verified 328 persistence and 66 service tests with no skipped assertions.
+앞의 검사는 상품 이름이 '새로 담은 상품'으로 남아 실패했고, 뒤의 검사는 형식이 다른 page가 201이었다.
+이 실행에서 persistence 328개·service 66개는 통과했다(마이그레이션과 서버 구현의 Green).
+
+## 4. 실제 스택 브라우저
+HTTP 실패에서 실행기가 멈춰 따로 보지 못했다. 안내 화면은 단위 Red(share-view.test.ts 2개)로 확인했다.

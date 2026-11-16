@@ -35,6 +35,7 @@ const job: CollectionJob = {
   attempts: 1,
   sourceUrl: "https://shop.example/p",
   picture: "owner/p-1/job-1-1.webp" as PictureObject,
+  sharedPage: null,
 };
 const product = { id: "p-1" as ProductId } as Product;
 
@@ -77,6 +78,28 @@ describe("수집 실행기", () => {
     }, expect.any(Function));
     expect(jobs.complete).toHaveBeenCalledExactlyOnceWith(job,
       { title: "램프", price: null, imageSourceUrl: "https://cdn.shop.example/lamp.png" }, { outcome: "copied" });
+  });
+
+  it("Given Safari 단축어가 읽어 둔 페이지가 있는 작업 When 실행하면 Then 쇼핑몰 페이지를 다시 읽지 않고 그 결과와 사진 주소로 끝낸다", async () => {
+    const sharedPage = { title: "와플", price: { amountMinor: 12900, currency: "KRW" }, imageSourceUrl: "https://img.shop.example/7001.jpg" };
+    const shared = { ...job, sharedPage };
+    const jobs = store({ claim: vi.fn(async () => ({ kind: "claimed" as const, job: shared })) });
+    const pictures = copier({ outcome: "copied" });
+    const source = { read: vi.fn(async () => ({ ok: false as const, code: "blocked_by_site" as const, status: 403 })) };
+    const read = vi.fn();
+    const runner = createCollectionRunner({ store: jobs, source, read, copier: pictures });
+
+    await expect(runner.run(request)).resolves.toEqual({ kind: "collected", product });
+
+    expect(source.read).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
+    // The picture is still the server's to fetch, with the shared link's page as the Referer's origin.
+    expect(pictures.settleWith).toHaveBeenCalledExactlyOnceWith({
+      imageUrl: "https://img.shop.example/7001.jpg",
+      pageUrl: job.sourceUrl,
+      target: job.picture,
+    }, expect.any(Function));
+    expect(jobs.complete).toHaveBeenCalledExactlyOnceWith(shared, sharedPage, { outcome: "copied" });
   });
 
   it("Given 페이지를 읽지 못함 When 실행하면 Then 사진은 가져오지 않고 실패만 기록한다", async () => {

@@ -13,6 +13,9 @@ export type CollectionJob = {
   attempts: number;
   sourceUrl: string;
   picture: PictureObject;
+  // What the Safari Shortcut read from the open page when the share key added this product, read by the same rules.
+  // The database keeps it only while the job is queued or running.
+  sharedPage: CollectedPage | null;
 };
 export type JobClaim =
   | { kind: "claimed"; job: CollectionJob }
@@ -74,14 +77,21 @@ export function createCollectionRunner({ store, source, read, copier }: {
     return settled(await store.fail(job, code), (product) => ({ kind: "failed", code, product }));
   }
 
+  async function complete(job: CollectionJob, page: CollectedPage, pageUrl: string): Promise<CollectionRun> {
+    const task = { imageUrl: page.imageSourceUrl, pageUrl, target: job.picture };
+    const settlement = await copier.settleWith(task, (image) => store.complete(job, page, image));
+    return settled(settlement, (product) => ({ kind: "collected", product }));
+  }
+
   async function collect(job: CollectionJob): Promise<CollectionRun> {
+    // The Safari Shortcut already read this page for the owner; the shop is not asked again. The picture is still
+    // fetched here, with the shared link as the page that named it.
+    if (job.sharedPage) return complete(job, job.sharedPage, job.sourceUrl);
     const fetched = await source.read(job.sourceUrl);
     if (!fetched.ok) return fail(job, fetched.code);
     const outcome = decideOutcome(read(fetched.page.html, fetched.page.url));
     if (outcome.kind === "fail") return fail(job, outcome.code);
-    const task = { imageUrl: outcome.page.imageSourceUrl, pageUrl: fetched.page.url, target: job.picture };
-    const settlement = await copier.settleWith(task, (image) => store.complete(job, outcome.page, image));
-    return settled(settlement, (product) => ({ kind: "collected", product }));
+    return complete(job, outcome.page, fetched.page.url);
   }
 
   return {

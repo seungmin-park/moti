@@ -279,7 +279,7 @@ describe("저장 키 역할의 권한", () => {
       `select p.oid::regprocedure::text as name from pg_proc p where p.proowner = 'moti_share'::regrole
        union all select c.oid::regclass::text from pg_class c where c.relowner = 'moti_share'::regrole`,
     );
-    expect(owned.rows).toEqual([{ name: "moti_share_add(text,text,text,text,text,text)" }]);
+    expect(owned.rows).toEqual([{ name: "moti_share_add(text,text,text,text,text,text,text,bigint,text,text)" }]);
     // Only the migration owner may act as the role (one row per grantor): a member such as authenticator would hold its grants.
     const members = await fixture.admin.query(
       `select distinct m.member::regrole::text as member from pg_auth_members m where m.roleid = 'moti_share'::regrole order by 1`,
@@ -308,6 +308,10 @@ describe("저장 키 역할의 권한", () => {
       "column moti.metadata_jobs.generation INSERT",
       "column moti.metadata_jobs.owner_id INSERT",
       "column moti.metadata_jobs.product_id INSERT",
+      "column moti.metadata_jobs.shared_amount_minor INSERT",
+      "column moti.metadata_jobs.shared_currency INSERT",
+      "column moti.metadata_jobs.shared_image_url INSERT",
+      "column moti.metadata_jobs.shared_title INSERT",
       "column moti.owner_config.google_subject SELECT",
       "column moti.owner_config.owner_id SELECT",
       "column moti.products.id SELECT",
@@ -331,7 +335,7 @@ describe("저장 키 역할의 권한", () => {
       "column moti.share_keys.window_started_at UPDATE",
       "column moti.share_keys.window_uses SELECT",
       "column moti.share_keys.window_uses UPDATE",
-      "function moti.add_link(uuid,text,text,text,text,text) EXECUTE",
+      "function moti.add_link(uuid,text,text,text,text,text,text,bigint,text,text) EXECUTE",
       "function moti.has_google_identity(uuid,text) EXECUTE",
       "function moti.is_clean_title(text) EXECUTE",
       "function moti.is_collection_error(text) EXECUTE",
@@ -394,7 +398,8 @@ describe("저장 키 역할의 권한", () => {
 
 describe("공유 담기 어댑터", () => {
   const store = () => createSupabaseShareLinkStore(fixture.anonymous);
-  const command = (secret: string, url = "https://shop.example/lamp") => toShareLinkAddCommand(secret as ShareSecret, url);
+  const command = (secret: string, url = "https://shop.example/lamp") =>
+    ({ ...toShareLinkAddCommand(secret as ShareSecret, url), sharedPage: null });
 
   it("익명 클라이언트로 담은 결과를 종류로 돌려준다", async () => {
     const secret = parseShareSecret((await issue()).secret)!;
@@ -415,6 +420,7 @@ describe("공유 담기 어댑터", () => {
       secret: issued.secret as ShareSecret,
       link: { sourceUrl: "javascript:alert(1)", identityUrl: "javascript:alert(1)", option: "", shop: "x" },
       title: null,
+      sharedPage: null,
     };
     const refused = await store().add(forged).catch((error: unknown) => error);
     expect(refused).toBeInstanceOf(ShareError);
@@ -431,7 +437,7 @@ describe("공유 담기 어댑터", () => {
   it("명령의 이름을 함께 담는다", async () => {
     const secret = parseShareSecret((await issue()).secret)!;
     const link = command(secret, "https://link.coupang.com/a/iGa1zKNs4a").link;
-    expect(await store().add({ secret, link, title: "로투스 벨기에 와플 초코" })).toEqual({ kind: "added" });
+    expect(await store().add({ secret, link, title: "로투스 벨기에 와플 초코", sharedPage: null })).toEqual({ kind: "added" });
     expect((await library().snapshot()).products).toEqual([
       expect.objectContaining({ sourceUrl: "https://link.coupang.com/a/iGa1zKNs4a", title: "로투스 벨기에 와플 초코" }),
     ]);

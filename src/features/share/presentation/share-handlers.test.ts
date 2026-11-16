@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ShareLinkAddCommand, ShareLinkAddResult } from "../application/commands";
 import { ShareError, type ShareErrorCode } from "../domain/share-key";
-import { MAX_SHARE_BYTES, shareLinkAddResponseSchema, shareLinkErrorResponseSchema } from "./share-dto";
+import { MAX_SHARE_BYTES, MAX_SHARE_PAGE_BODY_BYTES, shareLinkAddResponseSchema, shareLinkErrorResponseSchema } from "./share-dto";
 import { createShareHandlers, type ShareRequestContext } from "./share-handlers";
 
 const secret = `moti_sk_${"AbcdEfghIjklMnopQrstUvwxYz0123456789-_AbCdE"}`;
@@ -90,7 +90,7 @@ describe("POST /api/share/links: 저장 키", () => {
 describe("POST /api/share/links: 본문", () => {
   it.each([
     ["JSON이 아닌 형식", 415, "unsupported_media_type", () => share(JSON.stringify({ url }), { "content-type": "text/plain" })],
-    ["선언한 크기 초과", 413, "payload_too_large", () => share(JSON.stringify({ url }), { "content-length": String(MAX_SHARE_BYTES + 1) })],
+    ["선언한 크기 초과", 413, "payload_too_large", () => share(JSON.stringify({ url }), { "content-length": String(MAX_SHARE_PAGE_BODY_BYTES + 1) })],
     ["실제 크기 초과", 413, "payload_too_large", () => share(JSON.stringify({ url: `https://shop.example/${"x".repeat(MAX_SHARE_BYTES)}` }))],
     ["깨진 JSON", 400, "invalid_link", () => share("{\"url\":")],
     ["객체가 아닌 JSON", 400, "invalid_link", () => share(JSON.stringify([url]))],
@@ -116,7 +116,7 @@ describe("POST /api/share/links: 본문", () => {
     const stream = new ReadableStream<Uint8Array>({
       pull(controller) {
         sent += 1;
-        if (sent > 64) controller.close();
+        if (sent > 200) controller.close();
         else controller.enqueue(chunk);
       },
     });
@@ -128,7 +128,112 @@ describe("POST /api/share/links: 본문", () => {
     } as RequestInit);
     const response = await handlers.postShareLink(request);
     expect(response.status).toBe(413);
-    expect(sent).toBeLessThan(64);
+    expect(sent).toBeLessThan(200);
+    expect(add).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/share/links: Safari 단축어의 페이지 요약", () => {
+  const page = {
+    url: "https://shop.example/lamp",
+    title: "램프 | 예시상점",
+    canonical: "https://shop.example/lamp",
+    metas: [["og:title", "램프"], ["product:price:amount", "59000"], ["product:price:currency", "KRW"]],
+    jsonLd: ["{\"@type\":\"Product\",\"name\":\"램프\"}"],
+  };
+  const withPage = (value: unknown, link: unknown = url) => share(JSON.stringify({ url: link, page: value }));
+  const utf8 = (text: string) => new TextEncoder().encode(text).length;
+
+  it("Given 객체로 보낸 요약 When 공유하면 Then 201이고 링크와 함께 요약을 저장소에 넘긴다", async () => {
+    const { handlers, add } = given();
+    const response = await handlers.postShareLink(withPage(page));
+    expect(response.status).toBe(201);
+    expect(shareLinkAddResponseSchema.parse(await expectShortcutAnswer(response)).result).toBe("added");
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ link: expect.objectContaining({ sourceUrl: url }), title: null, page }));
+  });
+
+  it("Given 단축어의 JavaScript 결과(JSON 글)로 보낸 요약 When 공유하면 Then 객체로 보낸 것과 같이 넘긴다", async () => {
+    const { handlers, add } = given();
+    const response = await handlers.postShareLink(withPage(JSON.stringify(page)));
+    expect(response.status).toBe(201);
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ page }));
+  });
+
+  it("Given 따옴표가 많아 두 번 이스케이프된 64KiB 가까운 요약 When 공유하면 Then 8KiB 한도를 넘어도 받는다", async () => {
+    const { handlers, add } = given();
+    const block = JSON.stringify({ "@type": "Product", name: "램프", q: "\"".repeat(15_000) });
+    const text = JSON.stringify({ ...page, jsonLd: [block] });
+    const body = JSON.stringify({ url, page: text });
+    expect(utf8(text)).toBeLessThanOrEqual(64 * 1024);
+    expect(utf8(body)).toBeGreaterThan(MAX_SHARE_BYTES * 7);
+    expect(utf8(body)).toBeLessThanOrEqual(MAX_SHARE_PAGE_BODY_BYTES);
+
+    const response = await handlers.postShareLink(share(body));
+
+    expect(response.status).toBe(201);
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ page: JSON.parse(text) }));
+  });
+
+  const pageUnread = "담았어요. 다만 페이지 정보는 읽지 못했어요. 단축어에 moti의 스크립트를 다시 붙여 넣어 주세요.";
+
+  it.each([
+    ["다른 필드가 든 요약", { ...page, cookie: "a=b" }],
+    ["빠진 필드", { url: page.url, title: page.title }],
+    ["8개의 메타", { ...page, metas: Array.from({ length: 8 }, () => ["og:title", "y"]) }],
+    ["읽지 않는 메타 키", { ...page, metas: [["og:description", "설명"]] }],
+    ["itemprop 메타", { ...page, metas: [["name", "램프"]] }],
+    ["두 칸이 아닌 메타", { ...page, metas: [["og:title", "램프", "x"]] }],
+    ["4096자를 넘는 주소", { ...page, url: `https://shop.example/${"x".repeat(4096)}` }],
+    ["1000자를 넘는 제목", { ...page, title: "가".repeat(1001) }],
+    ["17개의 JSON-LD", { ...page, jsonLd: Array.from({ length: 17 }, () => "{}") }],
+    ["합쳐서 64KiB를 넘는 요약", { ...page, jsonLd: ["a".repeat(35_000), "b".repeat(35_000)] }],
+    ["JSON이 아닌 글", "램프"],
+    ["요약이 아닌 JSON 글", JSON.stringify([page])],
+    ["64KiB를 넘는 JSON 글", JSON.stringify({ ...page, jsonLd: ["a".repeat(35_000), "b".repeat(35_000)] })],
+    ["빈 글", ""],
+    ["null", null],
+    ["숫자", 1],
+  ])("Given %s When 공유하면 Then 링크는 요약 없이 201로 담고 페이지 정보를 읽지 못했다고 알린다", async (_name, value) => {
+    const { handlers, add } = given();
+    const response = await handlers.postShareLink(withPage(value));
+    expect(response.status).toBe(201);
+    expect(shareLinkAddResponseSchema.parse(await expectShortcutAnswer(response))).toEqual({ result: "added", message: pageUnread });
+    expect(add).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ link: expect.objectContaining({ sourceUrl: url }), page: null }));
+  });
+
+  it("Given 형식이 다른 요약과 이미 담은 링크 When 공유하면 Then 200 duplicate이고 이미 담았다는 메시지다", async () => {
+    const { handlers, add } = given();
+    add.mockResolvedValueOnce({ kind: "duplicate" });
+    const response = await handlers.postShareLink(withPage("램프"));
+    expect(response.status).toBe(200);
+    expect(shareLinkAddResponseSchema.parse(await expectShortcutAnswer(response))).toEqual({
+      result: "duplicate",
+      message: "이미 담아둔 상품이에요.",
+    });
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ page: null }));
+  });
+
+  it("Given 맞는 요약 When 공유하면 Then 평소의 담았다는 메시지다", async () => {
+    const { handlers } = given();
+    const response = await handlers.postShareLink(withPage(page));
+    expect(shareLinkAddResponseSchema.parse(await expectShortcutAnswer(response)).message).toBe("위시에 담았어요. 상품 정보는 moti를 열면 가져와요.");
+  });
+
+  it("Given 링크가 아닌 url과 맞는 요약 When 공유하면 Then 링크 오류가 먼저다", async () => {
+    const { handlers, add } = given();
+    const response = await handlers.postShareLink(withPage(page, "이 상품 어때요"));
+    expect((await errorOf(response)).error).toBe("invalid_link");
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["요약이 없는 8KiB 초과 본문", () => JSON.stringify({ url, note: "x".repeat(MAX_SHARE_BYTES) })],
+    ["요약 한도를 넘는 본문", () => JSON.stringify({ url, page: JSON.stringify({ ...page, jsonLd: ["\"".repeat(70_000)] }) })],
+  ])("Given %s When 공유하면 Then 413이다", async (_name, body) => {
+    const { handlers, add } = given();
+    const response = await handlers.postShareLink(share(body()));
+    expect(response.status).toBe(413);
+    expect((await errorOf(response)).error).toBe("payload_too_large");
     expect(add).not.toHaveBeenCalled();
   });
 });
@@ -146,6 +251,7 @@ describe("POST /api/share/links: 결과", () => {
       secret,
       link: { sourceUrl: url, identityUrl: "https://shop.example/lamp", option: "", shop: "shop.example" },
       title: null,
+      page: null,
     });
   });
 
@@ -164,6 +270,7 @@ describe("POST /api/share/links: 결과", () => {
         shop: "link.coupang.com",
       },
       title: "로투스 벨기에 와플 초코",
+      page: null,
     });
   });
 

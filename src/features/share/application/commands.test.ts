@@ -15,6 +15,7 @@ describe("공유한 링크 명령", () => {
         shop: "shop.example",
       },
       title: null,
+      page: null,
     });
   });
 
@@ -28,6 +29,16 @@ describe("공유한 링크 명령", () => {
         shop: "link.coupang.com",
       },
       title: "로투스 벨기에 와플 초코",
+      page: null,
+    });
+  });
+
+  it("Safari 단축어가 읽은 페이지 요약을 그대로 싣는다. 링크와 맞는지는 서비스가 본다", () => {
+    const page = { url: "https://evil.example/", title: "램프", canonical: "", metas: [], jsonLd: [] };
+    expect(toShareLinkAddCommand(secret, "https://shop.example/lamp", page)).toMatchObject({
+      link: { sourceUrl: "https://shop.example/lamp" },
+      title: null,
+      page,
     });
   });
 

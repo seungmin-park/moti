@@ -4,7 +4,9 @@ import type { ShareLinkService } from "../application/share-service";
 import { ShareError, readShareSecret, type ShareErrorCode } from "../domain/share-key";
 import {
   MAX_SHARE_BYTES,
-  shareLinkAddRequestSchema,
+  MAX_SHARE_PAGE_BODY_BYTES,
+  shareLinkAddEnvelopeSchema,
+  toPageSnapshot,
   shareLinkMessages,
   toShareLinkAddResponse,
   type ShareLinkErrorCode,
@@ -43,6 +45,10 @@ function failure(code: ShareLinkErrorCode): Response {
   return json(errorStatus[code], body, code === "share_key_rejected" ? { "www-authenticate": "Bearer" } : {});
 }
 
+function carriesPage(value: unknown): boolean {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && "page" in value;
+}
+
 export function createShareHandlers(context: () => Promise<ShareRequestContext>) {
   return {
     // The key's format is checked before anything else, so a request without one reads no body and reaches no database.
@@ -57,13 +63,21 @@ export function createShareHandlers(context: () => Promise<ShareRequestContext>)
         return failure("unavailable");
       }
       if (current.kind === "unconfigured") return failure("unconfigured");
-      const body = await readJsonBody(request, MAX_SHARE_BYTES);
-      if (!body.ok) return failure(body.reason === "invalid_json" ? "invalid_link" : body.reason);
-      const parsed = shareLinkAddRequestSchema.safeParse(body.value);
+      // Only a body that carries the Safari Shortcut's page may pass the 8 KiB that a link or shared text needs.
+      const body = await readJsonBody(request, MAX_SHARE_PAGE_BODY_BYTES);
+      if (!body.ok && body.reason !== "invalid_json") return failure(body.reason);
+      if (body.bytes > MAX_SHARE_BYTES && !(body.ok && carriesPage(body.value))) return failure("payload_too_large");
+      if (!body.ok) return failure("invalid_link");
+      const parsed = shareLinkAddEnvelopeSchema.safeParse(body.value);
       if (!parsed.success) return failure("invalid_link");
       try {
-        const result = await current.service.add(toShareLinkAddCommand(secret, parsed.data.url));
-        return json(result.kind === "added" ? 201 : 200, toShareLinkAddResponse(result));
+        // The link comes first: a request without one is invalid_link whatever its page. A page that is not the
+        // script's snapshot is dropped and the link is still saved; the answer says the page was not read.
+        const command = toShareLinkAddCommand(secret, parsed.data.url);
+        const page = parsed.data.page === undefined ? null : toPageSnapshot(parsed.data.page);
+        const pageUnread = parsed.data.page !== undefined && page === null;
+        const result = await current.service.add({ ...command, page });
+        return json(result.kind === "added" ? 201 : 200, toShareLinkAddResponse(result, pageUnread));
       } catch (error) {
         return failure(error instanceof ShareError ? fromShareError[error.code] : "unavailable");
       }

@@ -1,8 +1,12 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
 import { HTTP_OWNER_SUBJECT, readDatabaseConfig } from "../support/database-config";
 import { expectNeutral } from "../support/neutral";
+import { snapshotTextOf } from "../support/page-snapshot-dom";
+import { PAGE_SNAPSHOT_SCRIPT } from "../../src/features/share/shortcut/page-snapshot-script";
 import { signInCookies } from "../support/session";
 
 const { appUrl } = readDatabaseConfig();
@@ -122,6 +126,43 @@ test("안내는 실제 iPhone에서 동작한 구성을 보이고, 쇼핑 앱의
   // The loopback link fails collection; the shared name stays.
   await expect(card).toContainText("정보를 가져오지 못했어요", { timeout: 20_000 });
   await expect(card).toContainText("로투스 벨기에 와플 초코");
+});
+
+test("Safari 단축어 안내는 붙여 넣을 스크립트를 그대로 보이고, 그 스크립트의 결과로 담은 상품은 쇼핑몰을 읽지 못해도 이름과 가격을 보인다", async ({ page, context }) => {
+  await signIn(context);
+  await page.goto("/");
+  await openShare(page);
+  const safari = page.getByRole("region", { name: "Safari에서 상품 정보까지 담기 (선택)" });
+  await expect(safari).toContainText("‘moti에 담기 (Safari)’");
+  await expect(safari).toContainText("설정 → 앱 → 단축어 → 고급에서 ‘스크립트 실행 허용’");
+  await expect(safari).toContainText("‘입력이 없는 경우’");
+  await expect(safari).toContainText("키 page를 텍스트로");
+  await expect(safari).toContainText("아직 실제 iPhone에서 확인하지 않았어요.");
+  expect(await safari.locator(".share-script").textContent()).toBe(PAGE_SNAPSHOT_SCRIPT);
+  await safari.getByRole("button", { name: "스크립트 복사", exact: true }).click();
+  await expect(safari.getByRole("status")).toContainText(/복사했어요|직접 복사해 주세요/);
+  await expectNeutral(safari.locator(".share-script"), ["background-color", "color"]);
+  await expect(claimsDone(page)).toHaveCount(0);
+
+  await keyPanel(page).getByRole("button", { name: "저장 키 만들기", exact: true }).click();
+  const secret = await secretOf(page);
+  // A loopback page the fetch policy refuses: the name and price can only come from the script's snapshot.
+  const link = "http://127.0.0.1:9/vp/products/7001";
+  const html = readFileSync(resolve(import.meta.dirname, "../fixtures/pages/safari-product.html"), "utf8")
+    .replace("//img.market.example/thumbnails/7001/main.jpg", "http://127.0.0.1:9/main.jpg");
+  const response = await fetch(new URL("/api/share/links", appUrl), {
+    method: "POST",
+    headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
+    body: JSON.stringify({ url: link, page: snapshotTextOf(html, link) }),
+  });
+  expect(response.status).toBe(201);
+
+  await page.reload();
+  const card = page.getByRole("button", { name: /상세 보기$/ });
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAccessibleName("로투스 비스코프 와플 초코 300g, 127.0.0.1 상세 보기");
+  await expect(card).toContainText("12,900", { timeout: 20_000 });
+  await expect(card).not.toContainText("정보를 가져오지 못했어요");
 });
 
 test("새 키로 바꾸고 폐기할 때 확인은 취소에 먼저 머물고, 바꾼 뒤 이전 키와 폐기한 키로는 담지 못한다", async ({ page, context }) => {
