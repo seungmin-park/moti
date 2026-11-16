@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toLinkSaveCommand } from "../../src/features/library/application/commands";
 import { createSupabaseLibraryStore } from "../../src/features/library/infrastructure/supabase-library-store";
@@ -8,6 +10,7 @@ import {
   shareLinkErrorResponseSchema,
 } from "../../src/features/share/presentation/share-dto";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
+import { snapshotTextOf } from "../support/page-snapshot-dom";
 import { HTTP_OWNER_SUBJECT, readDatabaseConfig } from "../support/database-config";
 import { cookieHeader, signInCookies, withExpiredAccessToken } from "../support/session";
 
@@ -225,5 +228,48 @@ describe("실제 HTTP 단축어 경로", () => {
       "select metadata_phase as phase, metadata_error_code as code from moti.products where id = $1", [product.id],
     )).rows[0], { timeout: 10_000 }).toEqual({ phase: "failed", code: "blocked_address" });
     expect(metadataWakeResponseSchema.parse(await (await wake()).json())).toEqual({ products: [] });
+  });
+
+  it("Safari 단축어처럼 JavaScript 결과를 page 칸에 보내면 201이고 이름이 바로 보이며, 깨우면 쇼핑몰을 읽지 않고 이름·가격을 채운다", async () => {
+    const { secret } = await issue();
+    // A loopback link the production fetch policy refuses: the page data can only come from the snapshot.
+    const link = "http://127.0.0.1:9/vp/products/7001";
+    const html = readFileSync(resolve(import.meta.dirname, "../fixtures/pages/safari-product.html"), "utf8")
+      .replace("//img.market.example/thumbnails/7001/main.jpg", "http://127.0.0.1:9/main.jpg");
+    const page = snapshotTextOf(html, link);
+
+    const added = await shortcut(secret, { url: link, page });
+
+    expect(added.status).toBe(201);
+    expectNoSession(added);
+    expect(shareLinkAddResponseSchema.parse(await added.json()).result).toBe("added");
+    const [product] = (await library()).products;
+    expect(product).toMatchObject({ sourceUrl: link, title: "로투스 비스코프 와플 초코 300g", metadata: { phase: "queued" } });
+
+    const woken = await fetch(new URL("/api/library/metadata", appUrl), {
+      method: "POST", headers: { cookie, origin, "content-type": "application/json" }, body: "{}",
+    });
+    expect(woken.status).toBe(202);
+    // The picture is still fetched by the server under the same policy, so the loopback picture is refused.
+    await expect.poll(async () => (await library()).products[0], { timeout: 10_000 }).toMatchObject({
+      title: "로투스 비스코프 와플 초코 300g",
+      metadata: { phase: "ready", image: { outcome: "failed", errorCode: "blocked_address" } },
+      lastSuccessfulPrice: { amountMinor: 12900, currency: "KRW" },
+    });
+    const { rows } = await fixture.admin.query("select status, shared_title from moti.metadata_jobs where product_id = $1", [product.id]);
+    expect(rows).toEqual([{ status: "succeeded", shared_title: null }]);
+  });
+
+  it("형식이 다른 page는 400 invalid_page이고, 한도를 넘는 본문은 413이며, 둘 다 아무것도 담지 않는다", async () => {
+    const { secret } = await issue();
+
+    const invalid = await shortcut(secret, { url: "https://shop.example/lamp", page: { url: "https://shop.example/lamp", cookie: "a=b" } });
+    expect(invalid.status).toBe(400);
+    expect(shareLinkErrorResponseSchema.parse(await invalid.json()).error).toBe("invalid_page");
+
+    const huge = await shortcut(secret, { url: "https://shop.example/lamp", page: JSON.stringify({ jsonLd: ["\"".repeat(80_000)] }) });
+    expect(huge.status).toBe(413);
+    expect(shareLinkErrorResponseSchema.parse(await huge.json()).error).toBe("payload_too_large");
+    expect((await stored()).products).toEqual([]);
   });
 });

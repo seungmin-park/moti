@@ -347,6 +347,8 @@ const WORKER_GRANTS = [
   "column moti.metadata_jobs.lease_until SELECT",
   "column moti.metadata_jobs.owner_id SELECT",
   "column moti.metadata_jobs.product_id SELECT",
+  // Only whether a job carries the Safari Shortcut's read page, which the owner's collection settles.
+  "column moti.metadata_jobs.shared_title SELECT",
   "column moti.metadata_jobs.status SELECT",
   "column moti.metadata_jobs.attempts UPDATE",
   "column moti.metadata_jobs.error_code UPDATE",

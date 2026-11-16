@@ -19,6 +19,23 @@ export const shortcutSteps: readonly string[] = [
 export const shareWithoutShortcuts =
   "공유 메뉴에 단축어가 없는 앱(예: 네이버 앱)에서는 링크를 복사한 뒤 홈 화면이나 위젯에서 ‘moti에 담기’를 실행해요.";
 
+// The optional second Shortcut for Safari. Shops that refuse the server (Naver Smartstore, Coupang, Gmarket) still show
+// their page to the owner's Safari, so this one runs moti's script there and sends what the page states as `page`.
+// "Run JavaScript on Web Page" takes only Safari web pages and stops the Shortcut on any other input, so it is a
+// separate Shortcut and the first one stays as it is. Duplicating the first keeps its address and key. Not yet built on
+// a real iPhone: the screen says so.
+export const safariShortcutIntro =
+  "네이버 스마트스토어, 쿠팡, G마켓처럼 moti 서버의 요청을 막는 쇼핑몰은 상품 정보를 가져오지 못해요. Safari에서 공유할 때 지금 보고 있는 페이지의 이름·가격·사진 주소를 함께 보내는 단축어를 하나 더 만들 수 있어요.";
+export const safariShortcutSteps: readonly string[] = [
+  "단축어 앱에서 ‘moti에 담기’를 길게 눌러 복제하고 이름을 ‘moti에 담기 (Safari)’로 바꿔요. 맨 위 입력 받기 블록에서 받을 항목은 Safari 웹 페이지 하나만 남겨요. 주소와 저장 키는 복제한 그대로 써요.",
+  "iPhone 설정 → 단축어 → 고급에서 ‘스크립트 실행 허용’을 켜요.",
+  "‘URL 콘텐츠 가져오기’ 위에 ‘웹 페이지에서 JavaScript 실행’을 넣고 대상이 ‘단축어 입력’인지 확인해요. 들어 있는 예시 스크립트는 지우고 아래 ‘스크립트 복사’로 복사한 스크립트를 붙여 넣어요.",
+  "‘URL 콘텐츠 가져오기’의 JSON 본문에 키 page를 텍스트로 하나 더 넣고 값으로 ‘JavaScript 결과’를 골라요. url은 그대로 ‘단축어 입력’이에요.",
+  "Safari에서 상품 페이지를 연 채 공유 메뉴에서 ‘moti에 담기 (Safari)’를 골라요. 쇼핑 앱의 공유와 복사한 링크는 처음 만든 단축어로 담아요.",
+];
+export const safariShortcutNote =
+  "이 구성은 아직 실제 iPhone에서 확인하지 않았어요. 페이지 정보는 새로 담는 상품에만 쓰고 이미 담은 상품은 바꾸지 않아요. 이런 쇼핑몰의 가격은 담은 뒤에 moti가 다시 확인하지 못해요.";
+
 // The screen cannot know whether the Shortcut is installed, so it never says so. The time the key was last used (an
 // add or an already-saved link) is the only evidence it shows, and it is labelled as exactly that.
 export function shareKeyView(key: ShareKeyResponse | null): { title: string; detail: string } {

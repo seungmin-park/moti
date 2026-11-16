@@ -3,6 +3,13 @@ import { z } from "zod";
 import { callRpc, productRowSchema, readResponse, toProduct } from "../../library/infrastructure/supabase-library-store";
 import { pictureObjectSchema as pictureObject } from "../../library/infrastructure/product-pictures";
 import type { CollectionJob, CollectionJobStore, JobClaim, JobSettlement } from "../application/collection";
+// The Safari Shortcut's page as the share route read it. The database checked the same rules as a collection's result.
+const sharedPageRowSchema = z.object({
+  title: z.string().min(1),
+  amount_minor: z.number().int().min(1).nullable(),
+  currency: z.string().regex(/^[A-Z]{3}$/).nullable(),
+  image_source_url: z.string().min(1).nullable(),
+}).strict();
 const jobRowSchema = z.object({
   id: z.uuid(),
   lease_token: z.uuid(),
@@ -10,6 +17,7 @@ const jobRowSchema = z.object({
   attempts: z.number().int().min(1),
   source_url: z.string().min(1),
   picture: pictureObject,
+  shared_page: sharedPageRowSchema.nullable().default(null),
 });
 const claimRowSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("claimed"), job: jobRowSchema }),
@@ -32,6 +40,13 @@ function toCollectionJob(row: JobRow): CollectionJob {
     attempts: row.attempts,
     sourceUrl: row.source_url,
     picture: row.picture,
+    sharedPage: row.shared_page && {
+      title: row.shared_page.title,
+      price: row.shared_page.amount_minor !== null && row.shared_page.currency !== null
+        ? { amountMinor: row.shared_page.amount_minor, currency: row.shared_page.currency }
+        : null,
+      imageSourceUrl: row.shared_page.image_source_url,
+    },
   };
 }
 

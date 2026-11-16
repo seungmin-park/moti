@@ -14,6 +14,7 @@ import { createSupabaseCollectionStore } from "../../src/features/metadata/infra
 import { readProductPage } from "../../src/features/metadata/infrastructure/html-reader";
 import { toShareLinkAddCommand } from "../../src/features/share/application/commands";
 import { createShareKeyService, createShareLinkService } from "../../src/features/share/application/share-service";
+import { createSharedPageReader } from "../../src/features/share/infrastructure/shared-page-reader";
 import { createSupabaseShareKeyStore, createSupabaseShareLinkStore } from "../../src/features/share/infrastructure/supabase-share-store";
 import { createScheduledRunService } from "../../src/features/worker/application/scheduled-run";
 import { createWorkerKeyService } from "../../src/features/worker/application/worker-service";
@@ -51,7 +52,7 @@ const worker = (source: PageSource) => createScheduledRunService({
 
 async function sharedLink(...urls: string[]) {
   const { secret } = await createShareKeyService(createSupabaseShareKeyStore(fixture.owner.client)).issue({ replaces: null });
-  for (const url of urls) await createShareLinkService(createSupabaseShareLinkStore(fixture.anonymous)).add(toShareLinkAddCommand(secret, url));
+  for (const url of urls) await createShareLinkService(createSupabaseShareLinkStore(fixture.anonymous), createSharedPageReader(readProductPage)).add(toShareLinkAddCommand(secret, url));
 }
 
 async function objects() {

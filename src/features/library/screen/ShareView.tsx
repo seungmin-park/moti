@@ -1,11 +1,20 @@
 "use client";
 
-import { Copy, Smartphone } from "lucide-react";
+import { Compass, Copy, Smartphone } from "lucide-react";
 import { SHARE_LINKS_PATH, shareLinkMessages } from "../../share/presentation/share-dto";
+import { PAGE_SNAPSHOT_SCRIPT } from "../../share/shortcut/page-snapshot-script";
 import { KeyPanel, useCopy, type KeyPanelText } from "./KeyPanel";
 import type { KeyPanel as KeyPanelState } from "./key-panel-state";
 import type { ScreenEvent } from "./screen-state";
-import { shareConfirmView, shareKeyView, shareWithoutShortcuts, shortcutSteps } from "./share-view";
+import {
+  safariShortcutIntro,
+  safariShortcutNote,
+  safariShortcutSteps,
+  shareConfirmView,
+  shareKeyView,
+  shareWithoutShortcuts,
+  shortcutSteps,
+} from "./share-view";
 
 type Send = (event: ScreenEvent) => void;
 
@@ -90,6 +99,26 @@ export function ShareView({ panel, send }: { panel: KeyPanelState; send: Send })
             </div>
           </li>
         </ol>
+        <section className="share-safari" aria-labelledby="share-safari-heading">
+          <h3 id="share-safari-heading">
+            <Compass size={16} aria-hidden="true" />
+            Safari에서 상품 정보까지 담기 (선택)
+          </h3>
+          <p>{safariShortcutIntro}</p>
+          <ol className="shortcut-actions">
+            {safariShortcutSteps.map((step) => <li key={step}>{step}</li>)}
+          </ol>
+          <div className="share-endpoint">
+            <span className="share-key-label" id="share-script-label">‘웹 페이지에서 JavaScript 실행’에 넣을 스크립트</span>
+            <pre className="share-script" aria-labelledby="share-script-label" tabIndex={0}><code>{PAGE_SNAPSHOT_SCRIPT}</code></pre>
+            <button className="button secondary" onClick={() => void copy("script", PAGE_SNAPSHOT_SCRIPT)}>
+              <Copy size={16} aria-hidden="true" />
+              스크립트 복사
+            </button>
+            <p className="share-copy-status" role="status">{status("script")}</p>
+          </div>
+          <p className="share-safari-note">{safariShortcutNote}</p>
+        </section>
       </div>
       <KeyPanel panel={panel} endpoint="share" text={shareKeyText} send={send} />
     </section>

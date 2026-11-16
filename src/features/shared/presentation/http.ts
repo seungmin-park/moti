@@ -35,12 +35,15 @@ export function redirectTo(location: string): Response {
   return new Response(null, { status: 303, headers: { location, "cache-control": "no-store" } });
 }
 
+// `bytes` is the body's size as read, for a route whose limit depends on what the body holds.
 export type JsonBody =
-  | { ok: true; value: unknown }
-  | { ok: false; reason: "unsupported_media_type" | "payload_too_large" | "invalid_json" };
+  | { ok: true; value: unknown; bytes: number }
+  | { ok: false; reason: "invalid_json"; bytes: number }
+  | { ok: false; reason: "unsupported_media_type" | "payload_too_large" };
 
 // Owner routes run the origin and session checks first, so only the signed-in owner can make them read up to their
-// limit. The share Shortcut's route checks only the key's format first, so anyone can make it read its 8 KiB.
+// limit. The share Shortcut's route checks only the key's format first, so anyone can make it read its limit (136 KiB,
+// for the Safari Shortcut's page snapshot).
 export async function readJsonBody(request: Request, limit = MAX_JSON_BYTES): Promise<JsonBody> {
   const type = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
   if (type !== "application/json") return { ok: false, reason: "unsupported_media_type" };
@@ -49,9 +52,9 @@ export async function readJsonBody(request: Request, limit = MAX_JSON_BYTES): Pr
   const bytes = await readLimited(request, limit);
   if (!bytes) return { ok: false, reason: "payload_too_large" };
   try {
-    return { ok: true, value: JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) };
+    return { ok: true, value: JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), bytes: bytes.byteLength };
   } catch {
-    return { ok: false, reason: "invalid_json" };
+    return { ok: false, reason: "invalid_json", bytes: bytes.byteLength };
   }
 }
 

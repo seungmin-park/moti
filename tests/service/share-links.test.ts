@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLibraryService } from "../../src/features/library/application/library-service";
 import { createPictureStore } from "../../src/features/library/infrastructure/product-pictures";
@@ -11,9 +12,12 @@ import { readProductPage } from "../../src/features/metadata/infrastructure/html
 import { normalizePicture } from "../../src/features/metadata/infrastructure/sharp-normalizer";
 import { createSupabaseCollectionStore } from "../../src/features/metadata/infrastructure/supabase-collection-store";
 import { toShareLinkAddCommand } from "../../src/features/share/application/commands";
+import { toPageSnapshot } from "../../src/features/share/presentation/share-dto";
 import { createShareKeyService, createShareLinkService } from "../../src/features/share/application/share-service";
+import { createSharedPageReader } from "../../src/features/share/infrastructure/shared-page-reader";
 import { createSupabaseShareKeyStore, createSupabaseShareLinkStore } from "../../src/features/share/infrastructure/supabase-share-store";
 import { createDatabaseFixture, type DatabaseFixture } from "../support/database";
+import { snapshotTextOf } from "../support/page-snapshot-dom";
 
 let fixture: DatabaseFixture;
 beforeEach(async () => { fixture = await createDatabaseFixture(); });
@@ -22,7 +26,7 @@ afterEach(async () => {
   try { await fixture.cleanup(); } finally { await fixture.close(); }
 });
 
-const links = () => createShareLinkService(createSupabaseShareLinkStore(fixture.anonymous));
+const links = () => createShareLinkService(createSupabaseShareLinkStore(fixture.anonymous), createSharedPageReader(readProductPage));
 const owner = () => createLibraryService(createSupabaseLibraryStore(fixture.owner.client));
 const keys = () => createShareKeyService(createSupabaseShareKeyStore(fixture.owner.client));
 
@@ -129,5 +133,59 @@ describe("실제 저장소를 쓰는 공유 담기 서비스", () => {
       title: "무선 헤드폰 블랙",
       metadata: expect.objectContaining({ phase: "ready" }),
     })]);
+  });
+
+  it("Safari 단축어가 읽은 페이지로 담으면 쇼핑몰이 서버 요청을 막아도 소유자가 열 때 이름·가격·사진을 채운다", async () => {
+    const safariPage = readFileSync(resolve(import.meta.dirname, "../fixtures/pages/safari-product.html"), "utf8");
+    const link = "https://www.market.example/vp/products/7001?itemId=9001";
+    // The shop refuses the server, as Smartstore, Coupang and Gmarket do; its picture server answers.
+    const shop: PageSource = { read: vi.fn(async () => ({ ok: false as const, code: "blocked_by_site" as const, status: 403 })) };
+    const photo = await sharp({ create: { width: 800, height: 600, channels: 3, background: "#777777" } }).jpeg().toBuffer();
+    const images: ImageSource = { read: vi.fn<ImageSource["read"]>(async () => ({ ok: true, bytes: photo })) };
+    const jobs = createSupabaseCollectionStore(fixture.owner.client);
+    const runner = createCollectionRunner({
+      store: jobs,
+      source: shop,
+      read: readProductPage,
+      copier: createPictureCopier({ source: images, normalize: normalizePicture, pictures: createPictureStore(fixture.owner.client) }),
+    });
+    const { secret } = await keys().issue({ replaces: null });
+    const page = toPageSnapshot(snapshotTextOf(safariPage, link));
+
+    expect(await links().add(toShareLinkAddCommand(secret, link, page))).toEqual({ kind: "added" });
+    expect((await owner().snapshot()).products).toEqual([expect.objectContaining({
+      title: "로투스 비스코프 와플 초코 300g",
+      metadata: expect.objectContaining({ phase: "queued" }),
+      lastSuccessfulPrice: null,
+    })]);
+
+    const { products } = await jobs.wake({ limit: WAKE_LIMIT });
+    const runs = await Promise.all(products.map(({ id, metadata }) => runner.run({ productId: id, generation: metadata.generation })));
+
+    expect(runs.map((run) => run.kind)).toEqual(["collected"]);
+    expect(shop.read).not.toHaveBeenCalled();
+    expect(images.read).toHaveBeenCalledExactlyOnceWith(
+      "https://img.market.example/thumbnails/7001/main.jpg",
+      expect.objectContaining({ pageUrl: link }),
+    );
+    expect((await owner().snapshot()).products).toEqual([expect.objectContaining({
+      title: "로투스 비스코프 와플 초코 300g",
+      metadata: expect.objectContaining({ phase: "ready", attempts: 1, image: { outcome: "copied" } }),
+      lastSuccessfulPrice: expect.objectContaining({ amountMinor: 12900, currency: "KRW" }),
+    })]);
+  });
+
+  it("다른 호스트의 페이지 요약이나 이미 담은 링크의 요약은 쓰지 않는다", async () => {
+    const safariPage = readFileSync(resolve(import.meta.dirname, "../fixtures/pages/safari-product.html"), "utf8");
+    const { secret } = await keys().issue({ replaces: null });
+    const foreign = toPageSnapshot(snapshotTextOf(safariPage, "https://evil.example/vp/products/7001"));
+    await links().add(toShareLinkAddCommand(secret, "https://www.market.example/vp/products/7001", foreign));
+    expect((await owner().snapshot()).products).toEqual([expect.objectContaining({ title: "새로 담은 상품" })]);
+
+    const own = toPageSnapshot(snapshotTextOf(safariPage, "https://www.market.example/vp/products/7001"));
+    expect(await links().add(toShareLinkAddCommand(secret, "https://www.market.example/vp/products/7001", own))).toEqual({ kind: "duplicate" });
+    expect((await owner().snapshot()).products).toEqual([expect.objectContaining({ title: "새로 담은 상품" })]);
+    const { rows } = await fixture.admin.query("select shared_title from moti.metadata_jobs where owner_id = $1", [fixture.owner.id]);
+    expect(rows).toEqual([{ shared_title: null }]);
   });
 });

@@ -25,7 +25,7 @@ const shareErrors: Record<string, ShareErrorCode> = {
 // The client runs as anon. The key is the only credential, and the database decides what it may do.
 export function createSupabaseShareLinkStore(client: SupabaseClient): ShareLinkStore {
   return {
-    async add({ secret, link, title }) {
+    async add({ secret, link, title, sharedPage }) {
       const { data, error } = await client.rpc("moti_share_add", {
         p_key: secret,
         p_source_url: link.sourceUrl,
@@ -33,6 +33,13 @@ export function createSupabaseShareLinkStore(client: SupabaseClient): ShareLinkS
         p_option: link.option,
         p_shop: link.shop,
         p_title: title,
+        // Sent only with a snapshot, so an add without one reads the same as before 20261122000000_share_page.
+        ...(sharedPage && {
+          p_shared_title: sharedPage.title,
+          p_shared_amount_minor: sharedPage.price?.amountMinor ?? null,
+          p_shared_currency: sharedPage.price?.currency ?? null,
+          p_shared_image_url: sharedPage.imageSourceUrl,
+        }),
       });
       if (error) throw new ShareError(shareErrors[error.code] ?? "storage_unavailable", "공유한 링크를 담지 못했어요.");
       const row = shareLinkAddRowSchema.safeParse(data);
