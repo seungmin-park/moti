@@ -42,9 +42,11 @@ const lastSuccessColumns = {
   last_success_currency: currency,
   last_success_at: timestamp.nullable(),
 };
+// Missing keys read as null, so this app still reads a database without 20261123000000_owner_price.sql.
+// Only moti_set_wish_price needs the migration.
 const wishColumns = {
-  wish_amount_minor: money,
-  wish_currency: currency,
+  wish_amount_minor: money.default(null),
+  wish_currency: currency.default(null),
 };
 type PurchaseColumns = { [Key in keyof typeof purchaseColumns]: z.infer<(typeof purchaseColumns)[Key]> };
 type LastSuccessColumns = { [Key in keyof typeof lastSuccessColumns]: z.infer<(typeof lastSuccessColumns)[Key]> };

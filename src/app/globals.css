@@ -1591,7 +1591,7 @@ h1 {
   min-height: 44px;
 }
 .wish-price-actions .text-button:disabled {
-  opacity: 0.55;
+  color: var(--muted);
 }
 .purchase-form,
 .wish-price-form,

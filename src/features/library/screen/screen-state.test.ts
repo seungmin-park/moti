@@ -1113,6 +1113,15 @@ describe("상세에서 내가 살 가격", () => {
     });
   });
 
+  it("Given 자동 확인 가격이 없는 상품 When 지우기가 성공하면 Then 자동 확인 가격이 아직 없다고 알린다", () => {
+    const unpriced: ProductResponse = { ...lamp, revision: 3, lastSuccessfulPrice: null, wishPrice: { amountMinor: 3000, currency: "KRW" } };
+    const start = withProducts([unpriced, chair], { dialog: opened(), writing: { productId: lamp.id, intent: "wish.price" } });
+    const { state } = transition(start, changed({ ...unpriced, revision: 4, wishPrice: null }, "wish.price"));
+    expect(detailOf(state).notice).toEqual({
+      form: "wishPrice", kind: "saved", field: null, message: "직접 입력한 가격을 지웠어요. 자동 확인 가격이 아직 없어요.",
+    });
+  });
+
   it("Given 서버가 칸을 거절하거나 다른 곳에서 먼저 바뀜 When 결과를 받으면 Then 그 양식에 알리고 충돌이면 다시 읽는다", () => {
     const start = withProducts([switches, chair], { dialog: opened({ draft: { wishPrice: "3,000" } }), writing: { productId: lamp.id, intent: "wish.price" } });
     const invalid: ApiFailure = { kind: "invalid", field: "wishPrice", message: "내가 살 가격은 0 이상의 정수로 입력해 주세요." };

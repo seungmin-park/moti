@@ -123,6 +123,23 @@ export function ProductDetailDialog({
   const wishPriceHelp = `${id}-wish-price-help`;
   const edit = (field: DetailField, value: string) => send({ type: "detail.edit", field, value });
   const save = (form: "details" | "record" | "wishPrice") => send({ type: "detail.save", form, today: seoulToday(new Date()) });
+  const wishPriceForm = useRef<HTMLFormElement>(null);
+  const wishPriceInput = useRef<HTMLInputElement>(null);
+  // Set when the owner saves or clears from this form, so only that answer moves the focus.
+  const wishPriceAsked = useRef(false);
+  const wishPriceNotice = notice?.form === "wishPrice" ? notice : null;
+  // After a save or a clear the pressed button turns disabled or disappears, so the focus would fall to the page
+  // (WebKit does not focus a clicked button at all). Move it to the price field, unless the owner has since moved
+  // into another field of the dialog.
+  useEffect(() => {
+    if (!wishPriceNotice || !wishPriceAsked.current) return;
+    wishPriceAsked.current = false;
+    const input = wishPriceInput.current;
+    if (wishPriceNotice.kind !== "saved" || !input) return;
+    const active = document.activeElement;
+    const typing = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement;
+    if (active !== input && !(typing && !wishPriceForm.current?.contains(active))) input.focus();
+  }, [wishPriceNotice]);
   return (
     <Dialog title="담아둔 물건" wide onClose={() => send({ type: "dialog.close" })}>
       {view.arrival && (
@@ -203,11 +220,13 @@ export function ProductDetailDialog({
           </dl>
           {!purchased && (
             <form
+              ref={wishPriceForm}
               className="wish-price-form"
               noValidate
               aria-busy={writing === "wish.price"}
               onSubmit={(event) => {
                 event.preventDefault();
+                wishPriceAsked.current = true;
                 save("wishPrice");
               }}
             >
@@ -216,6 +235,7 @@ export function ProductDetailDialog({
                   내가 살 가격 <small>원</small>
                 </span>
                 <input
+                  ref={wishPriceInput}
                   inputMode="numeric"
                   autoComplete="off"
                   placeholder="미입력"
@@ -243,7 +263,10 @@ export function ProductDetailDialog({
                     className="text-button"
                     type="button"
                     disabled={saving || blocked}
-                    onClick={() => send({ type: "detail.clearWishPrice" })}
+                    onClick={() => {
+                      wishPriceAsked.current = true;
+                      send({ type: "detail.clearWishPrice" });
+                    }}
                   >
                     직접 입력 지우기
                   </button>

@@ -480,7 +480,11 @@ function onChanged(state: Ready, productId: string, intent: ProductChange["type"
         });
       }
       case "wish.price": {
-        const message = shown.wishPrice ? "내가 살 가격을 저장했어요" : "직접 입력한 가격을 지우고 자동 확인 가격을 보여줘요";
+        const message = shown.wishPrice
+          ? "내가 살 가격을 저장했어요"
+          : shown.lastSuccessfulPrice
+            ? "직접 입력한 가격을 지우고 자동 확인 가격을 보여줘요"
+            : "직접 입력한 가격을 지웠어요. 자동 확인 가격이 아직 없어요.";
         return stay({
           ...next,
           library,

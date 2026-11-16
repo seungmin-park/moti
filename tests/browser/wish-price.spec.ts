@@ -104,6 +104,8 @@ test("소유자는 상세에서 내가 살 가격을 적어 카드와 상세의 
   await save.click();
   await expect(detail.getByRole("status")).toHaveText("내가 살 가격을 저장했어요");
   await expect(input).toHaveValue("3,000");
+  // 가격 저장 turns disabled once the value is saved, so the focus stays on the price field.
+  await expect(input).toBeFocused();
   await expect(detail.locator(".detail-price strong")).toHaveText("₩3,000");
   await expect(detail.locator(".detail-price .price-marker")).toHaveText("직접 입력");
   await expect(detail.locator(".detail-price")).toContainText("자동 확인 가격 ₩300 · 마지막 확인");
@@ -148,12 +150,14 @@ test("소유자는 직접 입력한 가격을 지워 자동 확인 가격으로 
   await expect(clear).toHaveCount(0);
   expect(await stored(product)).toEqual({ wish: null, collected: "300" });
 
+  // The pressed button is gone, so the focus moves to the price field instead of falling to the page.
   const input = detail.getByRole("textbox", { name: "내가 살 가격 원" });
-  await input.focus();
+  await expect(input).toBeFocused();
   await page.keyboard.type("2900");
   await page.keyboard.press("Enter");
   await expect(detail.getByRole("status")).toHaveText("내가 살 가격을 저장했어요");
   await expect(input).toHaveValue("2,900");
+  await expect(input).toBeFocused();
   expect(await stored(product)).toEqual({ wish: "2900", collected: "300" });
   await closeDetail(page);
   await expect(card(page).locator(".price-value")).toHaveText("₩2,900");
