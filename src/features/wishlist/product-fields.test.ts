@@ -7,7 +7,9 @@ import {
   parseProductNote,
   parseProductTitle,
   parsePurchaseDate,
+  parseWishPrice,
   seoulToday,
+  wishPriceInput,
 } from "./product-fields";
 
 const today = "2026-11-13";
@@ -93,6 +95,33 @@ describe("실구매가", () => {
 
   it.each(["-1", "1.5", "1,000", "1e3", "２", "9007199254740992", null])("Given 정수가 아닌 값 %j When 기록하면 Then 거절한다", (input) => {
     expect(parsePaidPrice(input)).toEqual({ ok: false, field: "price", message: "실구매가는 0 이상의 정수로 입력해 주세요." });
+  });
+});
+
+describe("내가 살 가격", () => {
+  it("Given 빈 칸 When 저장하면 Then 직접 입력한 가격을 지우는 null이고 0원과 다르다", () => {
+    expect(parseWishPrice("")).toEqual({ ok: true, value: null });
+    expect(parseWishPrice("  ")).toEqual({ ok: true, value: null });
+    expect(parseWishPrice("0")).toEqual({ ok: true, value: { amountMinor: 0, currency: "KRW" } });
+  });
+
+  it("Given 쉼표로 묶은 원 단위 정수 When 저장하면 Then 원화 최소 단위로 받는다", () => {
+    expect(parseWishPrice("3,000")).toEqual({ ok: true, value: { amountMinor: 3000, currency: "KRW" } });
+    expect(parseWishPrice(" 1,234,567 ")).toEqual({ ok: true, value: { amountMinor: 1234567, currency: "KRW" } });
+    expect(parseWishPrice("3000")).toEqual({ ok: true, value: { amountMinor: 3000, currency: "KRW" } });
+    expect(parseWishPrice("9,007,199,254,740,991")).toEqual({ ok: true, value: { amountMinor: Number.MAX_SAFE_INTEGER, currency: "KRW" } });
+  });
+
+  it.each(["-1", "1.5", "30,00", ",300", "1e3", "２", "₩3,000", "9007199254740992", null])(
+    "Given 원 단위 정수가 아닌 값 %j When 저장하면 Then 내가 살 가격 칸의 오류다", (input) => {
+      expect(parseWishPrice(input)).toEqual({ ok: false, field: "wishPrice", message: "내가 살 가격은 0 이상의 정수로 입력해 주세요." });
+    },
+  );
+
+  it("Given 저장한 가격 When 입력 칸에 보이면 Then 한국어 자릿수 쉼표로 묶고 없으면 빈 칸이다", () => {
+    expect(wishPriceInput({ amountMinor: 3000, currency: "KRW" })).toBe("3,000");
+    expect(wishPriceInput({ amountMinor: 0, currency: "KRW" })).toBe("0");
+    expect(wishPriceInput(null)).toBe("");
   });
 });
 

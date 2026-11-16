@@ -25,6 +25,7 @@ function product(overrides: Partial<BackupProduct> = {}): BackupProduct {
     addedAt: "2026-10-05T01:00:00.456Z",
     purchase: { status: "wish" },
     lastSuccessfulPrice: null,
+    wishPrice: null,
     ...overrides,
   };
 }
@@ -120,6 +121,20 @@ describe("백업 파일 만들기", () => {
     });
   });
 
+  it("내가 살 가격이 있는 상품만 wishPrice 칸을 담아, 없는 보관함의 파일은 이전 앱이 만든 파일과 같다", () => {
+    const priced = toLibraryBackupDocument({
+      collections: [],
+      products: [
+        product({ wishPrice: { amountMinor: 3000, currency: "KRW" } }),
+        product({ sourceUrl: "https://shop.example/p/3", identityUrl: "https://shop.example/p/3", option: "" }),
+      ],
+    }, exportedAt);
+
+    expect(priced.products[0].wishPrice).toEqual({ amountMinor: 3000, currency: "KRW" });
+    expect(Object.keys(priced.products[1])).not.toContain("wishPrice");
+    expect(JSON.stringify(toLibraryBackupDocument(backup, exportedAt))).not.toContain("wishPrice");
+  });
+
   it("파일 이름은 서울 시각의 날짜와 분이다", () => {
     expect(backupFileName(exportedAt)).toBe("moti-backup-20261113-1412.json");
     expect(backupFileName(new Date("2026-12-31T15:05:00.000Z"))).toBe("moti-backup-20270101-0005.json");
@@ -135,6 +150,36 @@ describe("백업 파일 읽기", () => {
       document: toLibraryBackupDocument(backup, exportedAt),
       counts: { products: 3, collections: 2 },
     });
+  });
+
+  it("내가 살 가격이 있는 파일을 글자로 바꿨다가 읽으면 같은 가격을 돌려준다", () => {
+    const priced = toLibraryBackupDocument({ collections: [], products: [product({ wishPrice: { amountMinor: 0, currency: "KRW" } })] }, exportedAt);
+    const reading = readLibraryBackup(JSON.parse(JSON.stringify(priced)));
+    expect(reading).toEqual({ ok: true, document: priced, counts: { products: 1, collections: 0 } });
+    expect(reading.ok && reading.document.products[0].wishPrice).toEqual({ amountMinor: 0, currency: "KRW" });
+  });
+
+  it("내가 살 가격이 생기기 전에 만든 버전 1 파일도 그대로 읽고 상품에 가격이 없다", () => {
+    const before = {
+      format: "moti.library-backup",
+      version: 1,
+      exportedAt: "2026-11-13T05:12:00.000Z",
+      collections: [],
+      products: [{
+        sourceUrl: "https://shop.example/p/1",
+        option: "",
+        collectedTitle: "키보드 스위치",
+        ownerTitle: null,
+        note: "",
+        collections: [],
+        addedAt: "2026-10-05T01:00:00.456Z",
+        purchase: { status: "wish" },
+        lastSuccessfulPrice: { amountMinor: 300, currency: "KRW", checkedAt: "2026-11-01T00:00:00.000Z" },
+      }],
+    };
+    const reading = readLibraryBackup(before);
+    expect(reading).toMatchObject({ ok: true, counts: { products: 1, collections: 0 } });
+    expect(reading.ok && reading.document.products[0].wishPrice).toBeUndefined();
   });
 
   it("빈 보관함의 파일도 읽는다", () => {
@@ -205,6 +250,11 @@ describe("백업 파일 읽기", () => {
     ["소수 실구매가", { "products.0.purchase.price.amountMinor": 1.5 }, "products.0.purchase.price.amountMinor"],
     ["없는 날짜", { "products.1.purchase.date": "2026-02-30" }, "products.1.purchase.date"],
     ["1900년 전 구매일", { "products.1.purchase.date": "1899-12-31" }, "products.1.purchase.date"],
+    ["null인 내가 살 가격", { "products.2.wishPrice": null }, "products.2.wishPrice"],
+    ["원화가 아닌 내가 살 가격", { "products.2.wishPrice": { amountMinor: 3000, currency: "USD" } }, "products.2.wishPrice.currency"],
+    ["음수 내가 살 가격", { "products.2.wishPrice": { amountMinor: -1, currency: "KRW" } }, "products.2.wishPrice.amountMinor"],
+    ["소수 내가 살 가격", { "products.2.wishPrice": { amountMinor: 1.5, currency: "KRW" } }, "products.2.wishPrice.amountMinor"],
+    ["통화 없는 내가 살 가격", { "products.2.wishPrice": { amountMinor: 3000 } }, "products.2.wishPrice.currency"],
     ["0원인 마지막 확인 가격", { "products.0.lastSuccessfulPrice.amountMinor": 0 }, "products.0.lastSuccessfulPrice.amountMinor"],
     ["통화 형식이 아닌 마지막 확인 가격", { "products.0.lastSuccessfulPrice.currency": "won" }, "products.0.lastSuccessfulPrice.currency"],
     ["확인 시각 없는 마지막 확인 가격", { "products.0.lastSuccessfulPrice.checkedAt": removed }, "products.0.lastSuccessfulPrice.checkedAt"],

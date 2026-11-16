@@ -68,6 +68,7 @@ describe("백업 내보내기", () => {
           addedAt: lamp.addedAt,
           purchase: { status: "wish" },
           lastSuccessfulPrice: { amountMinor: 129000, currency: "KRW", checkedAt: shown(lamp).lastSuccessfulPrice!.checkedAt },
+          wishPrice: null,
         },
         {
           sourceUrl: "https://shop.example/table?utm_source=x",
@@ -81,6 +82,7 @@ describe("백업 내보내기", () => {
           addedAt: table.addedAt,
           purchase: { status: "purchased", date: null, price: { amountMinor: 0, currency: "KRW" } },
           lastSuccessfulPrice: null,
+          wishPrice: null,
         },
       ],
     });

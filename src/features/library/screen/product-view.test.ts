@@ -28,6 +28,7 @@ const queued: ProductResponse = {
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
   priceCheck: null,
+  wishPrice: null,
   picture: null,
 };
 
@@ -232,6 +233,49 @@ describe("매일 가격 확인이 이전 가격을 지켰을 때", () => {
     ["구매완료", { ...kept("timeout"), purchase: { status: "purchased", date: null, price: null } }],
   ])("Given %s When 상세로 보이면 Then 이전 가격 줄이 없다", (_name, product) => {
     expect(toProductDetailView(product, null).priceKept).toBeNull();
+  });
+});
+
+describe("내가 살 가격", () => {
+  // The Smartstore case: the page's structured data gives the per-unit price, the owner pays for the default 10-pack.
+  const switches: ProductResponse = {
+    ...queued,
+    title: "키보드 스위치",
+    metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-11T00:00:00.000Z", image: { outcome: "absent" } },
+    lastSuccessfulPrice: { amountMinor: 300, currency: "KRW", checkedAt: "2026-11-11T00:00:00.000Z" },
+    wishPrice: { amountMinor: 3000, currency: "KRW" },
+  };
+
+  it("Given 직접 입력한 가격과 자동 확인 가격 When 카드로 보이면 Then 직접 입력한 가격이 주 가격이고 자동 확인 가격은 참고로 남는다", () => {
+    expect(toProductCardView(switches, []).price).toEqual({ value: "₩3,000", marker: "직접 입력", checked: "자동 확인 ₩300" });
+  });
+
+  it("Given 직접 입력한 가격과 자동 확인 가격 When 상세로 보이면 Then 자동 확인 가격과 마지막 확인 날을 참고로 보여준다", () => {
+    expect(toProductDetailView(switches, null).price).toEqual({
+      value: "₩3,000", marker: "직접 입력", checked: "자동 확인 가격 ₩300 · 마지막 확인 2026. 11. 11.",
+    });
+  });
+
+  it("Given 쇼핑몰이 막아 자동 확인 가격이 없음 When 카드와 상세로 보이면 Then 직접 입력한 가격만 주 가격으로 보이고 자동 확인 가격은 없다고 말한다", () => {
+    const blocked = { ...switches, lastSuccessfulPrice: null };
+    expect(toProductCardView(blocked, []).price).toEqual({ value: "₩3,000", marker: "직접 입력", checked: "자동 확인 가격 없음" });
+    expect(toProductDetailView(blocked, null).price).toEqual({ value: "₩3,000", marker: "직접 입력", checked: "자동 확인 가격 없음" });
+  });
+
+  it("Given 0원을 직접 입력 When 보이면 Then 가격 확인 전과 구분해 ₩0이다", () => {
+    expect(toProductCardView({ ...switches, wishPrice: { amountMinor: 0, currency: "KRW" } }, []).price.value).toBe("₩0");
+  });
+
+  it("Given 직접 입력한 가격이 있는 구매완료 상품 When 카드와 상세로 보이면 Then 구매 기록과 마지막 확인 가격을 지금처럼 보여준다", () => {
+    const bought: ProductResponse = { ...switches, purchase: { status: "purchased", date: null, price: { amountMinor: 2800, currency: "KRW" } } };
+    expect(toProductCardView(bought, []).price).toEqual({ value: "₩2,800", checked: "실구매가" });
+    expect(toProductDetailView(bought, null).price).toEqual({ value: "₩300", checked: "마지막 확인 2026. 11. 11." });
+  });
+
+  it("Given 직접 입력한 가격이 있고 매일 확인이 이전 가격을 지킴 When 상세로 보이면 Then 그 줄은 자동 확인 가격에 대한 말이다", () => {
+    const kept: ProductResponse = { ...switches, priceCheck: { checkedAt: "2026-11-13T15:30:00.000Z", code: "blocked_by_site" } };
+    expect(toProductDetailView(kept, null).priceKept)
+      .toBe("2026. 11. 14.에 가격을 다시 확인하지 못해 자동 확인 가격은 이전에 확인한 가격이에요. 쇼핑몰이 자동 확인을 막았어요.");
   });
 });
 

@@ -41,6 +41,7 @@ export function LibraryProductCard({
           <p className="product-option">{view.option}</p>
           <p className="product-price">
             <span className="price-value">{view.price.value}</span>
+            {view.price.marker && <span className="price-marker">{view.price.marker}</span>}
             {view.price.checked && <span className="price-label">{view.price.checked}</span>}
           </p>
           <span className="product-collection">

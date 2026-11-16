@@ -1,0 +1,40 @@
+
+# Review follow-up Red (2026-11-16T17:40Z, feat/owner-price on 9271654, tests changed only)
+
+$ npx vitest run src/features/library/infrastructure/supabase-library-store.test.ts src/features/library/screen/screen-state.test.ts
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/library/infrastructure/supabase-library-store.test.ts > 내가 살 가격 열이 없는 DB의 응답 > Given wish_* 열이 없는 상품 행 When 보관함과 링크 저장을 읽으면 Then 내가 살 가격은 null이다
+LibraryError: 저장 응답을 확인할 수 없어요.
+    228|     throw new LibraryError("storage_unavailable", "저장 응답을 확인할 수 없어요.");
+ FAIL  src/features/library/infrastructure/supabase-library-store.test.ts > 내가 살 가격 열이 없는 DB의 응답 > Given wish_* 열이 없는 백업 행 When 내보내면 Then 내가 살 가격은 null이다
+LibraryError: 저장 응답을 확인할 수 없어요.
+    228|     throw new LibraryError("storage_unavailable", "저장 응답을 확인할 수 없어요.");
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 자동 확인 가격이 없는 상품 When 지우기가 성공하면 Then 자동 확인 가격이 아직 없다고 알린다
+Tests  3 failed | 147 passed (150)
+  (screen-state) - Expected message "직접 입력한 가격을 지웠어요. 자동 확인 가격이 아직 없어요." / + Received "직접 입력한 가격을 지우고 자동 확인 가격을 보여줘요"
+
+$ npm run build && npm run test:database   # same unfixed source; browser spec asserts focus after save and after clear
+ Test Files  28 passed (28)
+      Tests  425 passed (425)
+ Test Files  11 passed (11)
+      Tests  59 passed (59)
+  ✘  27 [desktop-chromium] › tests/browser/wish-price.spec.ts:82:1 › 소유자는 상세에서 내가 살 가격을 적어 카드와 상세의 주 가격으로 보고, 자동 확인 가격은 참고로 남으며 새로고침과 새 세션에서도 같다 (5.8s)
+  ✘  28 [desktop-chromium] › tests/browser/wish-price.spec.ts:136:1 › 소유자는 직접 입력한 가격을 지워 자동 확인 가격으로 돌아가고 키보드로도 저장한다 (5.8s)
+  ✘  59 [iphone-webkit] › tests/browser/wish-price.spec.ts:82:1 › 소유자는 상세에서 내가 살 가격을 적어 카드와 상세의 주 가격으로 보고, 자동 확인 가격은 참고로 남으며 새로고침과 새 세션에서도 같다 (6.0s)
+  ✘  60 [iphone-webkit] › tests/browser/wish-price.spec.ts:136:1 › 소유자는 직접 입력한 가격을 지워 자동 확인 가격으로 돌아가고 키보드로도 저장한다 (6.2s)
+Running 64 tests using 1 worker
+  4 failed
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  getByRole('dialog', { name: '담아둔 물건' }).getByRole('textbox', { name: '내가 살 가격 원' })
+    Expected: focused
+    Received: inactive
+    > 108 |   await expect(input).toBeFocused();
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  getByRole('dialog', { name: '담아둔 물건' }).getByRole('textbox', { name: '내가 살 가격 원' })
+    Expected: focused
+    Received: inactive
+    > 155 |   await expect(input).toBeFocused();
+(iphone-webkit fails the same two assertions at lines 108 and 155: Received: inactive)
+(line 108: after clicking 가격 저장; line 155: after clicking 직접 입력 지우기. The other 60 browser tests passed.)

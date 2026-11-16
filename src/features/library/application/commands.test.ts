@@ -107,6 +107,16 @@ describe("상품 정리 명령", () => {
     }, today).change).toEqual({ type: "purchase.record", date: today, price: null });
   });
 
+  it("내가 살 가격은 원화 금액으로 담고 null은 직접 입력한 가격을 지운다", () => {
+    expect(toProductChangeCommand(productId, {
+      revision: 2, change: { type: "wish.price", price: { amountMinor: 3000, currency: "KRW" } },
+    }, today)).toEqual({ productId, revision: 2, change: { type: "wish.price", price: { amountMinor: 3000, currency: "KRW" } } });
+    expect(toProductChangeCommand(productId, { revision: 2, change: { type: "wish.price", price: null } }, today).change)
+      .toEqual({ type: "wish.price", price: null });
+    expect(toProductChangeCommand(productId, { revision: 2, change: { type: "wish.price", price: { amountMinor: 0, currency: "KRW" } } }, today).change)
+      .toEqual({ type: "wish.price", price: { amountMinor: 0, currency: "KRW" } });
+  });
+
   it.each(["purchase", "wish"] as const)("%s 변경은 값 없이 담는다", (type) => {
     expect(toProductChangeCommand(productId, { revision: 1, change: { type } }, today)).toEqual({ productId, revision: 1, change: { type } });
   });
@@ -123,6 +133,10 @@ describe("상품 정리 명령", () => {
     [{ type: "purchase.record", date: null, price: { amountMinor: 0.5, currency: "KRW" } }, "price"],
     [{ type: "purchase.record", date: null, price: { amountMinor: 2 ** 53, currency: "KRW" } }, "price"],
     [{ type: "purchase.record", date: null, price: { amountMinor: 1000, currency: "USD" } }, "price"],
+    [{ type: "wish.price", price: { amountMinor: -1, currency: "KRW" } }, "wishPrice"],
+    [{ type: "wish.price", price: { amountMinor: 1.5, currency: "KRW" } }, "wishPrice"],
+    [{ type: "wish.price", price: { amountMinor: 2 ** 53, currency: "KRW" } }, "wishPrice"],
+    [{ type: "wish.price", price: { amountMinor: 1000, currency: "USD" } }, "wishPrice"],
   ] satisfies [ProductChangeInput["change"], string][])("규칙에 맞지 않는 %j은 %s 칸의 입력 오류다", (change, field) => {
     expect(() => toProductChangeCommand(productId, { revision: 1, change }, today))
       .toThrowError(expect.objectContaining({ code: "invalid_input", field }));
@@ -188,6 +202,7 @@ describe("복원 명령", () => {
         addedAt: "2026-10-05T01:00:00.456Z",
         purchase: { status: "purchased", date: "2026-11-13", price: { amountMinor: 0, currency: "KRW" } },
         lastSuccessfulPrice: { amountMinor: 129000, currency: "KRW", checkedAt: "2026-11-01T00:00:00.000Z" },
+        wishPrice: { amountMinor: 3000, currency: "KRW" },
       },
       {
         sourceUrl: "https://shop.example/p/2",
@@ -222,6 +237,7 @@ describe("복원 명령", () => {
             addedAt: "2026-10-05T01:00:00.456Z",
             purchase: { status: "purchased", date: "2026-11-13", price: { amountMinor: 0, currency: "KRW" } },
             lastSuccessfulPrice: { amountMinor: 129000, currency: "KRW", checkedAt: "2026-11-01T00:00:00.000Z" },
+            wishPrice: { amountMinor: 3000, currency: "KRW" },
           },
           {
             sourceUrl: "https://shop.example/p/2",
@@ -235,6 +251,8 @@ describe("복원 명령", () => {
             addedAt: "2026-10-04T01:00:00.000Z",
             purchase: { status: "wish" },
             lastSuccessfulPrice: null,
+            // A file from before wish prices has no field; the product restores with none.
+            wishPrice: null,
           },
         ],
       },

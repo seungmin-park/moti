@@ -69,6 +69,9 @@ export const productResponseSchema = z.object({
   // The latest daily price check: when, and why it kept the previous price (null when it confirmed one or has not
   // settled). Null until the first check.
   priceCheck: z.object({ checkedAt: timestamp, code: z.enum(priceCheckCodes).nullable() }).strict().nullable(),
+  // The owner's own price for the product ("내가 살 가격"), shown instead of lastSuccessfulPrice for a wish. Collection
+  // and the daily check never change it; lastSuccessfulPrice keeps the collected price as the reference.
+  wishPrice: moneyResponseSchema.nullable(),
   picture: pictureResponseSchema.nullable(),
 }).strict();
 
@@ -96,7 +99,7 @@ export const metadataWakeResponseSchema = z.object({ products: z.array(productRe
 export const collectionCreateResponseSchema = collectionResponseSchema;
 
 const revisionSchema = z.number().int().min(1).max(MAX_REVISION);
-// Shapes only; the field rules (name, memo, date against the server's Seoul day, paid price) are the commands'.
+// Shapes only; the field rules (name, memo, date against the server's Seoul day, paid and wish prices) are the commands'.
 export const productChangeRequestSchema = z.object({
   revision: revisionSchema,
   change: z.discriminatedUnion("type", [
@@ -113,6 +116,11 @@ export const productChangeRequestSchema = z.object({
       price: z.object({ amountMinor: z.number(), currency: z.string() }).strict().nullable(),
     }).strict(),
     z.object({ type: z.literal("wish") }).strict(),
+    // A wish product only; null clears the owner's price.
+    z.object({
+      type: z.literal("wish.price"),
+      price: z.object({ amountMinor: z.number(), currency: z.string() }).strict().nullable(),
+    }).strict(),
   ]),
 }).strict();
 export const productChangeResponseSchema = z.object({ product: productResponseSchema }).strict();
@@ -208,6 +216,7 @@ export function toProductResponse(product: Product): ProductResponse {
       : { ...product.metadata },
     lastSuccessfulPrice: product.lastSuccessfulPrice && { ...product.lastSuccessfulPrice },
     priceCheck: product.priceCheck && { ...product.priceCheck },
+    wishPrice: product.wishPrice && { ...product.wishPrice },
     picture: product.picture && toPictureResponse(product.id, product.picture),
   };
 }

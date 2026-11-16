@@ -12,6 +12,7 @@ import { toProductDetailView } from "./product-view";
 import {
   detailForms,
   type DetailDraft,
+  type DetailField,
   type DetailForm,
   type DetailNotice,
   type FormError,
@@ -118,8 +119,27 @@ export function ProductDetailDialog({
   const statusError = errorOf("status");
   const retryError = errorOf("retry");
   const deleteError = errorOf("delete");
-  const edit = (field: "title" | "note" | "date" | "price", value: string) => send({ type: "detail.edit", field, value });
-  const save = (form: "details" | "record") => send({ type: "detail.save", form, today: seoulToday(new Date()) });
+  const wishPriceError = errorOf("wishPrice");
+  const wishPriceHelp = `${id}-wish-price-help`;
+  const edit = (field: DetailField, value: string) => send({ type: "detail.edit", field, value });
+  const save = (form: "details" | "record" | "wishPrice") => send({ type: "detail.save", form, today: seoulToday(new Date()) });
+  const wishPriceForm = useRef<HTMLFormElement>(null);
+  const wishPriceInput = useRef<HTMLInputElement>(null);
+  // Set when the owner saves or clears from this form, so only that answer moves the focus.
+  const wishPriceAsked = useRef(false);
+  const wishPriceNotice = notice?.form === "wishPrice" ? notice : null;
+  // After a save or a clear the pressed button turns disabled or disappears, so the focus would fall to the page
+  // (WebKit does not focus a clicked button at all). Move it to the price field, unless the owner has since moved
+  // into another field of the dialog.
+  useEffect(() => {
+    if (!wishPriceNotice || !wishPriceAsked.current) return;
+    wishPriceAsked.current = false;
+    const input = wishPriceInput.current;
+    if (wishPriceNotice.kind !== "saved" || !input) return;
+    const active = document.activeElement;
+    const typing = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement;
+    if (active !== input && !(typing && !wishPriceForm.current?.contains(active))) input.focus();
+  }, [wishPriceNotice]);
   return (
     <Dialog title="담아둔 물건" wide onClose={() => send({ type: "dialog.close" })}>
       {view.arrival && (
@@ -146,6 +166,7 @@ export function ProductDetailDialog({
           <p className="detail-option">{view.option}</p>
           <div className="detail-price">
             <strong>{view.price.value}</strong>
+            {view.price.marker && <span className="price-marker">{view.price.marker}</span>}
             {view.price.checked && <p>{view.price.checked}</p>}
             {view.priceKept && (
               <p className="price-kept">
@@ -197,6 +218,62 @@ export function ProductDetailDialog({
               </div>
             )}
           </dl>
+          {!purchased && (
+            <form
+              ref={wishPriceForm}
+              className="wish-price-form"
+              noValidate
+              aria-busy={writing === "wish.price"}
+              onSubmit={(event) => {
+                event.preventDefault();
+                wishPriceAsked.current = true;
+                save("wishPrice");
+              }}
+            >
+              <label className="field">
+                <span>
+                  내가 살 가격 <small>원</small>
+                </span>
+                <input
+                  ref={wishPriceInput}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="미입력"
+                  value={forms.wishPrice}
+                  readOnly={saving}
+                  onChange={(event) => edit("wishPrice", event.target.value)}
+                  {...fieldProps(wishPriceError, "wishPrice", errorId("wishPrice", "wishPrice"))}
+                  aria-describedby={
+                    wishPriceError?.field === "wishPrice" ? `${wishPriceHelp} ${errorId("wishPrice", "wishPrice")}` : wishPriceHelp
+                  }
+                />
+              </label>
+              <p className="field-help" id={wishPriceHelp}>
+                옵션·묶음·쿠폰으로 실제 낼 가격이 다르면 적어 주세요. 자동 확인 가격은 따로 남아요.
+              </p>
+              <FieldError id={errorId("wishPrice", "wishPrice")} error={wishPriceError} field="wishPrice" />
+              <FieldError id={errorId("wishPrice", null)} error={wishPriceError} field={null} />
+              <Saved notice={notice} form="wishPrice" />
+              <div className="wish-price-actions">
+                <button className="button secondary" type="submit" disabled={!forms.wishPriceChanged || saving || blocked}>
+                  {writing === "wish.price" ? "저장하는 중…" : "가격 저장"}
+                </button>
+                {product.wishPrice && (
+                  <button
+                    className="text-button"
+                    type="button"
+                    disabled={saving || blocked}
+                    onClick={() => {
+                      wishPriceAsked.current = true;
+                      send({ type: "detail.clearWishPrice" });
+                    }}
+                  >
+                    직접 입력 지우기
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
           <form
             className="detail-form"
             noValidate

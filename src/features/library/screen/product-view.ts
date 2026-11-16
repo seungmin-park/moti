@@ -1,6 +1,7 @@
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
 
-export type PriceView = { value: string; checked: string | null };
+// `marker` names a price the owner entered; `checked` then describes the collected price kept as the reference.
+export type PriceView = { value: string; checked: string | null; marker?: string };
 export type PictureView =
   | { kind: "photo"; src: string; alt: string }
   | { kind: "placeholder"; icon: "link" | "waiting" | "off"; text: string };
@@ -112,6 +113,20 @@ function priceOf(product: ProductResponse): PriceView {
   return { value: money(price), checked: `마지막 확인 ${onSeoulDate(price.checkedAt)}` };
 }
 
+const manual = "직접 입력";
+
+// A wish's owner price leads; the collected price stays beside it so the owner sees what the page says. The card
+// has room for the amount only, the detail adds when it was checked.
+function wishPriceOf(product: ProductResponse, place: "card" | "detail"): PriceView | null {
+  const { wishPrice, lastSuccessfulPrice: collected } = product;
+  if (product.purchase.status !== "wish" || wishPrice === null) return null;
+  if (!collected) return { value: money(wishPrice), marker: manual, checked: "자동 확인 가격 없음" };
+  const checked = place === "card"
+    ? `자동 확인 ${money(collected)}`
+    : `자동 확인 가격 ${money(collected)} · 마지막 확인 ${onSeoulDate(collected.checkedAt)}`;
+  return { value: money(wishPrice), marker: manual, checked };
+}
+
 // A purchased card shows what was paid, not the last checked price; an empty record and 0 are different.
 function paidPriceOf(purchase: Extract<ProductResponse["purchase"], { status: "purchased" }>): PriceView {
   const bought = purchase.date && `${onSeoulDate(`${purchase.date}T00:00:00+09:00`)} 구매`;
@@ -149,7 +164,8 @@ function keptPriceOf(product: ProductResponse): string | null {
   const { priceCheck, lastSuccessfulPrice } = product;
   if (product.purchase.status !== "wish" || priceCheck?.code == null || lastSuccessfulPrice === null) return null;
   if (Date.parse(priceCheck.checkedAt) <= Date.parse(lastSuccessfulPrice.checkedAt)) return null;
-  return `${onSeoulDate(priceCheck.checkedAt)}에 가격을 다시 확인하지 못해 이전 가격을 보여줘요. ${failureReason(priceCheck.code)}`;
+  const shown = product.wishPrice ? "자동 확인 가격은 이전에 확인한 가격이에요." : "이전 가격을 보여줘요.";
+  return `${onSeoulDate(priceCheck.checkedAt)}에 가격을 다시 확인하지 못해 ${shown} ${failureReason(priceCheck.code)}`;
 }
 
 function openableUrl(value: string): string | null {
@@ -183,7 +199,7 @@ export function toProductCardView(product: ProductResponse, collections: Collect
     option: product.option || "옵션 미입력",
     status: stalled(product.metadata) ? "정보 수집 멈춤" : statusChip[product.metadata.phase],
     purchased: product.purchase.status === "purchased",
-    price: product.purchase.status === "purchased" ? paidPriceOf(product.purchase) : priceOf(product),
+    price: product.purchase.status === "purchased" ? paidPriceOf(product.purchase) : wishPriceOf(product, "card") ?? priceOf(product),
     collection: first === undefined
       ? { filed: false, text: "아직 분류하지 않았어요" }
       : { filed: true, text: rest.length > 0 ? `${first} +${rest.length}` : first },
@@ -198,7 +214,7 @@ export function toProductDetailView(product: ProductResponse, arrival: "added" |
     title: product.title,
     option: product.option || "옵션 미입력",
     purchased: product.purchase.status === "purchased",
-    price: priceOf(product),
+    price: wishPriceOf(product, "detail") ?? priceOf(product),
     status: statusOf(product.metadata),
     sourceUrl: product.sourceUrl,
     openUrl: openableUrl(product.sourceUrl),

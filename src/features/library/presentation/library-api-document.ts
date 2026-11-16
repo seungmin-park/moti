@@ -76,7 +76,7 @@ export const libraryRoutes: Route[] = [
   {
     method: "get",
     path: "/api/library/backup",
-    summary: "보관함을 백업 파일(moti.library-backup v1)로 내려받는다. 링크·옵션, 수집한 이름과 소유자 이름, 메모, 컬렉션 이름과 소속(이름), 담은 시각, 구매 상태·구매일·실구매가, 마지막 확인 가격을 담는다. id·revision·수집 상태·사진은 담지 않는다.",
+    summary: "보관함을 백업 파일(moti.library-backup v1)로 내려받는다. 링크·옵션, 수집한 이름과 소유자 이름, 메모, 컬렉션 이름과 소속(이름), 담은 시각, 구매 상태·구매일·실구매가, 마지막 확인 가격, 내가 살 가격(있는 상품만 wishPrice)을 담는다. id·revision·수집 상태·사진은 담지 않는다.",
     responses: {
       200: {
         description: "LibraryBackupResponse. 앱이 저장하는 값만 담는다(정리된 링크·이름·메모, 대소문자를 무시하고 겹치지 않는 컬렉션 이름, 파일 안의 이름으로만 이루어진 소속, 겹치지 않는 링크). 이 규칙은 스키마 밖의 검사라 문서에 나타나지 않는다.",
@@ -89,7 +89,7 @@ export const libraryRoutes: Route[] = [
   {
     method: "post",
     path: "/api/library/restore",
-    summary: "백업 파일로 보관함 전체를 바꾼다. 파일 전체를 먼저 검사하고 한 트랜잭션에서 바꾸므로 실패하면 아무것도 바뀌지 않는다. 링크가 같은 상품은 id·사진·수집한 이름·마지막 확인 가격을 지키고 소유자 값(이름·메모·소속·구매·담은 시각)을 파일로 바꾸며 revision이 오른다. 이름이 같은(대소문자 무시) 컬렉션은 id를 지킨다. 파일에 없는 상품·컬렉션은 지우고, 새 상품은 수집을 기다린다. 응답 뒤 지운 상품의 사진 사본을 버리고 새 상품을 수집한다.",
+    summary: "백업 파일로 보관함 전체를 바꾼다. 파일 전체를 먼저 검사하고 한 트랜잭션에서 바꾸므로 실패하면 아무것도 바뀌지 않는다. 링크가 같은 상품은 id·사진·수집한 이름·마지막 확인 가격을 지키고 소유자 값(이름·메모·소속·구매·담은 시각·내가 살 가격, wishPrice가 없는 파일이면 없음)을 파일로 바꾸며 revision이 오른다. 이름이 같은(대소문자 무시) 컬렉션은 id를 지킨다. 파일에 없는 상품·컬렉션은 지우고, 새 상품은 수집을 기다린다. 응답 뒤 지운 상품의 사진 사본을 버리고 새 상품을 수집한다.",
     request: libraryBackupSchema,
     responses: {
       200: { description: "LibraryReadResponse. 바꾼 보관함", schema: libraryReadResponseSchema },
@@ -142,7 +142,7 @@ export const libraryRoutes: Route[] = [
   {
     method: "patch",
     path: "/api/products/{productId}",
-    summary: "소유자가 상품을 정리한다. details는 이름(null이면 그대로)·메모·컬렉션, purchase는 구매완료, purchase.record는 구매일·실구매가(null은 미입력, 0은 0원), wish는 위시로 되돌리기다. 구매와 되돌리기는 메모·컬렉션을 바꾸지 않고, 되돌리면 구매 기록을 지운다. 저장된 값과 같은 변경은 revision과 관계없이 바꾸지 않고 지금 상품을 돌려준다.",
+    summary: "소유자가 상품을 정리한다. details는 이름(null이면 그대로)·메모·컬렉션, purchase는 구매완료, purchase.record는 구매일·실구매가(null은 미입력, 0은 0원), wish는 위시로 되돌리기, wish.price는 위시 상품의 내가 살 가격(원화, null은 지우기)이다. 구매와 되돌리기는 메모·컬렉션·내가 살 가격을 바꾸지 않고, 되돌리면 구매 기록을 지운다. 내가 살 가격은 수집·다시 가져오기·매일 가격 확인이 바꾸지 않으며 lastSuccessfulPrice가 자동 확인 가격으로 따로 남는다. 구매완료 상품의 wish.price는 지금 revision이면 400이다. 저장된 값과 같은 변경은 revision과 관계없이 바꾸지 않고 지금 상품을 돌려준다.",
     parameters: [{ name: "productId", description: "상품 ID", schema: z.uuid() }],
     request: productChangeRequestSchema,
     responses: {
