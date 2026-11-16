@@ -29,6 +29,7 @@ function product(id: string, path: string, overrides: Partial<ProductResponse> =
     metadata: { phase: "ready", generation: 1, attempts: 1, completedAt: "2026-11-10T00:00:01.000Z", image: { outcome: "absent" } },
     lastSuccessfulPrice: null,
     priceCheck: null,
+    wishPrice: null,
     picture: null,
     ...overrides,
   };
@@ -65,12 +66,12 @@ const fileText = JSON.stringify(toLibraryBackupDocument({
     {
       sourceUrl: "https://example.com/lamp?utm_source=x", identityUrl: "https://example.com/lamp", option: "", shop: "example.com",
       collectedTitle: "조명", ownerTitle: null, note: "", collectionNames: ["Desk"], addedAt: "2026-11-10T00:00:00.000Z",
-      purchase: { status: "wish" }, lastSuccessfulPrice: null,
+      purchase: { status: "wish" }, lastSuccessfulPrice: null, wishPrice: null,
     },
     {
       sourceUrl: "https://example.com/sofa", identityUrl: "https://example.com/sofa", option: "", shop: "example.com",
       collectedTitle: "소파", ownerTitle: null, note: "", collectionNames: [], addedAt: "2026-11-09T00:00:00.000Z",
-      purchase: { status: "wish" }, lastSuccessfulPrice: null,
+      purchase: { status: "wish" }, lastSuccessfulPrice: null, wishPrice: null,
     },
   ],
 }, new Date("2026-11-12T05:30:00.000Z")));

@@ -8,7 +8,7 @@ export const EARLIEST_PURCHASE_DATE = "1900-01-01";
 
 export type PaidCurrency = (typeof PAID_CURRENCIES)[number];
 export type PaidPrice = { amountMinor: number; currency: PaidCurrency };
-export type ProductField = "title" | "note" | "date" | "price";
+export type ProductField = "title" | "note" | "date" | "price" | "wishPrice";
 export type FieldResult<T> = { ok: true; value: T } | { ok: false; field: ProductField; message: string };
 
 const codePoints = (value: string) => [...value].length;
@@ -63,6 +63,25 @@ export function parsePaidPrice(input: unknown): FieldResult<PaidPrice | null> {
   const amountMinor = Number(digits);
   if (!Number.isSafeInteger(amountMinor)) return invalid;
   return { ok: true, value: { amountMinor, currency: "KRW" } };
+}
+
+// The owner's own price for a wish, typed as Korean prices are written: "3000" or "3,000". Empty clears it, which is
+// different from 0. Won only, like a recorded purchase price.
+export function parseWishPrice(input: unknown): FieldResult<PaidPrice | null> {
+  const invalid = fail("wishPrice", "내가 살 가격은 0 이상의 정수로 입력해 주세요.");
+  if (typeof input !== "string") return invalid;
+  const written = input.trim();
+  if (!written) return { ok: true, value: null };
+  if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(written)) return invalid;
+  const amountMinor = Number(written.replaceAll(",", ""));
+  if (!Number.isSafeInteger(amountMinor)) return invalid;
+  return { ok: true, value: { amountMinor, currency: "KRW" } };
+}
+
+const groupedWon = new Intl.NumberFormat("ko-KR", { useGrouping: true, maximumFractionDigits: 0 });
+
+export function wishPriceInput(price: { amountMinor: number; currency: string } | null): string {
+  return price === null ? "" : groupedWon.format(price.amountMinor);
 }
 
 const seoulDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" });

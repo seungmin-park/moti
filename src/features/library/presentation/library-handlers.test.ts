@@ -77,6 +77,7 @@ const product = {
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
   priceCheck: null,
+  wishPrice: null,
   picture: null,
 } satisfies Product;
 const backup = {
@@ -93,6 +94,7 @@ const backup = {
     addedAt: "2026-11-11T00:00:00.000Z",
     purchase: { status: "purchased", date: null, price: { amountMinor: 0, currency: "KRW" } },
     lastSuccessfulPrice: null,
+    wishPrice: null,
   }],
 } satisfies LibraryBackup;
 
@@ -576,6 +578,12 @@ describe("PATCH /api/products/{productId}", () => {
     ],
     ["빈 구매 기록", { type: "purchase.record", date: null, price: null }, { type: "purchase.record", date: null, price: null }],
     ["위시로 되돌리기", { type: "wish" }, { type: "wish" }],
+    [
+      "내가 살 가격",
+      { type: "wish.price", price: { amountMinor: 3000, currency: "KRW" } },
+      { type: "wish.price", price: { amountMinor: 3000, currency: "KRW" } },
+    ],
+    ["내가 살 가격 지우기", { type: "wish.price", price: null }, { type: "wish.price", price: null }],
   ] as const)("Given %s 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다", async (_, change, expected) => {
     const { handlers, service } = given(allowed);
     const changed = { ...product, revision: 4, note: "선물용" };
@@ -608,6 +616,12 @@ describe("PATCH /api/products/{productId}", () => {
     ["음수 실구매가", { revision: 1, change: { type: "purchase.record", date: null, price: { amountMinor: -1, currency: "KRW" } } }, "price"],
     ["소수 실구매가", { revision: 1, change: { type: "purchase.record", date: null, price: { amountMinor: 1.5, currency: "KRW" } } }, "price"],
     ["원화가 아닌 실구매가", { revision: 1, change: { type: "purchase.record", date: null, price: { amountMinor: 1000, currency: "USD" } } }, "price"],
+    ["가격 없는 내가 살 가격", { revision: 1, change: { type: "wish.price" } }, undefined],
+    ["문자열 내가 살 가격", { revision: 1, change: { type: "wish.price", price: { amountMinor: "3000", currency: "KRW" } } }, undefined],
+    ["모르는 칸이 붙은 내가 살 가격", { revision: 1, change: { type: "wish.price", price: { amountMinor: 3000, currency: "KRW", source: "x" } } }, undefined],
+    ["음수 내가 살 가격", { revision: 1, change: { type: "wish.price", price: { amountMinor: -1, currency: "KRW" } } }, "wishPrice"],
+    ["소수 내가 살 가격", { revision: 1, change: { type: "wish.price", price: { amountMinor: 1.5, currency: "KRW" } } }, "wishPrice"],
+    ["원화가 아닌 내가 살 가격", { revision: 1, change: { type: "wish.price", price: { amountMinor: 3000, currency: "USD" } } }, "wishPrice"],
   ])("Given %s When 상품을 고치면 Then 400이고 서비스를 부르지 않는다", async (_, body, field) => {
     const { handlers, service } = given(allowed);
     const response = await handlers.patchProduct(...patch(body));
@@ -616,6 +630,25 @@ describe("PATCH /api/products/{productId}", () => {
     expect(error.error).toBe("invalid_input");
     expect(error.field).toBe(field);
     expect(service.changeProduct).not.toHaveBeenCalled();
+  });
+
+  it("Given 내가 살 가격 When 저장하면 Then 응답은 직접 입력한 가격과 자동 확인 가격을 따로 돌려준다", async () => {
+    const { handlers, service } = given(allowed);
+    const priced = {
+      ...product,
+      revision: 2,
+      lastSuccessfulPrice: { amountMinor: 300, currency: "KRW", checkedAt: "2026-11-12T00:00:00.000Z" },
+      wishPrice: { amountMinor: 3000, currency: "KRW" },
+    };
+    service.changeProduct.mockResolvedValueOnce(priced);
+
+    const response = await handlers.patchProduct(...patch({ revision: 1, change: { type: "wish.price", price: { amountMinor: 3000, currency: "KRW" } } }));
+
+    const body = productChangeResponseSchema.parse(await response.json());
+    expect(body.product).toMatchObject({
+      wishPrice: { amountMinor: 3000, currency: "KRW" },
+      lastSuccessfulPrice: { amountMinor: 300, currency: "KRW", checkedAt: "2026-11-12T00:00:00.000Z" },
+    });
   });
 
   it("Given UUID가 아닌 상품 When 고치면 Then 400이고 서비스를 부르지 않는다", async () => {

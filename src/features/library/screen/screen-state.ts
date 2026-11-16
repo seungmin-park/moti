@@ -1,6 +1,13 @@
 import { parseCollectionName } from "../../wishlist/collection-name";
 import { parseLink } from "../../wishlist/link";
-import { parsePaidPrice, parseProductNote, parseProductTitle, parsePurchaseDate } from "../../wishlist/product-fields";
+import {
+  parsePaidPrice,
+  parseProductNote,
+  parseProductTitle,
+  parsePurchaseDate,
+  parseWishPrice,
+  wishPriceInput,
+} from "../../wishlist/product-fields";
 import { MAX_BACKUP_BYTES, readLibraryBackup, type BackupCounts, type BackupProblem, type LibraryBackupDocument } from "../presentation/library-backup";
 import type {
   CollectionCreateRequest,
@@ -30,8 +37,8 @@ export type LinkDraft = { url: string; option: string; collectionIds: string[] }
 export type FormError = { field: FieldName | null; message: string };
 // Only the fields the owner touched. Every other field shows the live product, so collection results and a re-read
 // reach the untouched fields with no extra step.
-export type DetailDraft = { title?: string; note?: string; collectionIds?: string[]; date?: string; price?: string };
-export type DetailForm = "retry" | "details" | "record" | "status" | "delete";
+export type DetailDraft = { title?: string; note?: string; collectionIds?: string[]; date?: string; price?: string; wishPrice?: string };
+export type DetailForm = "retry" | "details" | "record" | "wishPrice" | "status" | "delete";
 export type DetailNotice = { form: DetailForm; kind: "error" | "saved"; field: FieldName | null; message: string };
 export type BackupStep =
   | { name: "menu" }
@@ -103,9 +110,11 @@ export type ScreenEvent =
   | { type: "collection.edit"; name: string }
   | { type: "collection.submit" }
   | { type: "detail.open"; productId: string }
-  | { type: "detail.edit"; field: "title" | "note" | "date" | "price"; value: string }
+  | { type: "detail.edit"; field: DetailField; value: string }
   | { type: "detail.toggle"; collectionId: string }
-  | { type: "detail.save"; form: "details" | "record"; today: string }
+  | { type: "detail.save"; form: SavedForm; today: string }
+  // Back to the collected price: sends the owner's price as null without touching the field's draft first.
+  | { type: "detail.clearWishPrice" }
   | { type: "detail.deleteAsk" }
   | { type: "detail.deleteCancel" }
   | { type: "product.delete"; productId: string }
@@ -137,6 +146,8 @@ export type ScreenEvent =
   | { type: "wake.settled"; outcome: ApiOutcome<MetadataWakeResponse> }
   | KeyEvent;
 export type Transition = { state: LibraryScreenState; call: ApiCall | null };
+export type DetailField = "title" | "note" | "date" | "price" | "wishPrice";
+type SavedForm = "details" | "record" | "wishPrice";
 
 export const initialScreen: Transition = { state: { phase: "loading" }, call: { type: "library.read" } };
 
@@ -242,9 +253,14 @@ export type DetailForms = {
   collectionIds: string[];
   date: string;
   price: string;
+  wishPrice: string;
   detailsChanged: boolean;
   recordChanged: boolean;
+  wishPriceChanged: boolean;
 };
+
+// "3000" and "3,000" are the same price, so typing the grouping differently is not a change.
+const sameWritten = (a: string, b: string) => a.replaceAll(",", "").trim() === b.replaceAll(",", "").trim();
 
 // What each form shows: a touched field's draft, otherwise the live product.
 export function detailForms(product: ProductResponse, draft: DetailDraft): DetailForms {
@@ -255,20 +271,23 @@ export function detailForms(product: ProductResponse, draft: DetailDraft): Detai
     collectionIds: draft.collectionIds ?? product.collectionIds,
     date: draft.date ?? live.date,
     price: draft.price ?? live.price,
+    wishPrice: draft.wishPrice ?? wishPriceInput(product.wishPrice),
   };
   return {
     ...forms,
     detailsChanged: forms.title !== product.title || forms.note !== product.note || !sameIds(forms.collectionIds, product.collectionIds),
     recordChanged: forms.date !== live.date || forms.price !== live.price,
+    wishPriceChanged: !sameWritten(forms.wishPrice, wishPriceInput(product.wishPrice)),
   };
 }
 
-const formFields: Record<"details" | "record", readonly (keyof DetailDraft)[]> = {
+const formFields: Record<SavedForm, readonly (keyof DetailDraft)[]> = {
   details: ["title", "note", "collectionIds"],
   record: ["date", "price"],
+  wishPrice: ["wishPrice"],
 };
 
-function withoutDrafts(draft: DetailDraft, form: "details" | "record"): DetailDraft {
+function withoutDrafts(draft: DetailDraft, form: SavedForm): DetailDraft {
   return Object.fromEntries(Object.entries(draft).filter(([field]) => !formFields[form].includes(field as keyof DetailDraft)));
 }
 
@@ -323,7 +342,18 @@ function onRetried(state: Ready, productId: string, outcome: ApiOutcome<Metadata
   return stay({ ...next, dialog });
 }
 
-function onDetailSave(state: Ready, dialog: DetailDialog, form: "details" | "record", today: string): Transition {
+type Price = { amountMinor: number; currency: string };
+function samePrice(a: Price | null, b: Price | null): boolean {
+  return a === null || b === null ? a === b : a.amountMinor === b.amountMinor && a.currency === b.currency;
+}
+
+function onClearWishPrice(state: Ready, dialog: DetailDialog): Transition {
+  const product = findProduct(state, dialog.productId);
+  if (!product || !canWrite(state) || product.purchase.status !== "wish" || product.wishPrice === null) return stay(state);
+  return write(state, product, { type: "wish.price", price: null });
+}
+
+function onDetailSave(state: Ready, dialog: DetailDialog, form: SavedForm, today: string): Transition {
   const product = findProduct(state, dialog.productId);
   if (!product || !canWrite(state)) return stay(state);
   const reject = (field: FieldName, message: string) =>
@@ -341,15 +371,19 @@ function onDetailSave(state: Ready, dialog: DetailDialog, form: "details" | "rec
       type: "details", title: titleChanged ? title.value : null, note: note.value, collectionIds: values.collectionIds,
     });
   }
+  if (form === "wishPrice") {
+    if (product.purchase.status !== "wish") return stay(state);
+    const price = parseWishPrice(values.wishPrice);
+    if (!price.ok) return reject("wishPrice", price.message);
+    if (samePrice(price.value, product.wishPrice)) return settledDrafts;
+    return write(state, product, { type: "wish.price", price: price.value });
+  }
   if (product.purchase.status !== "purchased") return stay(state);
   const date = parsePurchaseDate(values.date, today);
   if (!date.ok) return reject("date", date.message);
   const price = parsePaidPrice(values.price);
   if (!price.ok) return reject("price", price.message);
-  const stored = product.purchase.price;
-  const samePrice = price.value === null ? stored === null
-    : stored !== null && stored.amountMinor === price.value.amountMinor && stored.currency === price.value.currency;
-  if (date.value === product.purchase.date && samePrice) return settledDrafts;
+  if (date.value === product.purchase.date && samePrice(price.value, product.purchase.price)) return settledDrafts;
   return write(state, product, { type: "purchase.record", date: date.value, price: price.value });
 }
 
@@ -367,6 +401,8 @@ function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Trans
     }
     case "detail.save":
       return onDetailSave(state, dialog, event.form, event.today);
+    case "detail.clearWishPrice":
+      return onClearWishPrice(state, dialog);
     case "detail.deleteAsk":
       return stay({ ...state, dialog: { ...dialog, confirming: true, notice: null } });
     case "detail.deleteCancel":
@@ -443,6 +479,16 @@ function onChanged(state: Ready, productId: string, intent: ProductChange["type"
           dialog: dialog ? { ...dialog, draft: withoutDrafts(dialog.draft, form), notice: { form, kind: "saved", field: null, message } } : next.dialog,
         });
       }
+      case "wish.price": {
+        const message = shown.wishPrice ? "내가 살 가격을 저장했어요" : "직접 입력한 가격을 지우고 자동 확인 가격을 보여줘요";
+        return stay({
+          ...next,
+          library,
+          dialog: dialog
+            ? { ...dialog, draft: withoutDrafts(dialog.draft, "wishPrice"), notice: { form: "wishPrice", kind: "saved", field: null, message } }
+            : next.dialog,
+        });
+      }
       case "purchase":
         return stay({ ...next, library, dialog: dialog ? null : next.dialog, toast: { kind: "purchased", productId, revision: shown.revision } });
       case "wish":
@@ -451,7 +497,10 @@ function onChanged(state: Ready, productId: string, intent: ProductChange["type"
   }
   const { failure } = outcome;
   if (failure.kind === "redirect") return leave(failure.to);
-  const form: DetailForm = intent === "details" ? "details" : intent === "purchase.record" ? "record" : "status";
+  const failedForms: Record<ProductChange["type"], DetailForm> = {
+    details: "details", "purchase.record": "record", "wish.price": "wishPrice", purchase: "status", wish: "status",
+  };
+  const form = failedForms[intent];
   const field = failure.kind === "invalid" ? failure.field : null;
   const shownAt: Partial<Ready> = dialog
     ? { dialog: { ...dialog, notice: { form, kind: "error", field, message: failure.message } } }

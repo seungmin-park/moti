@@ -58,6 +58,9 @@ const backupProductSchema = z.object({
     currency: z.string().regex(/^[A-Z]{3}$/),
     checkedAt: timestamp,
   }).strict().nullable(),
+  // Added within version 1: only a product with an owner's price has the field, so a library without any writes the
+  // same file as before and older apps keep reading it. A file that has it fails an older reader as an unknown field.
+  wishPrice: paidPrice.optional(),
 }).strict().superRefine((product, context) => {
   const parsed = parseLink(product.sourceUrl, product.option);
   if (!parsed.ok) {
@@ -149,6 +152,7 @@ export function toLibraryBackupDocument(backup: LibraryBackup, exportedAt: Date)
         ? { status: "wish" }
         : { status: "purchased", date: product.purchase.date, price: product.purchase.price && { ...product.purchase.price } },
       lastSuccessfulPrice: product.lastSuccessfulPrice && { ...product.lastSuccessfulPrice },
+      ...(product.wishPrice && { wishPrice: { ...product.wishPrice } }),
     })),
   };
 }

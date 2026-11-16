@@ -44,6 +44,7 @@ function product(id: string, addedAt: string, collectionIds: string[] = []): Pro
     metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
     lastSuccessfulPrice: null,
     priceCheck: null,
+    wishPrice: null,
     picture: null,
   };
 }
@@ -743,7 +744,7 @@ describe("다시 가져오기", () => {
 });
 
 const purchasedLamp: ProductResponse = { ...lamp, revision: 2, purchase: { status: "purchased", date: null, price: null } };
-const changed = (product: ProductResponse, intent: "details" | "purchase" | "purchase.record" | "wish" = "purchase"): ScreenEvent =>
+const changed = (product: ProductResponse, intent: "details" | "purchase" | "purchase.record" | "wish" | "wish.price" = "purchase"): ScreenEvent =>
   ({ type: "change.settled", productId: product.id, intent, outcome: { ok: true, value: { product } } });
 const failedChange = (failure: ApiFailure, intent: "purchase" | "wish" = "purchase"): ScreenEvent =>
   ({ type: "change.settled", productId: lamp.id, intent, outcome: { ok: false, failure } });
@@ -1030,6 +1031,110 @@ describe("상세에서 구매 기록", () => {
     expect(detailOf(state)).toEqual(opened({
       draft: { note: "메모" }, notice: { form: "record", kind: "saved", field: null, message: "구매 정보를 저장했어요" },
     }));
+  });
+});
+
+describe("상세에서 내가 살 가격", () => {
+  // The Smartstore case: the page gives the per-unit 300 won, the owner pays 3,000 won for the default 10-pack.
+  const switches: ProductResponse = {
+    ...lamp,
+    revision: 2,
+    lastSuccessfulPrice: { amountMinor: 300, currency: "KRW", checkedAt: "2026-11-11T00:00:00.000Z" },
+  };
+  const priced: ProductResponse = { ...switches, revision: 3, wishPrice: { amountMinor: 3000, currency: "KRW" } };
+  const pricing = (product: ProductResponse, draft: Detail["draft"] = {}) => withProducts([product, chair], { dialog: opened({ draft }) });
+  const saveWishPrice: ScreenEvent = { type: "detail.save", form: "wishPrice", today };
+
+  it("Given 위시 상품 When 쉼표로 묶은 가격을 저장하면 Then 화면이 본 revision으로 원화 금액을 보낸다", () => {
+    const { state, call } = run(pricing(switches), { type: "detail.edit", field: "wishPrice", value: "3,000" }, saveWishPrice);
+    expect(call).toEqual({
+      type: "product.change", productId: lamp.id,
+      body: { revision: 2, change: { type: "wish.price", price: { amountMinor: 3000, currency: "KRW" } } },
+    });
+    expect(state).toMatchObject({ writing: { productId: lamp.id, intent: "wish.price" } });
+  });
+
+  it("Given 저장한 가격 When 상세를 열면 Then 칸은 쉼표로 묶은 그 값이고 같은 금액을 쉼표 없이 적어도 바뀐 것이 아니다", () => {
+    expect(detailForms(priced, {})).toMatchObject({ wishPrice: "3,000", wishPriceChanged: false });
+    expect(detailForms(priced, { wishPrice: "3000" })).toMatchObject({ wishPrice: "3000", wishPriceChanged: false });
+    expect(detailForms(priced, { wishPrice: "3,500" })).toMatchObject({ wishPriceChanged: true });
+    expect(detailForms(switches, {})).toMatchObject({ wishPrice: "", wishPriceChanged: false });
+  });
+
+  it.each(["30,00", "-1", "1.5", "₩3000"])("Given 원 단위 정수가 아닌 %j When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다", (value) => {
+    const { state, call } = run(pricing(switches), { type: "detail.edit", field: "wishPrice", value }, saveWishPrice);
+    expect(call).toBeNull();
+    expect(detailOf(state).notice).toEqual({
+      form: "wishPrice", kind: "error", field: "wishPrice", message: "내가 살 가격은 0 이상의 정수로 입력해 주세요.",
+    });
+  });
+
+  it("Given 지금과 같은 금액 When 저장하면 Then 요청하지 않고 그 초안만 비운다", () => {
+    const { state, call } = run(pricing(priced, { note: "메모" }), { type: "detail.edit", field: "wishPrice", value: "3000" }, saveWishPrice);
+    expect(call).toBeNull();
+    expect(detailOf(state).draft).toEqual({ note: "메모" });
+  });
+
+  it("Given 직접 입력한 가격 When 지우면 Then null을 보내고, 직접 입력한 가격이 없으면 요청하지 않는다", () => {
+    expect(transition(pricing(priced), { type: "detail.clearWishPrice" }).call).toEqual({
+      type: "product.change", productId: lamp.id, body: { revision: 3, change: { type: "wish.price", price: null } },
+    });
+    const none = pricing(switches);
+    expect(transition(none, { type: "detail.clearWishPrice" })).toEqual({ state: none, call: null });
+  });
+
+  it("Given 빈 칸 When 저장하면 Then 직접 입력한 가격을 지운다", () => {
+    expect(run(pricing(priced), { type: "detail.edit", field: "wishPrice", value: " " }, saveWishPrice).call)
+      .toMatchObject({ body: { change: { type: "wish.price", price: null } } });
+  });
+
+  it("Given 구매완료 상품 When 내가 살 가격을 저장하거나 지우면 Then 요청하지 않는다", () => {
+    const bought = pricing({ ...priced, purchase: { status: "purchased", date: null, price: null } }, { wishPrice: "5000" });
+    expect(transition(bought, saveWishPrice)).toEqual({ state: bought, call: null });
+    expect(transition(bought, { type: "detail.clearWishPrice" })).toEqual({ state: bought, call: null });
+  });
+
+  it("Given 저장 중 When 성공하면 Then 상품을 바꾸고 저장했다고 알리며 이름·메모 초안은 지킨다", () => {
+    const start = withProducts([switches, chair], {
+      dialog: opened({ draft: { note: "메모", wishPrice: "3,000" } }), writing: { productId: lamp.id, intent: "wish.price" },
+    });
+    const { state } = transition(start, changed(priced, "wish.price"));
+    expect(productsOf(state)[0]).toEqual(priced);
+    expect(detailOf(state)).toEqual(opened({
+      draft: { note: "메모" }, notice: { form: "wishPrice", kind: "saved", field: null, message: "내가 살 가격을 저장했어요" },
+    }));
+  });
+
+  it("Given 지우는 중 When 성공하면 Then 자동 확인 가격으로 돌아갔다고 알린다", () => {
+    const start = withProducts([priced, chair], { dialog: opened(), writing: { productId: lamp.id, intent: "wish.price" } });
+    const { state } = transition(start, changed({ ...switches, revision: 4 }, "wish.price"));
+    expect(detailOf(state).notice).toEqual({
+      form: "wishPrice", kind: "saved", field: null, message: "직접 입력한 가격을 지우고 자동 확인 가격을 보여줘요",
+    });
+  });
+
+  it("Given 서버가 칸을 거절하거나 다른 곳에서 먼저 바뀜 When 결과를 받으면 Then 그 양식에 알리고 충돌이면 다시 읽는다", () => {
+    const start = withProducts([switches, chair], { dialog: opened({ draft: { wishPrice: "3,000" } }), writing: { productId: lamp.id, intent: "wish.price" } });
+    const invalid: ApiFailure = { kind: "invalid", field: "wishPrice", message: "내가 살 가격은 0 이상의 정수로 입력해 주세요." };
+    const refused = transition(start, { type: "change.settled", productId: lamp.id, intent: "wish.price", outcome: { ok: false, failure: invalid } });
+    expect(detailOf(refused.state).notice).toEqual({ form: "wishPrice", kind: "error", field: "wishPrice", message: invalid.message });
+    expect(detailOf(refused.state).draft).toEqual({ wishPrice: "3,000" });
+
+    const stale = transition(start, { type: "change.settled", productId: lamp.id, intent: "wish.price", outcome: { ok: false, failure: conflict } });
+    expect(stale.call).toEqual({ type: "library.read" });
+    expect(detailOf(stale.state).notice).toMatchObject({ form: "wishPrice", kind: "error", field: null });
+  });
+
+  it("Given 직접 입력한 가격이 있는 상품 When 수집·매일 확인이 새 자동 확인 가격을 가져오면 Then 직접 입력한 가격은 그대로다", () => {
+    const shown = { ...priced, metadata: { phase: "running" as const, generation: 2, attempts: 1, stalled: false } };
+    const collected: ProductResponse = {
+      ...priced,
+      metadata: { phase: "ready", generation: 2, attempts: 1, completedAt: "2026-11-13T00:00:00.000Z", image: { outcome: "absent" } },
+      lastSuccessfulPrice: { amountMinor: 350, currency: "KRW", checkedAt: "2026-11-13T00:00:00.000Z" },
+    };
+    expect(mergeProduct(shown, collected)).toMatchObject({
+      wishPrice: { amountMinor: 3000, currency: "KRW" }, lastSuccessfulPrice: { amountMinor: 350 },
+    });
   });
 });
 

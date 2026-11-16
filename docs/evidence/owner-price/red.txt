@@ -1,0 +1,146 @@
+# Owner wish price (내가 살 가격) — Red evidence
+
+Each section ran before the implementation it drives. Startup/permission failures are not counted as Red.
+
+## 1. Unit tests (rules, commands, backup reader, handlers, screen)
+
+Source: origin/main bccc3e9 with only the new and changed tests applied.
+
+$ npx vitest run src/features
+
+Test Files  7 failed | 38 passed (45)
+Tests  66 failed | 1461 passed (1527)
+
+Failing tests:
+ FAIL  src/features/library/application/commands.test.ts > 복원 명령 > 링크에서 저장할 때와 같은 판별 주소와 쇼핑몰을 얻고 나머지 값은 파일 그대로 담는다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"wish.price","price":{"amountMinor":-1,"currency":"KRW"}}은 wishPrice 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"wish.price","price":{"amountMinor":1.5,"currency":"KRW"}}은 wishPrice 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"wish.price","price":{"amountMinor":1000,"currency":"USD"}}은 wishPrice 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 규칙에 맞지 않는 {"type":"wish.price","price":{"amountMinor":9007199254740992,"currency":"KRW"}}은 wishPrice 칸의 입력 오류다
+ FAIL  src/features/library/application/commands.test.ts > 상품 정리 명령 > 내가 살 가격은 원화 금액으로 담고 null은 직접 입력한 가격을 지운다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 만들기 > 내가 살 가격이 있는 상품만 wishPrice 칸을 담아, 없는 보관함의 파일은 이전 앱이 만든 파일과 같다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 내가 살 가격이 있는 파일을 글자로 바꿨다가 읽으면 같은 가격을 돌려준다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 소수 내가 살 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 원화가 아닌 내가 살 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 음수 내가 살 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-backup.test.ts > 백업 파일 읽기 > 통화 없는 내가 살 가격이면 손상된 파일로 보고 처음 문제의 위치를 알린다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library > Given 허용한 Google 계정 When 보관함을 읽으면 Then 200과 계약에 맞는 보관함을 돌려준다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 구매 기록 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 구매완료 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 내가 살 가격 When 저장하면 Then 응답은 직접 입력한 가격과 자동 확인 가격을 따로 돌려준다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 내가 살 가격 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 내가 살 가격 지우기 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 빈 구매 기록 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 소수 내가 살 가격 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 원화가 아닌 내가 살 가격 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 위시로 되돌리기 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 음수 내가 살 가격 When 상품을 고치면 Then 400이고 서비스를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 이름·메모·컬렉션 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PATCH /api/products/{productId} > Given 이름을 두고 메모만 변경 When 상품을 고치면 Then 200과 바뀐 상품을 돌려주고 정리한 명령으로 서비스를 부른다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/metadata > Given 같은 출처의 소유자 When 화면이 열리며 깨우면 Then 202와 깨운 상품을 돌려주고 응답 뒤 수집과 남은 사진 정리를 맡긴다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/library/restore > Given 백업 파일 When 복원하면 Then 링크에서 판별 주소를 얻은 명령으로 바꾸고, 결과를 응답 뒤 정리에 넘기고, 바뀐 보관함을 돌려준다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > POST /api/links > Given 허용한 Google 계정 When 새 링크를 저장하면 Then 201과 상품을 돌려준다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given 상품 변경의 내가 살 가격 칸 오류 When 결과로 바꾸면 Then 그 칸의 오류로 보여준다
+ FAIL  src/features/library/screen/library-api.test.ts > 백업 API 클라이언트 > Given 고른 파일의 글자 When 복원하면 Then 그 글자를 그대로 JSON으로 보내고 바뀐 보관함을 돌려준다
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 계약에 맞는 200 When 보관함을 읽으면 Then 보관함을 돌려주고 캐시하지 않는 GET을 보낸다
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 다시 가져오기 When 요청하면 Then 상품 경로에 세대를 보내고 202 상품을 돌려준다
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 상품 정리 When 요청하면 Then 상품 경로에 PATCH로 revision과 변경을 보내고 200 상품을 돌려준다
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 새 링크 When 저장하면 Then 정확한 경로·메서드·JSON 본문을 보내고 201 added를 돌려준다
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 이미 담은 링크 When 저장하면 Then 200 duplicate를 돌려준다
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 화면을 연 뒤 깨우기 When 요청하면 Then 빈 JSON을 POST로 보내고 202 상품 목록을 돌려준다
+ FAIL  src/features/library/screen/product-view.test.ts > 내가 살 가격 > Given 0원을 직접 입력 When 보이면 Then 가격 확인 전과 구분해 ₩0이다
+ FAIL  src/features/library/screen/product-view.test.ts > 내가 살 가격 > Given 쇼핑몰이 막아 자동 확인 가격이 없음 When 카드와 상세로 보이면 Then 직접 입력한 가격만 주 가격으로 보이고 자동 확인 가격은 없다고 말한다
+ FAIL  src/features/library/screen/product-view.test.ts > 내가 살 가격 > Given 직접 입력한 가격과 자동 확인 가격 When 상세로 보이면 Then 자동 확인 가격과 마지막 확인 날을 참고로 보여준다
+ FAIL  src/features/library/screen/product-view.test.ts > 내가 살 가격 > Given 직접 입력한 가격과 자동 확인 가격 When 카드로 보이면 Then 직접 입력한 가격이 주 가격이고 자동 확인 가격은 참고로 남는다
+ FAIL  src/features/library/screen/product-view.test.ts > 내가 살 가격 > Given 직접 입력한 가격이 있고 매일 확인이 이전 가격을 지킴 When 상세로 보이면 Then 그 줄은 자동 확인 가격에 대한 말이다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 구매완료 상품 When 내가 살 가격을 저장하거나 지우면 Then 요청하지 않는다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 빈 칸 When 저장하면 Then 직접 입력한 가격을 지운다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 서버가 칸을 거절하거나 다른 곳에서 먼저 바뀜 When 결과를 받으면 Then 그 양식에 알리고 충돌이면 다시 읽는다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 원 단위 정수가 아닌 "-1" When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 원 단위 정수가 아닌 "1.5" When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 원 단위 정수가 아닌 "30,00" When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 원 단위 정수가 아닌 "₩3000" When 저장하면 Then 요청하지 않고 그 칸에 오류를 보여준다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 위시 상품 When 쉼표로 묶은 가격을 저장하면 Then 화면이 본 revision으로 원화 금액을 보낸다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 저장 중 When 성공하면 Then 상품을 바꾸고 저장했다고 알리며 이름·메모 초안은 지킨다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 저장한 가격 When 상세를 열면 Then 칸은 쉼표로 묶은 그 값이고 같은 금액을 쉼표 없이 적어도 바뀐 것이 아니다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 지금과 같은 금액 When 저장하면 Then 요청하지 않고 그 초안만 비운다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 지우는 중 When 성공하면 Then 자동 확인 가격으로 돌아갔다고 알린다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 내가 살 가격 > Given 직접 입력한 가격 When 지우면 Then null을 보내고, 직접 입력한 가격이 없으면 요청하지 않는다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 빈 칸 When 저장하면 Then 직접 입력한 가격을 지우는 null이고 0원과 다르다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 쉼표로 묶은 원 단위 정수 When 저장하면 Then 원화 최소 단위로 받는다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 ",300" When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 "-1" When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 "1.5" When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 "1e3" When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 "30,00" When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 "9007199254740992" When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 "₩3,000" When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 "２" When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 원 단위 정수가 아닌 값 null When 저장하면 Then 내가 살 가격 칸의 오류다
+ FAIL  src/features/wishlist/product-fields.test.ts > 내가 살 가격 > Given 저장한 가격 When 입력 칸에 보이면 Then 한국어 자릿수 쉼표로 묶고 없으면 빈 칸이다
+
+Representative failure lines (trimmed):
+TypeError: parseWishPrice is not a function
+TypeError: parseWishPrice is not a function
+TypeError: parseWishPrice is not a function
+TypeError: wishPriceInput is not a function
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+AssertionError: expected function to throw an error, but it didn't
+AssertionError: expected { backup: { …(2) } } to deeply equal { backup: { …(2) } }
+AssertionError: expected undefined to deeply equal { amountMinor: 3000, currency: 'KRW' }
+AssertionError: expected undefined to deeply equal { amountMinor: +0, currency: 'KRW' }
+AssertionError: expected { ok: false, problem: 'invalid', …(1) } to deeply equal { ok: false, problem: 'invalid', …(1) }
+
+
+## 2. Persistence (real PostgreSQL via native Supabase, before the migration)
+
+Source: section 1 tests plus tests/persistence/wish-price.test.ts and the public-RPC list in library-security.test.ts;
+no migration, no adapter change. Ran only these two files against a fresh native stack (same runner as
+scripts/with-test-database.mjs, limited to the given files):
+
+$ node <scratch copy of scripts/with-test-database.mjs> tests/persistence/wish-price.test.ts tests/persistence/library-security.test.ts
+
+Test Files  2 failed (2)
+Tests  27 failed | 18 passed (45)
+Failed: 27 (all 26 new wish-price tests + the public RPC catalog check); the other 18 security checks passed.
+
+FAIL  tests/persistence/library-security.test.ts > 실제 DB 소유자 경계 > 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 위시 상품에 가격을 저장하면 revision과 수정 시각이 바뀌고 자동 확인 가격과 따로 남으며 새로 읽어도 같다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > null로 지우면 직접 입력한 가격이 없어지고, 0원은 빈 값과 다른 가격이다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 지금 저장된 값과 같은 가격은 오래된 revision이어도 그대로 돌려주고 revision을 올리지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 오래된 revision으로 다른 가격을 보내면 M0008이고 아무것도 쓰지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 구매완료 상품은 지금 revision이면 M0002, 오래된 revision이면 M0008이다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 다른 소유자의 상품이나 없는 상품은 M0006이다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 클라이언트 검증을 거치지 않은 원화가 아닌 통화는 M0002이고 아무것도 쓰지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 클라이언트 검증을 거치지 않은 음수 금액는 M0002이고 아무것도 쓰지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 클라이언트 검증을 거치지 않은 안전한 정수를 넘는 금액는 M0002이고 아무것도 쓰지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 클라이언트 검증을 거치지 않은 통화 없는 금액는 M0002이고 아무것도 쓰지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 클라이언트 검증을 거치지 않은 금액 없는 통화는 M0002이고 아무것도 쓰지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 클라이언트 검증을 거치지 않은 0 revision는 M0002이고 아무것도 쓰지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 클라이언트 검증을 거치지 않은 revision 없음는 M0002이고 아무것도 쓰지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 테이블 제약도 한 쪽만 있거나 원화가 아닌 가격을 거절한다
+FAIL  tests/persistence/wish-price.test.ts > 내가 살 가격 저장 > 세션 없는 요청은 실행하지 못하고 다른 계정은 소유자가 아니라 M0001이다
+FAIL  tests/persistence/wish-price.test.ts > 수집·매일 확인·구매와 내가 살 가격 > 수집과 다시 가져오기가 끝나도 직접 입력한 가격은 그대로이고 자동 확인 가격만 바뀌며 revision은 그대로다
+FAIL  tests/persistence/wish-price.test.ts > 수집·매일 확인·구매와 내가 살 가격 > 작업자의 매일 가격 확인은 자동 확인 가격만 바꾸고 그 이유도 자동 확인 가격에 남는다
+FAIL  tests/persistence/wish-price.test.ts > 수집·매일 확인·구매와 내가 살 가격 > 구매완료로 옮기고 되돌려도 직접 입력한 가격은 그대로 남고 실구매가로 옮겨 적지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 수집·매일 확인·구매와 내가 살 가격 > 이름·메모를 고쳐도 직접 입력한 가격은 그대로다
+FAIL  tests/persistence/wish-price.test.ts > 백업과 복원의 내가 살 가격 > 내보내기는 직접 입력한 가격을 자동 확인 가격과 따로 담는다
+FAIL  tests/persistence/wish-price.test.ts > 백업과 복원의 내가 살 가격 > 복원은 맞은 상품과 새 상품 모두 파일의 가격을 받고, 가격이 없는 파일(이전 백업)의 상품은 직접 입력한 가격이 없어진다
+FAIL  tests/persistence/wish-price.test.ts > 백업과 복원의 내가 살 가격 > 내보낸 파일로 복원하면 직접 입력한 가격이 그대로 돌아온다
+FAIL  tests/persistence/wish-price.test.ts > 백업과 복원의 내가 살 가격 > 앱을 거치지 않은 복원 입력의 원화가 아닌 가격은 M0002이고 보관함을 바꾸지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 백업과 복원의 내가 살 가격 > 앱을 거치지 않은 복원 입력의 음수 가격은 M0002이고 보관함을 바꾸지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 백업과 복원의 내가 살 가격 > 앱을 거치지 않은 복원 입력의 통화 없는 가격은 M0002이고 보관함을 바꾸지 않는다
+FAIL  tests/persistence/wish-price.test.ts > 백업과 복원의 내가 살 가격 > 앱을 거치지 않은 복원 입력의 소수 가격은 M0002이고 보관함을 바꾸지 않는다
+
+Representative failure lines (trimmed):
+AssertionError: expected [ 'moti_backup', …(30) ] to deeply equal [ 'moti_backup', …(31) ]
+Error: moti_set_wish_price 실패: PGRST202
+AssertionError: expected 'PGRST202' to be 'M0008' // Object.is equality
+AssertionError: expected 'PGRST202' to be 'M0002' // Object.is equality
+AssertionError: expected 'PGRST202' to be 'M0006' // Object.is equality
+AssertionError: expected error: column "wish_amount_minor" of rela… { …(15) } to match object { code: '23514' }
+AssertionError: expected 'PGRST202' to be '42501' // Object.is equality
+AssertionError: expected null to be 'M0002' // Object.is equality
+
+PGRST202 = PostgREST finds no function moti_set_wish_price; the restore/export checks fail on the missing wishPrice values.
+

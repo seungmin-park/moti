@@ -42,13 +42,22 @@ const lastSuccessColumns = {
   last_success_currency: currency,
   last_success_at: timestamp.nullable(),
 };
+const wishColumns = {
+  wish_amount_minor: money,
+  wish_currency: currency,
+};
 type PurchaseColumns = { [Key in keyof typeof purchaseColumns]: z.infer<(typeof purchaseColumns)[Key]> };
 type LastSuccessColumns = { [Key in keyof typeof lastSuccessColumns]: z.infer<(typeof lastSuccessColumns)[Key]> };
+type WishColumns = { [Key in keyof typeof wishColumns]: z.infer<(typeof wishColumns)[Key]> };
 
 function hasConsistentPurchase(row: PurchaseColumns): boolean {
   return row.purchase_status === "wish"
     ? row.purchased_on === null && row.purchased_amount_minor === null && row.purchased_currency === null
     : (row.purchased_amount_minor === null) === (row.purchased_currency === null);
+}
+
+function hasConsistentWish(row: WishColumns): boolean {
+  return (row.wish_amount_minor === null) === (row.wish_currency === null);
 }
 
 function hasConsistentLastSuccess(row: LastSuccessColumns): boolean {
@@ -80,6 +89,7 @@ export const productRowSchema = z.object({
   ...lastSuccessColumns,
   price_checked_at: timestamp.nullable(),
   price_check_code: z.enum(priceCheckCodes).nullable(),
+  ...wishColumns,
   picture_version: z.uuid().nullable(),
 }).refine((row) => {
   const metadataConsistent =
@@ -91,7 +101,8 @@ export const productRowSchema = z.object({
   const imageConsistent = (row.metadata_phase === "ready") === (row.metadata_image !== null) &&
     (row.metadata_image === "failed") === (row.metadata_image_error_code !== null);
   const checkConsistent = row.price_check_code === null || row.price_checked_at !== null;
-  return hasConsistentPurchase(row) && hasConsistentLastSuccess(row) && metadataConsistent && imageConsistent && checkConsistent;
+  return hasConsistentPurchase(row) && hasConsistentLastSuccess(row) && hasConsistentWish(row) && metadataConsistent &&
+    imageConsistent && checkConsistent;
 });
 
 const libraryRowSchema = z.object({
@@ -113,7 +124,8 @@ const backupProductRowSchema = z.object({
   created_at: timestamp,
   ...purchaseColumns,
   ...lastSuccessColumns,
-}).refine((row) => hasConsistentPurchase(row) && hasConsistentLastSuccess(row));
+  ...wishColumns,
+}).refine((row) => hasConsistentPurchase(row) && hasConsistentLastSuccess(row) && hasConsistentWish(row));
 const backupRowSchema = z.object({
   collections: z.array(backupCollectionRowSchema),
   products: z.array(backupProductRowSchema),
@@ -150,6 +162,10 @@ function toLastSuccessfulPrice(row: LastSuccessColumns): (Money & { checkedAt: s
   };
 }
 
+function toWishPrice(row: WishColumns): Money | null {
+  return row.wish_amount_minor === null ? null : { amountMinor: row.wish_amount_minor, currency: row.wish_currency! };
+}
+
 function toImageOutcome(row: ProductRow): ImageOutcome {
   return row.metadata_image === "failed"
     ? { outcome: "failed", errorCode: row.metadata_image_error_code! }
@@ -180,6 +196,7 @@ export function toProduct(row: ProductRow): Product {
     metadata,
     lastSuccessfulPrice: toLastSuccessfulPrice(row),
     priceCheck: row.price_checked_at === null ? null : { checkedAt: row.price_checked_at, code: row.price_check_code },
+    wishPrice: toWishPrice(row),
     picture: row.picture_version === null ? null : { version: row.picture_version },
   };
 }
@@ -201,6 +218,7 @@ function toBackupProduct(row: BackupProductRow): BackupProduct {
     addedAt: row.created_at,
     purchase: toPurchase(row),
     lastSuccessfulPrice: toLastSuccessfulPrice(row),
+    wishPrice: toWishPrice(row),
   };
 }
 
@@ -245,6 +263,10 @@ const productChanges: { [Type in ProductChange["type"]]: (change: Extract<Produc
     parameters: { p_date: date, p_amount_minor: price?.amountMinor ?? null, p_currency: price?.currency ?? null },
   }),
   wish: () => ({ name: "moti_return_to_wish", parameters: {} }),
+  "wish.price": ({ price }) => ({
+    name: "moti_set_wish_price",
+    parameters: { p_amount_minor: price?.amountMinor ?? null, p_currency: price?.currency ?? null },
+  }),
 };
 
 function productChangeCall(change: ProductChange): RpcCall {
@@ -273,6 +295,8 @@ function toRestoreParameters({ backup }: LibraryRestoreCommand) {
         last_success_amount_minor: product.lastSuccessfulPrice?.amountMinor ?? null,
         last_success_currency: product.lastSuccessfulPrice?.currency ?? null,
         last_success_at: product.lastSuccessfulPrice?.checkedAt ?? null,
+        wish_amount_minor: product.wishPrice?.amountMinor ?? null,
+        wish_currency: product.wishPrice?.currency ?? null,
       };
     }),
   };

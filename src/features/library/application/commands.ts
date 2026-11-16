@@ -6,6 +6,7 @@ import {
   parseProductTitle,
   parsePurchaseDate,
   type FieldResult,
+  type ProductField,
 } from "../../wishlist/product-fields";
 import type { PictureObject } from "../../metadata/application/picture-copy";
 import {
@@ -30,7 +31,9 @@ export type ProductChange =
   | { type: "details"; title: string | null; note: string; collectionIds: CollectionId[] }
   | { type: "purchase" }
   | { type: "purchase.record"; date: string | null; price: Money | null }
-  | { type: "wish" };
+  | { type: "wish" }
+  // The owner's price for a wish; null clears it and the collected price shows again.
+  | { type: "wish.price"; price: Money | null };
 // `revision` is the one the owner's screen showed; a change made elsewhere since then is a conflict.
 export type ProductChangeCommand = { productId: ProductId; revision: number; change: ProductChange };
 export type ProductChangeInput = {
@@ -39,7 +42,8 @@ export type ProductChangeInput = {
     | { type: "details"; title: string | null; note: string; collectionIds: string[] }
     | { type: "purchase" }
     | { type: "purchase.record"; date: string | null; price: { amountMinor: number; currency: string } | null }
-    | { type: "wish" };
+    | { type: "wish" }
+    | { type: "wish.price"; price: { amountMinor: number; currency: string } | null };
 };
 // Deletes the product the screen showed at `revision`; a change made elsewhere since then is a conflict.
 export type ProductDeleteCommand = { productId: ProductId; revision: number };
@@ -59,6 +63,8 @@ export type LibraryRestoreInput = {
       | { status: "wish" }
       | { status: "purchased"; date: string | null; price: { amountMinor: number; currency: string } | null };
     lastSuccessfulPrice: { amountMinor: number; currency: string; checkedAt: string } | null;
+    // Absent in files made before wish prices, and for products without one.
+    wishPrice?: { amountMinor: number; currency: string };
   }[];
 };
 export type LibraryRestoreCommand = { backup: LibraryBackup };
@@ -116,11 +122,16 @@ export function toPictureViewCommand(productId: unknown): PictureViewCommand {
   return { productId: productId.toLowerCase() as ProductId };
 }
 
-function toPaidPrice(price: { amountMinor: number; currency: string } | null): Money | null {
+const priceProblems: Record<"price" | "wishPrice", string> = {
+  price: "실구매가는 0 이상의 정수로 입력해 주세요.",
+  wishPrice: "내가 살 가격은 0 이상의 정수로 입력해 주세요.",
+};
+
+function toPaidPrice(price: { amountMinor: number; currency: string } | null, field: Extract<ProductField, "price" | "wishPrice"> = "price"): Money | null {
   if (price === null) return null;
   const { amountMinor, currency } = price;
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0 || !(PAID_CURRENCIES as readonly string[]).includes(currency)) {
-    throw new LibraryError("invalid_input", "실구매가는 0 이상의 정수로 입력해 주세요.", "price");
+    throw new LibraryError("invalid_input", priceProblems[field], field);
   }
   return { amountMinor, currency };
 }
@@ -136,6 +147,8 @@ function toProductChange(change: ProductChangeInput["change"], today: string): P
       };
     case "purchase.record":
       return { type: "purchase.record", date: field(parsePurchaseDate(change.date, today)), price: toPaidPrice(change.price) };
+    case "wish.price":
+      return { type: "wish.price", price: toPaidPrice(change.price, "wishPrice") };
     case "purchase":
     case "wish":
       return { type: change.type };
@@ -186,6 +199,7 @@ export function toLibraryRestoreCommand(input: LibraryRestoreInput, today: strin
         ? { status: "wish" }
         : { status: "purchased", date, price: purchase.price && { ...purchase.price } },
       lastSuccessfulPrice: product.lastSuccessfulPrice && { ...product.lastSuccessfulPrice },
+      wishPrice: product.wishPrice ? { ...product.wishPrice } : null,
     };
   });
   return { backup: { collections: input.collections.map(({ name, createdAt }) => ({ name, createdAt })), products } };

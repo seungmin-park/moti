@@ -32,6 +32,8 @@ export type Product = SavedLink & {
   metadata: MetadataState;
   lastSuccessfulPrice: (Money & { checkedAt: string }) | null;
   priceCheck: PriceCheck | null;
+  // What the owner expects to pay, set by hand. Shown instead of lastSuccessfulPrice, which collection keeps updating.
+  wishPrice: Money | null;
   picture: Picture | null;
 };
 export type Collection = {
@@ -56,6 +58,7 @@ export type BackupProduct = SavedLink & {
   addedAt: string;
   purchase: Purchase;
   lastSuccessfulPrice: (Money & { checkedAt: string }) | null;
+  wishPrice: Money | null;
 };
 export type LibraryBackup = { collections: BackupCollection[]; products: BackupProduct[] };
 export type LibraryErrorCode =

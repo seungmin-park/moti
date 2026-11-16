@@ -26,6 +26,7 @@ const product: ProductResponse = {
   metadata: { phase: "queued", generation: 1, attempts: 0, stalled: false },
   lastSuccessfulPrice: null,
   priceCheck: null,
+  wishPrice: null,
   picture: null,
 };
 const link = { url: "https://example.com/item", option: "", collectionIds: [collection.id] };
@@ -287,6 +288,11 @@ function respond(body: unknown, init: ResponseInit) {
 }
 
 describe("API 오류 응답의 화면 결과", () => {
+  it("Given 상품 변경의 내가 살 가격 칸 오류 When 결과로 바꾸면 Then 그 칸의 오류로 보여준다", () => {
+    const body = { error: "invalid_input", message: "내가 살 가격은 0 이상의 정수로 입력해 주세요.", field: "wishPrice" };
+    expect(toApiFailure("product.change", 400, body)).toEqual({ kind: "invalid", field: "wishPrice", message: body.message });
+  });
+
   it.each(cases)("Given %s의 %s 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다", (endpoint, code) => {
     expect(toApiFailure(endpoint, status[code], errorBody(endpoint, code))).toEqual(expected[endpoint][code]);
   });
@@ -538,7 +544,7 @@ describe("백업 API 클라이언트", () => {
     products: [{
       sourceUrl: "https://example.com/item", identityUrl: "https://example.com/item", option: "", shop: "example.com",
       collectedTitle: "새로 담은 상품", ownerTitle: null, note: "", collectionNames: ["책상"], addedAt: "2026-11-11T00:00:00.000Z",
-      purchase: { status: "wish" }, lastSuccessfulPrice: null,
+      purchase: { status: "wish" }, lastSuccessfulPrice: null, wishPrice: null,
     }],
   }, new Date("2026-11-13T05:12:00.000Z"));
 

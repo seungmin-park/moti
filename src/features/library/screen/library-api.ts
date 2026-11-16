@@ -47,7 +47,7 @@ import {
   type ProductDeleteResponse,
 } from "../presentation/library-dto";
 
-export type FieldName = "url" | "option" | "collection" | "title" | "note" | "date" | "price";
+export type FieldName = "url" | "option" | "collection" | "title" | "note" | "date" | "price" | "wishPrice";
 export type ApiFailure =
   | { kind: "redirect"; to: string }
   | { kind: "invalid"; field: FieldName | null; message: string }
@@ -257,7 +257,7 @@ const failures: Record<Endpoint, Mapping> = {
     cross_origin: reload,
     unsupported_media_type: retryLater,
     payload_too_large: () => ({ kind: "invalid", field: "note", message: "메모가 너무 길어요." }),
-    invalid_input: invalidIn(["title", "note", "collection", "date", "price"], "화면을 새로고침한 뒤 다시 시도해 주세요."),
+    invalid_input: invalidIn(["title", "note", "collection", "date", "price", "wishPrice"], "화면을 새로고침한 뒤 다시 시도해 주세요."),
     collection_missing: stale("선택한 컬렉션을 찾을 수 없어요. 목록을 새로 불러왔어요."),
     collection_duplicate: retryLater,
     identity_conflict: retryLater,
