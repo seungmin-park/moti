@@ -260,16 +260,23 @@ describe("실제 HTTP 단축어 경로", () => {
     expect(rows).toEqual([{ status: "succeeded", shared_title: null }]);
   });
 
-  it("형식이 다른 page는 400 invalid_page이고, 한도를 넘는 본문은 413이며, 둘 다 아무것도 담지 않는다", async () => {
+  it("형식이 다른 page여도 링크는 201로 담고 요약 없이 페이지 정보를 읽지 못했다고 알리며, 한도를 넘는 본문은 413이고 담지 않는다", async () => {
     const { secret } = await issue();
-
-    const invalid = await shortcut(secret, { url: "https://shop.example/lamp", page: { url: "https://shop.example/lamp", cookie: "a=b" } });
-    expect(invalid.status).toBe(400);
-    expect(shareLinkErrorResponseSchema.parse(await invalid.json()).error).toBe("invalid_page");
 
     const huge = await shortcut(secret, { url: "https://shop.example/lamp", page: JSON.stringify({ jsonLd: ["\"".repeat(80_000)] }) });
     expect(huge.status).toBe(413);
     expect(shareLinkErrorResponseSchema.parse(await huge.json()).error).toBe("payload_too_large");
     expect((await stored()).products).toEqual([]);
+
+    const invalid = await shortcut(secret, { url: "https://shop.example/lamp", page: { url: "https://shop.example/lamp", cookie: "a=b" } });
+    expect(invalid.status).toBe(201);
+    expect(shareLinkAddResponseSchema.parse(await invalid.json())).toEqual({
+      result: "added",
+      message: "담았어요. 다만 페이지 정보는 읽지 못했어요. 단축어에 moti의 스크립트를 다시 붙여 넣어 주세요.",
+    });
+    const [product] = (await stored()).products;
+    expect(product).toMatchObject({ source_url: "https://shop.example/lamp", jobs: 1 });
+    const { rows } = await fixture.admin.query("select status, shared_title from moti.metadata_jobs where product_id = $1", [product.id]);
+    expect(rows).toEqual([{ status: "queued", shared_title: null }]);
   });
 });

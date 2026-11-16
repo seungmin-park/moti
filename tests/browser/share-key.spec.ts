@@ -134,7 +134,8 @@ test("Safari 단축어 안내는 붙여 넣을 스크립트를 그대로 보이�
   await openShare(page);
   const safari = page.getByRole("region", { name: "Safari에서 상품 정보까지 담기 (선택)" });
   await expect(safari).toContainText("‘moti에 담기 (Safari)’");
-  await expect(safari).toContainText("‘스크립트 실행 허용’");
+  await expect(safari).toContainText("설정 → 앱 → 단축어 → 고급에서 ‘스크립트 실행 허용’");
+  await expect(safari).toContainText("‘입력이 없는 경우’");
   await expect(safari).toContainText("키 page를 텍스트로");
   await expect(safari).toContainText("아직 실제 iPhone에서 확인하지 않았어요.");
   expect(await safari.locator(".share-script").textContent()).toBe(PAGE_SNAPSHOT_SCRIPT);

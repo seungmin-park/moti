@@ -20,7 +20,6 @@ const errorStatus: Record<ShareLinkErrorCode, number> = {
   share_key_rejected: 401,
   share_key_busy: 429,
   invalid_link: 400,
-  invalid_page: 400,
   identity_conflict: 409,
   unsupported_media_type: 415,
   payload_too_large: 413,
@@ -72,12 +71,13 @@ export function createShareHandlers(context: () => Promise<ShareRequestContext>)
       const parsed = shareLinkAddEnvelopeSchema.safeParse(body.value);
       if (!parsed.success) return failure("invalid_link");
       try {
-        // The link comes first: a request without one is invalid_link whatever its page.
+        // The link comes first: a request without one is invalid_link whatever its page. A page that is not the
+        // script's snapshot is dropped and the link is still saved; the answer says the page was not read.
         const command = toShareLinkAddCommand(secret, parsed.data.url);
         const page = parsed.data.page === undefined ? null : toPageSnapshot(parsed.data.page);
-        if (parsed.data.page !== undefined && page === null) return failure("invalid_page");
+        const pageUnread = parsed.data.page !== undefined && page === null;
         const result = await current.service.add({ ...command, page });
-        return json(result.kind === "added" ? 201 : 200, toShareLinkAddResponse(result));
+        return json(result.kind === "added" ? 201 : 200, toShareLinkAddResponse(result, pageUnread));
       } catch (error) {
         return failure(error instanceof ShareError ? fromShareError[error.code] : "unavailable");
       }

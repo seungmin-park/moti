@@ -41,10 +41,12 @@ describe("Safari에서 상품 정보까지 담는 두 번째 단축어 안내", 
     expect(safariShortcutSteps).toHaveLength(5);
     const [copy, allow, script, request, use] = safariShortcutSteps;
     for (const item of ["‘moti에 담기’", "복제", "‘moti에 담기 (Safari)’", "Safari 웹 페이지", "맨 위"]) expect(copy).toContain(item);
-    for (const item of ["설정", "단축어", "고급", "‘스크립트 실행 허용’"]) expect(allow).toContain(item);
+    // The duplicate keeps the first Shortcut's "Get Clipboard"; the JavaScript step must never get text, so it stops.
+    for (const item of ["‘입력이 없는 경우’", "‘클립보드 가져오기’", "‘중단’"]) expect(copy).toContain(item);
+    for (const item of ["설정 → 앱 → 단축어 → 고급", "‘스크립트 실행 허용’", "설정 → 단축어 → 고급", "이전 iOS"]) expect(allow).toContain(item);
     for (const item of ["‘웹 페이지에서 JavaScript 실행’", "‘단축어 입력’", "스크립트 복사", "지우고"]) expect(script).toContain(item);
     for (const item of ["‘URL 콘텐츠 가져오기’", "page", "텍스트", "‘JavaScript 결과’", "url"]) expect(request).toContain(item);
-    for (const item of ["Safari", "공유", "‘moti에 담기 (Safari)’"]) expect(use).toContain(item);
+    for (const item of ["Safari", "공유", "‘moti에 담기 (Safari)’", "처음", "사이트", "‘허용’"]) expect(use).toContain(item);
   });
 
   it("Given 아직 기기에서 확인하지 않은 구성 When 안내를 보이면 Then 그렇다고 말하고 가격을 다시 확인하지 못한다는 한계도 말한다", () => {

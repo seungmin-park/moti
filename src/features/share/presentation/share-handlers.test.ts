@@ -174,10 +174,14 @@ describe("POST /api/share/links: Safari 단축어의 페이지 요약", () => {
     expect(add).toHaveBeenCalledWith(expect.objectContaining({ page: JSON.parse(text) }));
   });
 
+  const pageUnread = "담았어요. 다만 페이지 정보는 읽지 못했어요. 단축어에 moti의 스크립트를 다시 붙여 넣어 주세요.";
+
   it.each([
     ["다른 필드가 든 요약", { ...page, cookie: "a=b" }],
     ["빠진 필드", { url: page.url, title: page.title }],
-    ["101개의 메타", { ...page, metas: Array.from({ length: 101 }, () => ["og:x", "y"]) }],
+    ["8개의 메타", { ...page, metas: Array.from({ length: 8 }, () => ["og:title", "y"]) }],
+    ["읽지 않는 메타 키", { ...page, metas: [["og:description", "설명"]] }],
+    ["itemprop 메타", { ...page, metas: [["name", "램프"]] }],
     ["두 칸이 아닌 메타", { ...page, metas: [["og:title", "램프", "x"]] }],
     ["4096자를 넘는 주소", { ...page, url: `https://shop.example/${"x".repeat(4096)}` }],
     ["1000자를 넘는 제목", { ...page, title: "가".repeat(1001) }],
@@ -189,15 +193,30 @@ describe("POST /api/share/links: Safari 단축어의 페이지 요약", () => {
     ["빈 글", ""],
     ["null", null],
     ["숫자", 1],
-  ])("Given %s When 공유하면 Then 400 invalid_page이고 저장소를 부르지 않는다", async (_name, value) => {
+  ])("Given %s When 공유하면 Then 링크는 요약 없이 201로 담고 페이지 정보를 읽지 못했다고 알린다", async (_name, value) => {
     const { handlers, add } = given();
     const response = await handlers.postShareLink(withPage(value));
-    expect(response.status).toBe(400);
-    expect(await errorOf(response)).toEqual({
-      error: "invalid_page",
-      message: "페이지 정보를 읽지 못했어요. 단축어의 ‘웹 페이지에서 JavaScript 실행’에 moti의 스크립트를 그대로 넣어 주세요.",
+    expect(response.status).toBe(201);
+    expect(shareLinkAddResponseSchema.parse(await expectShortcutAnswer(response))).toEqual({ result: "added", message: pageUnread });
+    expect(add).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ link: expect.objectContaining({ sourceUrl: url }), page: null }));
+  });
+
+  it("Given 형식이 다른 요약과 이미 담은 링크 When 공유하면 Then 200 duplicate이고 이미 담았다는 메시지다", async () => {
+    const { handlers, add } = given();
+    add.mockResolvedValueOnce({ kind: "duplicate" });
+    const response = await handlers.postShareLink(withPage("램프"));
+    expect(response.status).toBe(200);
+    expect(shareLinkAddResponseSchema.parse(await expectShortcutAnswer(response))).toEqual({
+      result: "duplicate",
+      message: "이미 담아둔 상품이에요.",
     });
-    expect(add).not.toHaveBeenCalled();
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ page: null }));
+  });
+
+  it("Given 맞는 요약 When 공유하면 Then 평소의 담았다는 메시지다", async () => {
+    const { handlers } = given();
+    const response = await handlers.postShareLink(withPage(page));
+    expect(shareLinkAddResponseSchema.parse(await expectShortcutAnswer(response)).message).toBe("위시에 담았어요. 상품 정보는 moti를 열면 가져와요.");
   });
 
   it("Given 링크가 아닌 url과 맞는 요약 When 공유하면 Then 링크 오류가 먼저다", async () => {

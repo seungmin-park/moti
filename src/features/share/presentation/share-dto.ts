@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ShareKeyIssueResult, ShareLinkAddResult } from "../application/commands";
-import { PAGE_SNAPSHOT_LIMITS, type PageSnapshot } from "../domain/page-snapshot";
+import { PAGE_SNAPSHOT_LIMITS, PAGE_SNAPSHOT_META_KEYS, type PageSnapshot } from "../domain/page-snapshot";
 import { SHARE_SECRET_PATTERN, type ShareKey } from "../domain/share-key";
 
 export const SHARE_LINKS_PATH = "/api/share/links";
@@ -12,12 +12,13 @@ export const MAX_SHARE_BYTES = 8 * 1024;
 // JSON text, whose quotes and backslashes JSON escapes again, so at most twice its size.
 export const MAX_SHARE_PAGE_BODY_BYTES = MAX_SHARE_BYTES + 2 * PAGE_SNAPSHOT_LIMITS.bytes;
 
-// The head data the Safari Shortcut's script reads from the open page, with the script's own caps.
+// The head data the Safari Shortcut's script reads from the open page, with the script's own caps: only the meta keys
+// the page reader reads, each value cut as the script cuts it.
 export const sharePageSnapshotSchema = z.object({
   url: z.string().max(PAGE_SNAPSHOT_LIMITS.url),
   title: z.string().max(PAGE_SNAPSHOT_LIMITS.title),
   canonical: z.string().max(PAGE_SNAPSHOT_LIMITS.canonical),
-  metas: z.array(z.tuple([z.string().max(PAGE_SNAPSHOT_LIMITS.metaKey), z.string().max(PAGE_SNAPSHOT_LIMITS.metaContent)]))
+  metas: z.array(z.tuple([z.enum(PAGE_SNAPSHOT_META_KEYS), z.string().max(PAGE_SNAPSHOT_LIMITS.metaContent)]))
     .max(PAGE_SNAPSHOT_LIMITS.metas),
   jsonLd: z.array(z.string().max(PAGE_SNAPSHOT_LIMITS.jsonLdBlock)).max(PAGE_SNAPSHOT_LIMITS.jsonLd),
 }).strict();
@@ -29,7 +30,7 @@ export const shareLinkAddRequestSchema = z.object({
   url: z.string(),
   page: z.union([sharePageSnapshotSchema, z.string()]).optional(),
 }).strict();
-// What the route parses first: the same fields, with `page` checked afterwards so a wrong page answers invalid_page.
+// What the route parses first: the same fields, with `page` checked afterwards so a wrong page only loses the page.
 export const shareLinkAddEnvelopeSchema = z.object({ url: z.string(), page: z.unknown().optional() }).strict();
 export const shareLinkAddResponseSchema = z.object({
   result: z.enum(["added", "duplicate"]),
@@ -40,7 +41,6 @@ export const shareLinkErrorCodes = [
   "share_key_rejected",
   "share_key_busy",
   "invalid_link",
-  "invalid_page",
   "identity_conflict",
   "unsupported_media_type",
   "payload_too_large",
@@ -62,7 +62,6 @@ export const shareLinkMessages: Record<ShareLinkAddResponse["result"] | ShareLin
   added: "위시에 담았어요. 상품 정보는 moti를 열면 가져와요.",
   duplicate: "이미 담아둔 상품이에요.",
   invalid_link: "상품 링크를 찾지 못했어요. 상품 페이지에서 다시 공유해 주세요.",
-  invalid_page: "페이지 정보를 읽지 못했어요. 단축어의 ‘웹 페이지에서 JavaScript 실행’에 moti의 스크립트를 그대로 넣어 주세요.",
   share_key_rejected: "저장 키가 맞지 않거나 폐기됐어요. moti의 공유 저장 화면에서 새 키를 만들어 단축어에 넣어 주세요.",
   share_key_busy: "한 시간에 30번까지 담을 수 있어요. 잠시 뒤 다시 공유해 주세요.",
   unsupported_media_type: "단축어 설정을 확인해 주세요. 본문은 url 하나를 담은 JSON이에요.",
@@ -91,8 +90,14 @@ export function toPageSnapshot(value: unknown): PageSnapshot | null {
 
 const utf8Bytes = (text: string) => new TextEncoder().encode(text).length;
 
-export function toShareLinkAddResponse(result: ShareLinkAddResult): ShareLinkAddResponse {
-  return { result: result.kind, message: shareLinkMessages[result.kind] };
+// A `page` that is not the script's snapshot (an edited or old script, another action's result) costs only the page:
+// the link is saved, and a new product's answer tells the owner to paste the script again. A duplicate would not have
+// used the page anyway, so its answer stays the same.
+export const shareLinkPageUnreadMessage = "담았어요. 다만 페이지 정보는 읽지 못했어요. 단축어에 moti의 스크립트를 다시 붙여 넣어 주세요.";
+
+export function toShareLinkAddResponse(result: ShareLinkAddResult, pageUnread = false): ShareLinkAddResponse {
+  const message = result.kind === "added" && pageUnread ? shareLinkPageUnreadMessage : shareLinkMessages[result.kind];
+  return { result: result.kind, message };
 }
 
 const timestamp = z.iso.datetime();

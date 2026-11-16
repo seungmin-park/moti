@@ -174,6 +174,58 @@ describe("Safari 단축어가 읽은 페이지를 첫 작업에 맡기기", () =
     expect((await claimed()).sharedPage).toMatchObject({ title: page.title });
   });
 
+  const expireLeases = () => fixture.admin.query(
+    "update moti.metadata_jobs set lease_until = now() - interval '1 second' where owner_id = $1 and status = 'running'",
+    [fixture.owner.id],
+  );
+  const wake = async () => {
+    const { data, code } = await rpc<{ id: string }[]>("moti_metadata_wake", { p_limit: 8 }, fixture.owner.client);
+    if (code) throw new Error(`moti_metadata_wake 실패: ${code}`);
+    return data.map((product) => product.id);
+  };
+
+  it("맡은 뒤 임대가 끝나 멈춘 읽은 페이지 작업은 다음 깨우기가 다시 꺼내고, 다시 맡으면 읽은 페이지로 끝난다", async () => {
+    const key = await issue();
+    await addWithPage(key);
+    await claimed();
+    await expireLeases();
+    const stalled = await productOf();
+    expect(stalled.metadata).toMatchObject({ phase: "running", attempts: 1 });
+
+    expect(await wake()).toEqual([stalled.id]);
+
+    const job = await claimed();
+    expect(job.sharedPage).toMatchObject({ title: page.title, price: { amountMinor: 12900, currency: "KRW" } });
+    expect(await jobs().complete(job, job.sharedPage!, { outcome: "failed", code: "blocked_by_site" })).toMatchObject({ kind: "applied" });
+    expect(await productOf()).toMatchObject({
+      title: page.title,
+      metadata: { phase: "ready", attempts: 2 },
+      lastSuccessfulPrice: expect.objectContaining({ amountMinor: 12900, currency: "KRW" }),
+    });
+    expect(await jobsOf()).toEqual([{ status: "succeeded", shared_title: null, shared_amount_minor: null, shared_currency: null, shared_image_url: null }]);
+  });
+
+  it("깨우기는 임대가 남은 작업, 시도를 다 쓴 작업, 읽은 페이지가 없는 멈춘 작업은 꺼내지 않는다", async () => {
+    const key = await issue();
+    const leased = "https://www.market.example/vp/products/7002";
+    const exhausted = "https://www.market.example/vp/products/7003";
+    const plain = "https://shop.example/desk";
+    await addWithPage(key, leased);
+    await addWithPage(key, exhausted);
+    await library().saveLink(toLinkSaveCommand({ url: plain, option: "", collectionIds: [] }));
+    await claimed(exhausted);
+    await claimed(plain);
+    await expireLeases();
+    await claimed(leased);
+    await fixture.admin.query(
+      `update moti.metadata_jobs j set attempts = 3 from moti.products p
+       where p.id = j.product_id and p.source_url = $1`,
+      [exhausted],
+    );
+
+    expect(await wake()).toEqual([]);
+  });
+
   it("읽은 페이지가 없는 작업은 sharedPage가 null이다", async () => {
     await library().saveLink(toLinkSaveCommand({ url, option: "", collectionIds: [] }));
     expect((await claimed()).sharedPage).toBeNull();

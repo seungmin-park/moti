@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pageSnapshotHtml, snapshotMatchesLink, type PageSnapshot } from "./page-snapshot";
+import { pageSnapshotHtml, snapshotMatchesLink, type PageSnapshot, type PageSnapshotMetaKey } from "./page-snapshot";
 
 const snapshot = (overrides: Partial<PageSnapshot> = {}): PageSnapshot => ({
   url: "https://shop.example/p/1",
@@ -34,7 +34,8 @@ describe("받은 페이지 요약으로 만든 HTML", () => {
     const html = pageSnapshotHtml(snapshot({
       title: "</title><script>alert(1)</script>&amp;",
       canonical: "\"><img src=x onerror=alert(1)>",
-      metas: [["og:title\" content=\"x", "a\"b'c<d>e&f"]],
+      // The route only lets the read keys through; the key is escaped all the same.
+      metas: [["og:title\" content=\"x" as PageSnapshotMetaKey, "a\"b'c<d>e&f"]],
       jsonLd: ["{\"name\":\"</script><script>alert(1)</script>\",\"x\":\"<!--\"}"],
     }));
 
@@ -53,13 +54,15 @@ describe("받은 페이지 요약으로 만든 HTML", () => {
 });
 
 describe("요약한 페이지와 공유한 링크", () => {
+  const of = (url: string, canonical = "") => ({ url, canonical });
+
   it.each([
     ["같은 주소", "https://www.coupang.com/vp/products/1", "https://www.coupang.com/vp/products/1"],
     ["경로와 query가 다른 같은 호스트", "https://www.coupang.com/vp/products/1?itemId=2", "https://www.coupang.com/vp/products/1"],
     ["대소문자만 다른 호스트", "https://WWW.Coupang.com/vp/products/1", "https://www.coupang.com/vp/products/1"],
     ["http와 https", "http://shop.example/p/1", "https://shop.example/p/1"],
   ])("%s는 같은 페이지로 본다", (_name, page, link) => {
-    expect(snapshotMatchesLink(page, link)).toBe(true);
+    expect(snapshotMatchesLink(of(page), link)).toBe(true);
   });
 
   it.each([
@@ -71,6 +74,23 @@ describe("요약한 페이지와 공유한 링크", () => {
     ["빈 주소", "", "https://shop.example/p/1"],
     ["주소가 아닌 글", "shop.example", "https://shop.example/p/1"],
   ])("%s는 다른 페이지로 본다", (_name, page, link) => {
-    expect(snapshotMatchesLink(page, link)).toBe(false);
+    expect(snapshotMatchesLink(of(page), link)).toBe(false);
+  });
+
+  // Safari may share the page's canonical address while showing the mobile host, or the other way round.
+  it.each([
+    ["모바일 페이지와 www 대표 주소, www 링크", "https://m.coupang.com/vm/products/1", "https://www.coupang.com/vp/products/1", "https://www.coupang.com/vp/products/1"],
+    ["www 페이지와 모바일 대표 주소, 모바일 링크", "https://www.11st.co.kr/products/1", "https://m.11st.co.kr/products/1", "https://m.11st.co.kr/products/1"],
+  ])("%s는 요약의 대표 주소 호스트가 링크와 같아 같은 페이지로 본다", (_name, page, canonical, link) => {
+    expect(snapshotMatchesLink(of(page, canonical), link)).toBe(true);
+  });
+
+  it.each([
+    ["대표 주소도 다른 사이트", "https://m.shop.example/p/1", "https://www.shop.example/p/1", "https://evil.example/p/1"],
+    ["대표 주소의 하위 도메인", "https://m.shop.example/p/1", "https://shop.example/p/1", "https://www.shop.example/p/1"],
+    ["http(s)가 아닌 대표 주소", "https://m.shop.example/p/1", "javascript://www.shop.example/p/1", "https://www.shop.example/p/1"],
+    ["주소가 빈 요약", "", "https://www.shop.example/p/1", "https://www.shop.example/p/1"],
+  ])("%s는 다른 페이지로 본다", (_name, page, canonical, link) => {
+    expect(snapshotMatchesLink(of(page, canonical), link)).toBe(false);
   });
 });

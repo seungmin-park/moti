@@ -98,7 +98,8 @@ describe("API 문서", () => {
     expect(Object.keys(operation.requestBody.content["application/json"].schema.properties ?? {})).toEqual(["url", "page"]);
     expect(Object.keys(operation.responses)).toEqual(["200", "201", "400", "401", "409", "413", "415", "429", "503"]);
     const described = operation.responses as Record<string, { description?: string }>;
-    expect(described["400"].description).toContain("invalid_page");
+    expect(described["400"].description).not.toContain("invalid_page");
+    expect(described["201"].description).toContain("페이지 정보는 읽지 못했어요");
     expect(described["413"].description).toContain("139264");
     expect(Object.keys(operation.responses["401"].headers ?? {})).toEqual(["WWW-Authenticate"]);
     expect(document.paths["/api/library"]?.get).not.toHaveProperty("security");

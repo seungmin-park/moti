@@ -22,16 +22,18 @@ export const shareWithoutShortcuts =
 // The optional second Shortcut for Safari. Shops that refuse the server (Naver Smartstore, Coupang, Gmarket) still show
 // their page to the owner's Safari, so this one runs moti's script there and sends what the page states as `page`.
 // "Run JavaScript on Web Page" takes only Safari web pages and stops the Shortcut on any other input, so it is a
-// separate Shortcut and the first one stays as it is. Duplicating the first keeps its address and key. Not yet built on
-// a real iPhone: the screen says so.
+// separate Shortcut and the first one stays as it is. Duplicating the first keeps its address and key, and also its
+// "Get Clipboard" for no input, which would hand the JavaScript step text: the copy stops instead. The settings path is
+// iOS 18's (설정 → 앱 → 단축어), with the older one beside it, and Safari asks once per site before a script runs.
+// Not yet built on a real iPhone: the screen says so.
 export const safariShortcutIntro =
   "네이버 스마트스토어, 쿠팡, G마켓처럼 moti 서버의 요청을 막는 쇼핑몰은 상품 정보를 가져오지 못해요. Safari에서 공유할 때 지금 보고 있는 페이지의 이름·가격·사진 주소를 함께 보내는 단축어를 하나 더 만들 수 있어요.";
 export const safariShortcutSteps: readonly string[] = [
-  "단축어 앱에서 ‘moti에 담기’를 길게 눌러 복제하고 이름을 ‘moti에 담기 (Safari)’로 바꿔요. 맨 위 입력 받기 블록에서 받을 항목은 Safari 웹 페이지 하나만 남겨요. 주소와 저장 키는 복제한 그대로 써요.",
-  "iPhone 설정 → 단축어 → 고급에서 ‘스크립트 실행 허용’을 켜요.",
+  "단축어 앱에서 ‘moti에 담기’를 길게 눌러 복제하고 이름을 ‘moti에 담기 (Safari)’로 바꿔요. 맨 위 입력 받기 블록에서 받을 항목은 Safari 웹 페이지 하나만 남기고, ‘입력이 없는 경우’는 ‘클립보드 가져오기’를 눌러 ‘중단’으로 바꿔요. JavaScript 단계는 Safari 웹 페이지만 받아요. 주소와 저장 키는 복제한 그대로 써요.",
+  "iPhone 설정 → 앱 → 단축어 → 고급에서 ‘스크립트 실행 허용’을 켜요. 이전 iOS에서는 설정 → 단축어 → 고급이에요.",
   "‘URL 콘텐츠 가져오기’ 위에 ‘웹 페이지에서 JavaScript 실행’을 넣고 대상이 ‘단축어 입력’인지 확인해요. 들어 있는 예시 스크립트는 지우고 아래 ‘스크립트 복사’로 복사한 스크립트를 붙여 넣어요.",
   "‘URL 콘텐츠 가져오기’의 JSON 본문에 키 page를 텍스트로 하나 더 넣고 값으로 ‘JavaScript 결과’를 골라요. url은 그대로 ‘단축어 입력’이에요.",
-  "Safari에서 상품 페이지를 연 채 공유 메뉴에서 ‘moti에 담기 (Safari)’를 골라요. 쇼핑 앱의 공유와 복사한 링크는 처음 만든 단축어로 담아요.",
+  "Safari에서 상품 페이지를 연 채 공유 메뉴에서 ‘moti에 담기 (Safari)’를 골라요. 사이트마다 처음 실행할 때 스크립트를 실행해도 되는지 물으면 ‘허용’을 눌러요. 쇼핑 앱의 공유와 복사한 링크는 처음 만든 단축어로 담아요.",
 ];
 export const safariShortcutNote =
   "이 구성은 아직 실제 iPhone에서 확인하지 않았어요. 페이지 정보는 새로 담는 상품에만 쓰고 이미 담은 상품은 바꾸지 않아요. 이런 쇼핑몰의 가격은 담은 뒤에 moti가 다시 확인하지 못해요.";

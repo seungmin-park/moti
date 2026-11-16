@@ -178,7 +178,9 @@ describe("실제 저장소를 쓰는 공유 담기 서비스", () => {
   it("다른 호스트의 페이지 요약이나 이미 담은 링크의 요약은 쓰지 않는다", async () => {
     const safariPage = readFileSync(resolve(import.meta.dirname, "../fixtures/pages/safari-product.html"), "utf8");
     const { secret } = await keys().issue({ replaces: null });
-    const foreign = toPageSnapshot(snapshotTextOf(safariPage, "https://evil.example/vp/products/7001"));
+    // Another site's page with its own canonical address: neither host is the link's.
+    const foreignPage = safariPage.replace("https://www.market.example/vp/products/7001?itemId=9001", "https://evil.example/vp/products/7001");
+    const foreign = toPageSnapshot(snapshotTextOf(foreignPage, "https://evil.example/vp/products/7001"));
     await links().add(toShareLinkAddCommand(secret, "https://www.market.example/vp/products/7001", foreign));
     expect((await owner().snapshot()).products).toEqual([expect.objectContaining({ title: "새로 담은 상품" })]);
 

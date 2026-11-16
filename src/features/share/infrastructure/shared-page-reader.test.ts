@@ -41,6 +41,14 @@ describe("Safari 단축어의 페이지 요약 읽기", () => {
     expect(readShared(snapshot, link)).toBeNull();
   });
 
+  it("Given 모바일 호스트에서 읽은 요약과 대표 주소의 www 링크 When 읽으면 Then 대표 주소의 호스트로 같은 페이지로 보고 읽는다", () => {
+    const mobile = "https://m.market.example/vm/products/7001";
+    const snapshot = snapshotOf(fixture("safari-product"), mobile);
+    expect(snapshot.canonical).toBe("https://www.market.example/vp/products/7001?itemId=9001");
+    expect(readShared(snapshot, "https://www.market.example/vp/products/7001?itemId=9001")).toMatchObject({ title: "로투스 비스코프 와플 초코 300g" });
+    expect(readShared(snapshot, "https://evil.example/vp/products/7001")).toBeNull();
+  });
+
   it("Given 상품 정보가 없는 요약 When 읽으면 Then 쓰지 않아 서버 수집으로 넘어간다", () => {
     expect(readShared(snapshotOf(fixture("empty"), href), href)).toBeNull();
     expect(readShared({ url: href, title: "", canonical: "", metas: [], jsonLd: [] }, href)).toBeNull();
