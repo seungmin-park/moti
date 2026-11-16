@@ -1,0 +1,68 @@
+# 상세에서 새 컬렉션 만들기: 독립 리뷰 반영 Red (feat/detail-collection, base 823788c)
+
+## 1. 단위: npx vitest run src/features/library/screen/screen-state.test.ts src/features/library/screen/collection-field-keys.test.ts
+구현 전. 만드는 중의 상품 쓰기(구매완료·위시로 되돌리기·다시 가져오기·삭제 확정)와 다시 가져오는 중의 만들기가 요청을 보냈고, Enter 판단 함수가 없었다.
+
+ FAIL  src/features/library/screen/collection-field-keys.test.ts [ src/features/library/screen/collection-field-keys.test.ts ]
+Error: Cannot find module './collection-field-keys' imported from src/features/library/screen/collection-field-keys.test.ts
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 새 컬렉션 만들기 > Given 새 컬렉션을 만드는 중 When 구매완료·위시로 되돌리기·다시 가져오기·삭제 확정을 보내면 Then 요청하지 않는다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 새 컬렉션 만들기 > Given 이 상품을 다시 가져오는 중 When 만들면 Then 만들기 버튼처럼 요청하지 않는다
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+ Test Files  2 failed (2)
+      Tests  2 failed | 158 passed (160)
+
+## 2. 실제 스택 브라우저: npm run build && npm run test:database
+구현 전 소스에서 이름 칸의 조합 검사(isComposing·keyCode 229) 한 줄만 임시로 지운 빌드로 실행했다(조합 검사를 증명하는 새 검사가 실패하는지 확인). persistence·service 425개, HTTP 59개는 통과했다. 브라우저 74개 중 새 검사·고친 검사 3개 × 두 기기 6개가 실패했다. 만드는 중 쓰기를 기다리는 검사는 앞선 이름표 위치 단언에서 먼저 실패했다.
+
+✘   3 [desktop-chromium] › tests/browser/detail-collection.spec.ts:143:1 › 이미 있는 이름이나 빈 이름은 만들지 않고 이름 칸에 알리며 상품 저장은 일어나지 않는다 (5.7s)
+✘   4 [desktop-chromium] › tests/browser/detail-collection.spec.ts:175:1 › 만드는 중에는 상세의 다른 쓰기와 칸이 기다리고, 이름표는 이름 칸 왼쪽에 맞춘다 (806ms)
+✘   5 [desktop-chromium] › tests/browser/detail-collection.spec.ts:213:1 › 한글 조합 중의 Enter·Esc는 만들거나 닫지 않는다 (5.8s)
+✘  40 [iphone-webkit] › tests/browser/detail-collection.spec.ts:143:1 › 이미 있는 이름이나 빈 이름은 만들지 않고 이름 칸에 알리며 상품 저장은 일어나지 않는다 (6.0s)
+✘  41 [iphone-webkit] › tests/browser/detail-collection.spec.ts:175:1 › 만드는 중에는 상세의 다른 쓰기와 칸이 기다리고, 이름표는 이름 칸 왼쪽에 맞춘다 (1.1s)
+✘  42 [iphone-webkit] › tests/browser/detail-collection.spec.ts:213:1 › 한글 조합 중의 Enter·Esc는 만들거나 닫지 않는다 (6.1s)
+
+Error: expect(locator).toBeFocused() failed
+
+Locator:  getByRole('dialog', { name: '담아둔 물건' }).getByRole('textbox', { name: '새 컬렉션 이름' })
+Expected: focused
+Received: inactive
+
+  153 |   await expect(detail.getByRole("alert")).toHaveText("컬렉션 이름은 1~40자로 입력해 주세요.");
+> 154 |   await expect(nameField(page)).toBeFocused();
+
+Error: expect(received).toBeCloseTo(expected, precision)
+
+Expected: 716.1875
+Received: 886.25
+
+Expected precision:    0
+Expected difference: < 0.5
+Received difference:   170.0625
+
+> 187 |   expect(labelBox?.x).toBeCloseTo(fieldBox?.x ?? Number.NaN, 0);
+
+Error: expect(locator).toBeEnabled() failed
+
+Locator: getByRole('dialog', { name: '담아둔 물건' }).getByRole('button', { name: '만들기', exact: true })
+Expected: enabled
+Timeout: 5000ms
+Error: element(s) not found
+
+  229 |   await expect(nameField(page)).toHaveValue("주방");
+> 230 |   await expect(detail.getByRole("button", { name: "만들기", exact: true })).toBeEnabled();
+
+Error: expect(locator).toBeFocused() failed
+
+Locator:  getByRole('dialog', { name: '담아둔 물건' }).getByRole('textbox', { name: '새 컬렉션 이름' })
+Expected: focused
+Received: inactive
+
+Error: expect(received).toBeCloseTo(expected, precision)
+
+Expected: 37
+Received: 160.984375
+
+6 failed
+68 passed (2.1m)

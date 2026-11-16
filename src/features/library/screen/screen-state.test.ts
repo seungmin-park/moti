@@ -1558,6 +1558,28 @@ describe("상세에서 새 컬렉션 만들기", () => {
       .toEqual({ phase: "leaving", to: "/login" });
   });
 
+  it("Given 새 컬렉션을 만드는 중 When 구매완료·위시로 되돌리기·다시 가져오기·삭제 확정을 보내면 Then 요청하지 않는다", () => {
+    const creating = { newCollection: { name: "주방", creating: true }, confirming: true as const };
+    const wish = withProducts([failedLamp, chair], { dialog: opened(creating) });
+    for (const event of [
+      { type: "product.purchase", productId: lamp.id },
+      { type: "product.purchase", productId: chair.id },
+      { type: "metadata.retry", productId: lamp.id },
+      { type: "product.delete", productId: lamp.id },
+    ] satisfies ScreenEvent[]) {
+      expect(transition(wish, event)).toEqual({ state: wish, call: null });
+    }
+    const purchased = withProducts([purchasedLamp, chair], { dialog: opened(creating) });
+    expect(transition(purchased, { type: "product.wish", productId: lamp.id })).toEqual({ state: purchased, call: null });
+  });
+
+  it("Given 이 상품을 다시 가져오는 중 When 만들면 Then 만들기 버튼처럼 요청하지 않는다", () => {
+    const retrying = withProducts([failedLamp, chair], {
+      dialog: opened({ newCollection: { name: "주방", creating: false } }), writing: { productId: lamp.id, intent: "retry" },
+    });
+    expect(transition(retrying, { type: "detail.collectionCreate" })).toEqual({ state: retrying, call: null });
+  });
+
   it("Given 상품을 저장하는 중 When 새 컬렉션을 열거나 만들면 Then 무시한다", () => {
     const saving = ready({
       dialog: opened({ newCollection: { name: "주방", creating: false } }), writing: { productId: lamp.id, intent: "details" },

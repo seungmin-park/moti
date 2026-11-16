@@ -149,8 +149,9 @@ test("이미 있는 이름이나 빈 이름은 만들지 않고 이름 칸에 �
   const detail = detailDialog(page);
 
   await opener(page).click();
-  await nameField(page).press("Enter");
+  await detail.getByRole("button", { name: "만들기", exact: true }).click();
   await expect(detail.getByRole("alert")).toHaveText("컬렉션 이름은 1~40자로 입력해 주세요.");
+  await expect(nameField(page)).toBeFocused();
   await nameField(page).fill("  책상 ");
   await expect(detail.getByRole("alert")).toHaveCount(0);
   await nameField(page).press("Enter");
@@ -161,4 +162,75 @@ test("이미 있는 이름이나 빈 이름은 만들지 않고 이름 칸에 �
   await expect(detail.getByRole("button", { name: "변경사항 저장", exact: true })).toBeDisabled();
   await expect(detail.getByRole("status")).toHaveCount(0);
   expect(await storedCollections()).toEqual([{ name: "책상", products: [] }]);
+
+  // Another tab makes the same name first: the server refuses, and the focus goes back to the name to fix it.
+  await library().createCollection({ name: "여행" });
+  await nameField(page).fill("여행");
+  await detail.getByRole("button", { name: "만들기", exact: true }).click();
+  await expect(detail.getByRole("alert")).toHaveText("같은 이름의 컬렉션이 이미 있어요.");
+  await expect(nameField(page)).toBeFocused();
+  expect(await storedCollections()).toEqual([{ name: "여행", products: [] }, { name: "책상", products: [] }]);
+});
+
+test("만드는 중에는 상세의 다른 쓰기와 칸이 기다리고, 이름표는 이름 칸 왼쪽에 맞춘다", async ({ page, context }, testInfo) => {
+  await library().createCollection({ name: "책상" });
+  await saved();
+  await signIn(context);
+  await page.goto("/");
+  await openDetail(page);
+  const detail = detailDialog(page);
+
+  await opener(page).click();
+  await nameField(page).fill("주방");
+  const label = detail.locator(".collection-create label > span");
+  const [labelBox, fieldBox] = [await label.boundingBox(), await nameField(page).boundingBox()];
+  expect(labelBox?.x).toBeCloseTo(fieldBox?.x ?? Number.NaN, 0);
+  await detail.screenshot({ path: testInfo.outputPath("detail-collection-field.png") });
+
+  let release = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/collections", async (route) => {
+    if (route.request().method() === "POST") await held;
+    await route.continue();
+  });
+  await detail.getByRole("button", { name: "만들기", exact: true }).click();
+  await expect(detail.getByRole("button", { name: "만드는 중…", exact: true })).toBeDisabled();
+  for (const name of ["구매완료로 이동", "삭제", "변경사항 저장"]) {
+    await expect(detail.getByRole("button", { name, exact: true })).toBeDisabled();
+  }
+  for (const name of ["상품 이름", "메모", "내가 살 가격"]) {
+    await expect(detail.getByRole("textbox", { name })).not.toBeEditable();
+  }
+  await expect(detail.getByRole("checkbox", { name: "책상", exact: true })).toBeDisabled();
+
+  release();
+  await expect(detail.getByRole("checkbox", { name: "주방", exact: true })).toBeChecked();
+  await expect(detail.getByRole("button", { name: "구매완료로 이동", exact: true })).toBeEnabled();
+  await expect(detail.getByRole("textbox", { name: "상품 이름", exact: true })).toBeEditable();
+  await expect(detail.getByRole("checkbox", { name: "책상", exact: true })).toBeEnabled();
+});
+
+test("한글 조합 중의 Enter·Esc는 만들거나 닫지 않는다", async ({ page, context }) => {
+  await saved();
+  await signIn(context);
+  await page.goto("/");
+  await openDetail(page);
+  const detail = detailDialog(page);
+  const posts: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && new URL(request.url()).pathname === "/api/collections") posts.push(request.url());
+  });
+
+  await opener(page).click();
+  await nameField(page).fill("주방");
+  for (const key of ["Enter", "Escape"]) {
+    await nameField(page).dispatchEvent("keydown", { key, code: key, isComposing: true, bubbles: true, cancelable: true });
+  }
+  await expect(nameField(page)).toHaveValue("주방");
+  await expect(detail.getByRole("button", { name: "만들기", exact: true })).toBeEnabled();
+  await nameField(page).press("Escape");
+  await expect(nameField(page)).toHaveCount(0);
+  await expect(detail).toBeVisible();
+  expect(posts).toEqual([]);
+  expect(await storedCollections()).toEqual([]);
 });

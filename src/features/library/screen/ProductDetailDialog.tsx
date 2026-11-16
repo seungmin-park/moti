@@ -9,6 +9,7 @@ import { FieldError, fieldProps } from "./AddLinkDialog";
 import type { FieldName } from "./library-api";
 import { ProductPicture } from "./ProductPicture";
 import { toProductDetailView } from "./product-view";
+import { collectionFieldKey } from "./collection-field-keys";
 import {
   detailForms,
   type DetailDraft,
@@ -83,7 +84,8 @@ function DeleteProduct({ id, confirming, deleting, blocked, error, send, product
 
 // The collection checkboxes and, under them, "새 컬렉션": a name field that creates the collection and checks it in the
 // draft. Enter or 만들기 creates, Escape or 취소 closes only the field. The focus then goes to the new checkbox, or back
-// to "새 컬렉션", unless the owner has since moved into another field of the dialog.
+// to "새 컬렉션", unless the owner has since moved into another field of the dialog. A refused name takes the focus
+// back to the field. While the collection is being made the checkboxes wait with the rest of the dialog.
 function CollectionOptions({ id, collections, checkedIds, field, error, saving, blocked, send }: {
   id: string;
   collections: CollectionResponse[];
@@ -96,6 +98,9 @@ function CollectionOptions({ id, collections, checkedIds, field, error, saving, 
 }) {
   const root = useRef<HTMLFieldSetElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
+  // Set when the owner asks to create, so only that answer's error moves the focus.
+  const asked = useRef(false);
   // The collections shown when the field opened, so a closed field can tell which checkbox it made.
   const known = useRef<Set<string> | null>(null);
   const open = field !== null;
@@ -114,17 +119,29 @@ function CollectionOptions({ id, collections, checkedIds, field, error, saving, 
     const target = made ? root.current?.querySelector<HTMLInputElement>(`input[data-collection-id="${made.id}"]`) : opener.current;
     target?.focus();
   }, [open, collections, checkedIds]);
+  // A rejected name or a failed request: 만들기 may have turned disabled under the pointer, so the focus returns to the
+  // name to fix it.
+  const creating = field?.creating === true;
+  const refused = error !== null;
+  useEffect(() => {
+    if (!open) asked.current = false;
+    if (!asked.current || creating || !refused) return;
+    asked.current = false;
+    nameInput.current?.focus();
+  }, [open, creating, refused, error]);
   const errorId = `${id}-collection-create-error`;
+  const canCreate = !creating && !blocked;
+  const create = () => {
+    asked.current = true;
+    send({ type: "detail.collectionCreate" });
+  };
   const keys = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
+    const action = collectionFieldKey(event.nativeEvent, canCreate);
+    if (action === null) return;
     // Enter would submit the details form and Escape would close the dialog: both stay with the field.
-    if (event.key === "Enter") {
-      event.preventDefault();
-      send({ type: "detail.collectionCreate" });
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      send({ type: "detail.collectionCancel" });
-    }
+    event.preventDefault();
+    if (action === "create") create();
+    else if (action === "cancel") send({ type: "detail.collectionCancel" });
   };
   return (
     <fieldset ref={root} className="collection-options" disabled={saving}>
@@ -135,6 +152,7 @@ function CollectionOptions({ id, collections, checkedIds, field, error, saving, 
           <input
             type="checkbox"
             data-collection-id={collection.id}
+            disabled={creating}
             checked={checkedIds.includes(collection.id)}
             onChange={() => send({ type: "detail.toggle", collectionId: collection.id })}
           />
@@ -146,6 +164,7 @@ function CollectionOptions({ id, collections, checkedIds, field, error, saving, 
           <label className="field">
             <span>새 컬렉션 이름</span>
             <input
+              ref={nameInput}
               autoFocus
               autoComplete="off"
               enterKeyHint="done"
@@ -160,7 +179,7 @@ function CollectionOptions({ id, collections, checkedIds, field, error, saving, 
           <FieldError id={errorId} error={error} field="collection" />
           <FieldError id={`${id}-collection-create-form-error`} error={error} field={null} />
           <div className="collection-create-actions">
-            <button className="button secondary" type="button" disabled={field.creating || blocked} onClick={() => send({ type: "detail.collectionCreate" })}>
+            <button className="button secondary" type="button" disabled={!canCreate} onClick={create}>
               {field.creating ? "만드는 중…" : "만들기"}
             </button>
             <button className="text-button" type="button" disabled={field.creating} onClick={() => send({ type: "detail.collectionCancel" })}>
@@ -211,6 +230,8 @@ export function ProductDetailDialog({
   const phase = product.metadata.phase;
   const purchased = product.purchase.status === "purchased";
   const saving = writing !== null && writing !== "retry";
+  // A collection being made from this dialog: every field waits, so nothing typed meanwhile is dropped.
+  const frozen = saving || newCollection?.creating === true;
   const errorOf = (form: DetailForm): FormError | null =>
     notice?.kind === "error" && notice.form === form ? { field: notice.field, message: notice.message } : null;
   const errorId = (form: DetailForm, field: FieldName | null) => `${id}-${form}-${field ?? "form"}-error`;
@@ -340,7 +361,7 @@ export function ProductDetailDialog({
                   autoComplete="off"
                   placeholder="미입력"
                   value={forms.wishPrice}
-                  readOnly={saving}
+                  readOnly={frozen}
                   onChange={(event) => edit("wishPrice", event.target.value)}
                   {...fieldProps(wishPriceError, "wishPrice", errorId("wishPrice", "wishPrice"))}
                   aria-describedby={
@@ -387,7 +408,7 @@ export function ProductDetailDialog({
               <span>상품 이름</span>
               <input
                 value={forms.title}
-                readOnly={saving}
+                readOnly={frozen}
                 onChange={(event) => edit("title", event.target.value)}
                 {...fieldProps(detailsError, "title", errorId("details", "title"))}
               />
@@ -399,7 +420,7 @@ export function ProductDetailDialog({
                 rows={3}
                 placeholder="마음에 든 이유, 살 때 확인할 것들…"
                 value={forms.note}
-                readOnly={saving}
+                readOnly={frozen}
                 onChange={(event) => edit("note", event.target.value)}
                 {...fieldProps(detailsError, "note", errorId("details", "note"))}
               />
@@ -421,7 +442,7 @@ export function ProductDetailDialog({
             <button
               className="button secondary full"
               type="submit"
-              disabled={!forms.detailsChanged || saving || blocked || newCollection?.creating === true}
+              disabled={!forms.detailsChanged || saving || blocked}
             >
               {writing === "details" ? "저장하는 중…" : "변경사항 저장"}
             </button>
@@ -448,7 +469,7 @@ export function ProductDetailDialog({
                     min={EARLIEST_PURCHASE_DATE}
                     max={seoulToday(new Date())}
                     value={forms.date}
-                    readOnly={saving}
+                    readOnly={frozen}
                     onChange={(event) => edit("date", event.target.value)}
                     {...fieldProps(recordError, "date", errorId("record", "date"))}
                   />
@@ -461,7 +482,7 @@ export function ProductDetailDialog({
                     inputMode="numeric"
                     placeholder="미입력"
                     value={forms.price}
-                    readOnly={saving}
+                    readOnly={frozen}
                     onChange={(event) => edit("price", event.target.value)}
                     {...fieldProps(recordError, "price", errorId("record", "price"))}
                   />

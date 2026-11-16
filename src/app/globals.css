@@ -1362,6 +1362,7 @@ h1 {
 }
 .collection-options .collection-create label {
   display: flex;
+  align-items: stretch;
   min-height: 0;
   margin-bottom: 0;
   cursor: auto;

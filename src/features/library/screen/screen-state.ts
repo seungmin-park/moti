@@ -314,10 +314,12 @@ function findProduct(state: Ready, productId: string): ProductResponse | undefin
   return state.library.products.find((item) => item.id === productId);
 }
 
-// A restore replaces every product, so no other write may start from a revision it is about to change.
+// A restore replaces every product, so no other write may start from a revision it is about to change. A collection
+// being made from the detail holds the dialog's other writes too, as its fields wait for the answer.
 function canWrite(state: Ready): boolean {
   const restoring = state.dialog?.kind === "backup" && state.dialog.step.name === "restoring";
-  return state.writing === null && !state.refreshing && !restoring;
+  const creating = state.dialog?.kind === "detail" && state.dialog.newCollection?.creating === true;
+  return state.writing === null && !state.refreshing && !restoring && !creating;
 }
 
 function write(state: Ready, product: ProductResponse, change: ProductChange): Transition {
@@ -436,7 +438,8 @@ function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Trans
 // the new collection only joins the draft, and 변경사항 저장 sends it.
 function onDetailCollectionCreate(state: Ready, dialog: DetailDialog): Transition {
   const { newCollection } = dialog;
-  if (!newCollection) return stay(state);
+  // The same wait as the 만들기 button: no collection is made while a write, such as 다시 가져오기, is in flight.
+  if (!newCollection || !canWrite(state)) return stay(state);
   const reject = (message: string) =>
     stay({ ...state, dialog: { ...dialog, notice: { form: "collection", kind: "error", field: "collection", message } } });
   const result = parseCollectionName(newCollection.name);
