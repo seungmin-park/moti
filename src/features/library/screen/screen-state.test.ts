@@ -1457,3 +1457,113 @@ describe("자동 확인", () => {
     expect(transition(restoring, { type: "worker.open" })).toEqual({ state: restoring, call: null });
   });
 });
+
+describe("상세에서 새 컬렉션 만들기", () => {
+  const kitchen = { ...desk, id: "99999999-9999-4999-8999-999999999999", name: "주방" };
+  const created = (outcome: Extract<ScreenEvent, { type: "collection.settled" }>["outcome"]): ScreenEvent =>
+    ({ type: "collection.settled", from: "detail", outcome });
+  const typing = (name: string, overrides: Partial<Detail> = {}) =>
+    run(ready({ dialog: opened(overrides) }), { type: "detail.collectionOpen" }, { type: "detail.collectionEdit", name });
+
+  it("Given 상세 When 새 컬렉션을 열고 이름을 적으면 Then 요청하지 않고 이름 칸만 열고, 취소하면 이름과 함께 닫는다", () => {
+    const { state, call } = typing("주방", { notice: { form: "details", kind: "saved", field: null, message: "변경사항을 저장했어요" } });
+    expect(call).toBeNull();
+    expect(detailOf(state)).toEqual(opened({ newCollection: { name: "주방", creating: false } }));
+    const cancelled = transition(state, { type: "detail.collectionCancel" });
+    expect(cancelled.call).toBeNull();
+    expect(detailOf(cancelled.state)).toEqual(opened());
+  });
+
+  it("Given 새 이름 When 만들면 Then 정리한 이름으로 상세에서 요청하고 끝날 때까지 다시 만들기·저장·닫기·취소를 막는다", () => {
+    const { state, call } = run(typing(" 주방 ").state, { type: "detail.collectionCreate" });
+    expect(call).toEqual({ type: "collection.create", body: { name: "주방" }, from: "detail" });
+    expect(detailOf(state).newCollection).toEqual({ name: " 주방 ", creating: true });
+    for (const event of [
+      { type: "detail.collectionCreate" },
+      { type: "detail.collectionCancel" },
+      { type: "detail.collectionEdit", name: "또" },
+      { type: "detail.toggle", collectionId: room.id },
+      { type: "detail.save", form: "details", today },
+      { type: "dialog.close" },
+    ] satisfies ScreenEvent[]) {
+      expect(transition(state, event)).toEqual({ state, call: null });
+    }
+  });
+
+  it.each([
+    ["빈 이름", "  ", "컬렉션 이름은 1~40자로 입력해 주세요."],
+    ["41자 이름", "가".repeat(41), "컬렉션 이름은 1~40자로 입력해 주세요."],
+    ["대소문자만 다른 이름", " desk ", "같은 이름의 컬렉션이 이미 있어요."],
+  ])("Given %s When 만들면 Then 요청하지 않고 이름 칸에 컬렉션 만들기와 같은 문구를 보여준다", (_, name, message) => {
+    const { state, call } = run(typing(name).state, { type: "detail.collectionCreate" });
+    expect(call).toBeNull();
+    expect(detailOf(state)).toEqual(opened({
+      newCollection: { name, creating: false }, notice: { form: "collection", kind: "error", field: "collection", message },
+    }));
+    expect(detailOf(transition(state, { type: "detail.collectionEdit", name: "주방" }).state).notice).toBeNull();
+  });
+
+  it("Given 만드는 중 When 만들어지면 Then 목록 끝에 더하고 이름 칸을 닫으며 다른 초안과 함께 고른 상태로 두고 저장은 하지 않는다", () => {
+    const start = ready({ dialog: opened({ draft: { note: "선물용" }, newCollection: { name: "주방", creating: true } }) });
+    const { state, call } = transition(start, created({ ok: true, value: kitchen }));
+    expect(call).toBeNull();
+    expect(state).toMatchObject({ library: { collections: [desk, room, kitchen] }, collectionId: null, writing: null });
+    expect(detailOf(state)).toEqual(opened({ draft: { note: "선물용", collectionIds: [desk.id, kitchen.id] } }));
+    expect(detailForms(lamp, detailOf(state).draft)).toMatchObject({ collectionIds: [desk.id, kitchen.id], detailsChanged: true });
+
+    const saved = transition(state, { type: "detail.save", form: "details", today });
+    expect(saved.call).toEqual({
+      type: "product.change", productId: lamp.id,
+      body: { revision: 1, change: { type: "details", title: null, note: "선물용", collectionIds: [desk.id, kitchen.id] } },
+    });
+  });
+
+  it("Given 고른 컬렉션을 뺀 초안 When 새 컬렉션이 만들어지면 Then 뺀 것은 그대로 빼고 새 것만 더한다", () => {
+    const start = ready({ dialog: opened({ draft: { collectionIds: [] }, newCollection: { name: "주방", creating: true } }) });
+    expect(detailOf(transition(start, created({ ok: true, value: kitchen })).state).draft).toEqual({ collectionIds: [kitchen.id] });
+  });
+
+  it("Given 만드는 중 When 일시적으로 실패하면 Then 이름을 지키고 이름 칸에 알린다", () => {
+    const start = ready({ dialog: opened({ newCollection: { name: "주방", creating: true } }) });
+    const { state, call } = transition(start, created({ ok: false, failure: unavailable }));
+    expect(call).toBeNull();
+    expect(detailOf(state)).toEqual(opened({
+      newCollection: { name: "주방", creating: false },
+      notice: { form: "collection", kind: "error", field: "collection", message: unavailable.message },
+    }));
+  });
+
+  it("Given 다른 곳에서 같은 이름을 먼저 만듦 When 거절되면 Then 이름 칸에 알리고 다시 읽으며, 고친 초안은 지킨다", () => {
+    const duplicate: ApiFailure = { kind: "stale", message: "같은 이름의 컬렉션이 이미 있어요." };
+    const start = ready({ dialog: opened({ draft: { note: "메모" }, newCollection: { name: "주방", creating: true } }) });
+    const rejected = transition(start, created({ ok: false, failure: duplicate }));
+    expect(rejected.call).toEqual({ type: "library.read" });
+    expect(rejected.state).toMatchObject({ refreshing: true });
+    expect(detailOf(rejected.state)).toEqual(opened({
+      draft: { note: "메모" },
+      newCollection: { name: "주방", creating: false },
+      notice: { form: "collection", kind: "error", field: "collection", message: duplicate.message },
+    }));
+    expect(transition(rejected.state, { type: "detail.collectionCreate" })).toEqual({ state: rejected.state, call: null });
+    const reread = transition(rejected.state, {
+      type: "library.settled", outcome: { ok: true, value: { ...library, collections: [desk, room, kitchen] } },
+    });
+    expect(detailOf(reread.state)).toMatchObject({ draft: { note: "메모" }, newCollection: { name: "주방" } });
+    expect(transition(reread.state, { type: "detail.collectionCreate" }).call).toBeNull();
+  });
+
+  it("Given 로그인이 끝난 세션 When 만들기 결과가 오면 Then 로그인으로 떠난다", () => {
+    const start = ready({ dialog: opened({ newCollection: { name: "주방", creating: true } }) });
+    expect(transition(start, created({ ok: false, failure: { kind: "redirect", to: "/login" } })).state)
+      .toEqual({ phase: "leaving", to: "/login" });
+  });
+
+  it("Given 상품을 저장하는 중 When 새 컬렉션을 열거나 만들면 Then 무시한다", () => {
+    const saving = ready({
+      dialog: opened({ newCollection: { name: "주방", creating: false } }), writing: { productId: lamp.id, intent: "details" },
+    });
+    for (const event of [{ type: "detail.collectionOpen" }, { type: "detail.collectionCreate" }] satisfies ScreenEvent[]) {
+      expect(transition(saving, event)).toEqual({ state: saving, call: null });
+    }
+  });
+});

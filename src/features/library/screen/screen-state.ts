@@ -38,7 +38,7 @@ export type FormError = { field: FieldName | null; message: string };
 // Only the fields the owner touched. Every other field shows the live product, so collection results and a re-read
 // reach the untouched fields with no extra step.
 export type DetailDraft = { title?: string; note?: string; collectionIds?: string[]; date?: string; price?: string; wishPrice?: string };
-export type DetailForm = "retry" | "details" | "record" | "wishPrice" | "status" | "delete";
+export type DetailForm = "retry" | "collection" | "details" | "record" | "wishPrice" | "status" | "delete";
 export type DetailNotice = { form: DetailForm; kind: "error" | "saved"; field: FieldName | null; message: string };
 export type BackupStep =
   | { name: "menu" }
@@ -56,6 +56,8 @@ export type ScreenDialog =
   | {
     kind: "detail"; productId: string; arrival: "added" | "duplicate" | null; draft: DetailDraft; notice: DetailNotice | null;
     confirming?: true;
+    // The inline "새 컬렉션" field under the checkboxes: open while present, `creating` while its create is in flight.
+    newCollection?: { name: string; creating: boolean };
   }
   | { kind: "backup"; step: BackupStep; notice: BackupNotice | null }
   | { kind: "worker" };
@@ -81,10 +83,12 @@ export type LibraryScreenState =
     worker: { panel: KeyPanel; runs: WorkerRunResponse[] };
   }
   | { phase: "leaving"; to: string };
+// Where a create started: the add dialog's picker, the 새로운 컬렉션 dialog, or the detail dialog's inline field.
+export type CollectionFrom = "picker" | "dialog" | "detail";
 export type ApiCall =
   | { type: "library.read" }
   | { type: "link.save"; body: LinkSaveRequest }
-  | { type: "collection.create"; body: CollectionCreateRequest; from: "picker" | "dialog" }
+  | { type: "collection.create"; body: CollectionCreateRequest; from: CollectionFrom }
   | { type: "collection.rename"; collectionId: string; body: CollectionRenameRequest }
   | { type: "metadata.retry"; productId: string; body: MetadataRetryRequest }
   | { type: "product.change"; productId: string; body: ProductChangeRequest }
@@ -117,6 +121,10 @@ export type ScreenEvent =
   | { type: "detail.clearWishPrice" }
   | { type: "detail.deleteAsk" }
   | { type: "detail.deleteCancel" }
+  | { type: "detail.collectionOpen" }
+  | { type: "detail.collectionEdit"; name: string }
+  | { type: "detail.collectionCancel" }
+  | { type: "detail.collectionCreate" }
   | { type: "product.delete"; productId: string }
   | { type: "product.purchase"; productId: string }
   | { type: "product.wish"; productId: string }
@@ -125,7 +133,7 @@ export type ScreenEvent =
   | { type: "dialog.close" }
   | { type: "library.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "link.settled"; outcome: ApiOutcome<LinkSaveResponse> }
-  | { type: "collection.settled"; from: "picker" | "dialog"; outcome: ApiOutcome<CollectionCreateResponse> }
+  | { type: "collection.settled"; from: CollectionFrom; outcome: ApiOutcome<CollectionCreateResponse> }
   | { type: "rename.settled"; outcome: ApiOutcome<CollectionRenameResponse> }
   | { type: "metadata.retry"; productId: string }
   | { type: "metadata.settled"; productId: string; outcome: ApiOutcome<MetadataRetryResponse> }
@@ -161,12 +169,15 @@ const stay = (state: LibraryScreenState): Transition => ({ state, call: null });
 const leave = (to: string): Transition => stay({ phase: "leaving", to });
 const refresh: ApiCall = { type: "library.read" };
 // A write that settles before the pending read would be erased by the read's older snapshot.
-const writes: ReadonlySet<ScreenEvent["type"]> = new Set(["add.submit", "add.createCollection", "collection.submit"]);
+const writes: ReadonlySet<ScreenEvent["type"]> = new Set(["add.submit", "add.createCollection", "collection.submit", "detail.collectionCreate"]);
+const duplicateCollection = "같은 이름의 컬렉션이 이미 있어요.";
 
 function busy(state: Ready): boolean {
   const { dialog, writing } = state;
   if (dialog === null) return false;
-  if (dialog.kind === "detail") return writing !== null && writing.productId === dialog.productId && writing.intent !== "retry";
+  if (dialog.kind === "detail") {
+    return (writing !== null && writing.productId === dialog.productId && writing.intent !== "retry") || dialog.newCollection?.creating === true;
+  }
   if (dialog.kind === "backup") return ["exporting", "reading", "restoring"].includes(dialog.step.name);
   // The worker key panel may still be writing; closing forgets a secret that arrives later, as the share view does.
   if (dialog.kind === "worker") return false;
@@ -407,9 +418,39 @@ function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Trans
       return stay({ ...state, dialog: { ...dialog, confirming: true, notice: null } });
     case "detail.deleteCancel":
       return stay({ ...state, dialog: withoutConfirm(dialog) });
+    case "detail.collectionOpen":
+      return stay({ ...state, dialog: { ...dialog, newCollection: dialog.newCollection ?? { name: "", creating: false }, notice: null } });
+    case "detail.collectionEdit":
+      if (!dialog.newCollection) return stay(state);
+      return stay({ ...state, dialog: { ...dialog, newCollection: { ...dialog.newCollection, name: event.name }, notice: null } });
+    case "detail.collectionCancel":
+      return stay({ ...state, dialog: withoutNewCollection(dialog) });
+    case "detail.collectionCreate":
+      return onDetailCollectionCreate(state, dialog);
     default:
       return stay(state);
   }
+}
+
+// The same name rule and duplicate check as the 새로운 컬렉션 dialog. The product's membership is not written here:
+// the new collection only joins the draft, and 변경사항 저장 sends it.
+function onDetailCollectionCreate(state: Ready, dialog: DetailDialog): Transition {
+  const { newCollection } = dialog;
+  if (!newCollection) return stay(state);
+  const reject = (message: string) =>
+    stay({ ...state, dialog: { ...dialog, notice: { form: "collection", kind: "error", field: "collection", message } } });
+  const result = parseCollectionName(newCollection.name);
+  if (!result.ok) return reject(result.message);
+  if (sameName(state.library.collections, result.name)) return reject(duplicateCollection);
+  return {
+    state: { ...state, dialog: { ...dialog, newCollection: { ...newCollection, creating: true }, notice: null } },
+    call: { type: "collection.create", body: { name: result.name }, from: "detail" },
+  };
+}
+
+function withoutNewCollection({ newCollection, ...dialog }: DetailDialog): DetailDialog {
+  void newCollection;
+  return dialog.notice?.form === "collection" ? { ...dialog, notice: null } : dialog;
 }
 
 function withoutConfirm({ confirming, ...dialog }: DetailDialog): DetailDialog {
@@ -616,7 +657,7 @@ function onCollection(state: Ready, dialog: CollectionDialog, event: ScreenEvent
   if (!result.ok) return reject(result.message);
   const { collections } = state.library;
   if (dialog.renaming === null) {
-    if (sameName(collections, result.name)) return reject("같은 이름의 컬렉션이 이미 있어요.");
+    if (sameName(collections, result.name)) return reject(duplicateCollection);
     return {
       state: { ...state, dialog: { ...dialog, saving: true, error: null } },
       call: { type: "collection.create", body: { name: result.name }, from: "dialog" },
@@ -626,7 +667,7 @@ function onCollection(state: Ready, dialog: CollectionDialog, event: ScreenEvent
   if (!target) return reject("컬렉션을 찾을 수 없어요.");
   if (result.name === target.name) return stay({ ...state, dialog: null });
   if (sameName(collections.filter((collection) => collection.id !== target.id), result.name)) {
-    return reject("같은 이름의 컬렉션이 이미 있어요.");
+    return reject(duplicateCollection);
   }
   return {
     state: { ...state, dialog: { ...dialog, saving: true, error: null } },
@@ -853,7 +894,21 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
             draft: { ...dialog.draft, collectionIds: including(dialog.draft.collectionIds, collection.id) },
           } });
         }
+        if (event.from === "detail" && dialog?.kind === "detail" && dialog.newCollection?.creating) {
+          // Checked in the draft on top of whatever the owner already changed; only 변경사항 저장 writes the membership.
+          const shown = dialog.draft.collectionIds ?? findProduct(state, dialog.productId)?.collectionIds ?? [];
+          const { draft } = dialog;
+          return stay({ ...state, library, dialog: {
+            ...withoutNewCollection(dialog), notice: null, draft: { ...draft, collectionIds: including(shown, collection.id) },
+          } });
+        }
         return stay({ ...state, library });
+      }
+      if (event.from === "detail" && dialog?.kind === "detail" && dialog.newCollection?.creating) {
+        const newCollection = { ...dialog.newCollection, creating: false };
+        return failForm(state, event.outcome.failure, "collection", (error) => ({
+          ...dialog, newCollection, notice: { form: "collection", kind: "error", field: error.field, message: error.message },
+        }));
       }
       if (event.from === "picker" && dialog?.kind === "add") {
         return failForm(state, event.outcome.failure, "collection", (error) => ({ ...dialog, creating: null, error }));

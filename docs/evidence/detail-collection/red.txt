@@ -1,0 +1,42 @@
+# 상세에서 새 컬렉션 만들기 Red (feat/detail-collection, base 952933a)
+
+## 1. 단위: npx vitest run src/features/library/screen/screen-state.test.ts
+구현 전(새 사건·상태 처리 없음). 새 검사 11개 중 9개가 실패했다. 세션 만료와 상품 저장 중 무시 2개는 기존 처리로 이미 통과했다.
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 149 passed (158)
+
+ FAIL  ... > 상세에서 새 컬렉션 만들기 > Given 상세 When 새 컬렉션을 열고 이름을 적으면 Then 요청하지 않고 이름 칸만 열고, 취소하면 이름과 함께 닫는다
+AssertionError: expected { kind: 'detail', …(4) } to deeply equal { kind: 'detail', …(5) }
+ FAIL  ... > Given 새 이름 When 만들면 Then 정리한 이름으로 상세에서 요청하고 끝날 때까지 다시 만들기·저장·닫기·취소를 막는다
+AssertionError: expected null to deeply equal { type: 'collection.create', …(2) }
+ FAIL  ... > Given 빈 이름 When 만들면 Then 요청하지 않고 이름 칸에 컬렉션 만들기와 같은 문구를 보여준다
+AssertionError: expected { kind: 'detail', …(4) } to deeply equal { kind: 'detail', …(5) }
+ FAIL  ... > Given 41자 이름 When 만들면 Then 요청하지 않고 이름 칸에 컬렉션 만들기와 같은 문구를 보여준다
+AssertionError: expected { kind: 'detail', …(4) } to deeply equal { kind: 'detail', …(5) }
+ FAIL  ... > Given 대소문자만 다른 이름 When 만들면 Then 요청하지 않고 이름 칸에 컬렉션 만들기와 같은 문구를 보여준다
+AssertionError: expected { kind: 'detail', …(4) } to deeply equal { kind: 'detail', …(5) }
+ FAIL  ... > Given 만드는 중 When 만들어지면 Then 목록 끝에 더하고 이름 칸을 닫으며 다른 초안과 함께 고른 상태로 두고 저장은 하지 않는다
+AssertionError: expected { kind: 'detail', …(5) } to deeply equal { kind: 'detail', …(4) }
+ FAIL  ... > Given 고른 컬렉션을 뺀 초안 When 새 컬렉션이 만들어지면 Then 뺀 것은 그대로 빼고 새 것만 더한다
+AssertionError: expected { collectionIds: [] } to deeply equal { Object (collectionIds) }
+ FAIL  ... > Given 만드는 중 When 일시적으로 실패하면 Then 이름을 지키고 이름 칸에 알린다
+AssertionError: expected { kind: 'detail', …(5) } to deeply equal { kind: 'detail', …(5) }
+ FAIL  ... > Given 다른 곳에서 같은 이름을 먼저 만듦 When 거절되면 Then 이름 칸에 알리고 다시 읽으며, 고친 초안은 지킨다
+AssertionError: expected null to deeply equal { type: 'library.read' }
+
+## 2. 실제 스택 브라우저: npm run build && npm run test:database
+새 사건·상태의 타입 선언만 두고(동작·화면 없음) 빌드했다. persistence·service 425개, HTTP 59개, 기존 브라우저 64개는 통과했다.
+새 검사 6개(3개 × 두 기기)는 모두 상세에 "새 컬렉션" 버튼이 없어 시간 초과로 실패했다.
+
+  ✘   1 [desktop-chromium] › tests/browser/detail-collection.spec.ts:71:1 › 상세에서 새 컬렉션을 키보드로 만들면 고른 채로 나타나고 변경사항 저장으로 상품을 담는다 (1.0m)
+  ✘   2 [desktop-chromium] › tests/browser/detail-collection.spec.ts:113:1 › Esc는 이름 칸만 닫고 초점을 새 컬렉션으로 돌리며, 만든 뒤 저장하지 않고 닫으면 빈 컬렉션만 남는다 (1.0m)
+  ✘   3 [desktop-chromium] › tests/browser/detail-collection.spec.ts:143:1 › 이미 있는 이름이나 빈 이름은 만들지 않고 이름 칸에 알리며 상품 저장은 일어나지 않는다 (1.0m)
+  ✘  36 [iphone-webkit] › (같은 세 검사)
+  ✘  37 [iphone-webkit] › ...
+  ✘  38 [iphone-webkit] › ...
+    Error: locator.focus: Test timeout of 60000ms exceeded.   (opener(page).focus(): "새 컬렉션" 버튼 없음)
+    Error: locator.click: Test timeout of 60000ms exceeded.   (opener(page).click(): "새 컬렉션" 버튼 없음)
+    Error: locator.click: Test timeout of 60000ms exceeded.   (opener(page).click(): "새 컬렉션" 버튼 없음)
+  6 failed
+  64 passed (7.7m)

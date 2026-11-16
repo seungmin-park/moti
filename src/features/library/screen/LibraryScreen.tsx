@@ -143,6 +143,7 @@ function ScreenDialogs({ state, send }: { state: Ready; send: Send }) {
         draft={dialog.draft}
         notice={dialog.notice}
         confirming={dialog.confirming === true}
+        newCollection={dialog.newCollection ?? null}
         writing={state.writing?.productId === product.id ? state.writing.intent : null}
         blocked={state.writing !== null || state.refreshing}
         send={send}

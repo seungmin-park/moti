@@ -34,6 +34,8 @@
 
 자동 확인 가격이 소유자가 낼 가격과 다른 문제(스마트스토어 키보드 스위치의 기본 옵션 "10개 / 3,000원"인데 구조화 데이터의 개당 기준가 300원이 보임, 옵션·묶음·쿠폰, 읽기를 막는 쇼핑몰의 가격 없음)로 `feat/owner-price`(`main` bccc3e9에서 시작)를 만들었다. 상품에 소유자 가격 열 `wish_amount_minor`·`wish_currency`(둘 다 null이거나 둘 다, 원화만)를 두고 새 RPC `moti_set_wish_price`(정리 RPC의 `M0002`·`M0006`·`M0008`, 구매완료는 `M0002`)로만 쓴다. 수집·가격 확인 SQL은 바꾸지 않았다. HTTP는 기존 PATCH의 `change.type: "wish.price"`, 응답에 `wishPrice`. 화면은 위시 상품 상세의 "내가 살 가격"과 "직접 입력 지우기", 카드·상세의 "직접 입력" 표시와 참고 자동 확인 가격이다. 백업은 버전 1의 선택 칸 `wishPrice`(값이 있을 때만)이고, 복원은 기존 함수 뒤 같은 트랜잭션에서 가격을 쓴다. 리뷰 반영 뒤 로컬 `npm run verify` 종료 0(단위 1,623, persistence 356, service 69, HTTP 59, 브라우저 64, ui 50). CI는 PR #22에서 확인한다. 배포 순서는 운영 DB에 `20261123000000_owner_price.sql`을 먼저 적용(별도 승인)한 뒤 병합이다([변경 기록](changes/owner-price.md)).
 
+상세에서 컬렉션에 담으려면 상세를 닫고 사이드바에서 컬렉션을 만들어야 했던 불편으로 `feat/detail-collection`(`main` 952933a에서 시작)을 만들었다. 상세의 컬렉션 체크 목록 아래 "+ 새 컬렉션"이 이름 칸을 열고, 기존 `POST /api/collections`(`moti_create_collection`)로 만든 컬렉션을 초안에 체크한다. 소속은 "변경사항 저장"이 쓴다. 마이그레이션·API 계약 변경은 없어 운영 DB 적용이 필요 없다. 만든 뒤 저장하지 않고 닫으면 빈 컬렉션이 남는다. 로컬 `npm run verify` 종료 0(단위 1,634, persistence 356, service 69, HTTP 59, 브라우저 70, ui 50). PR·CI 전이다([변경 기록](changes/detail-collection.md)).
+
 ## 확인된 UI 검증
 
 lint·typecheck·build 통과. 순수 단위 33개와 최종 headed Playwright 40개가 통과했다. PC Chromium과 iPhone 크기 WebKit에서 실행했다. 실제 iPhone·물리 IME는 미검증이다. 두 화면 크기의 28개 상태에서 초록 UI 스타일·가로 넘침·페이지 오류가 없고 정렬 메뉴·컬렉션 선택 창의 axe 위반은 0개다. 상세 증거는 `docs/changes/controls.md`와 `docs/evidence/controls`에 있다.

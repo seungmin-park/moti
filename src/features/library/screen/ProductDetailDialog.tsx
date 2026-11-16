@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type KeyboardEvent } from "react";
-import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Info, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowUpRight, Check, CheckCheck, CircleAlert, Clock, Info, LoaderCircle, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Dialog } from "../../wishlist/Dialog";
 import { EARLIEST_PURCHASE_DATE, seoulToday } from "../../wishlist/product-fields";
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
@@ -81,6 +81,103 @@ function DeleteProduct({ id, confirming, deleting, blocked, error, send, product
   );
 }
 
+// The collection checkboxes and, under them, "새 컬렉션": a name field that creates the collection and checks it in the
+// draft. Enter or 만들기 creates, Escape or 취소 closes only the field. The focus then goes to the new checkbox, or back
+// to "새 컬렉션", unless the owner has since moved into another field of the dialog.
+function CollectionOptions({ id, collections, checkedIds, field, error, saving, blocked, send }: {
+  id: string;
+  collections: CollectionResponse[];
+  checkedIds: string[];
+  field: { name: string; creating: boolean } | null;
+  error: FormError | null;
+  saving: boolean;
+  blocked: boolean;
+  send: (event: ScreenEvent) => void;
+}) {
+  const root = useRef<HTMLFieldSetElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
+  // The collections shown when the field opened, so a closed field can tell which checkbox it made.
+  const known = useRef<Set<string> | null>(null);
+  const open = field !== null;
+  useEffect(() => {
+    if (open) {
+      known.current ??= new Set(collections.map((collection) => collection.id));
+      return;
+    }
+    const before = known.current;
+    known.current = null;
+    if (!before) return;
+    const active = document.activeElement;
+    const typing = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
+    if (typing && !root.current?.contains(active)) return;
+    const made = collections.find((collection) => !before.has(collection.id) && checkedIds.includes(collection.id));
+    const target = made ? root.current?.querySelector<HTMLInputElement>(`input[data-collection-id="${made.id}"]`) : opener.current;
+    target?.focus();
+  }, [open, collections, checkedIds]);
+  const errorId = `${id}-collection-create-error`;
+  const keys = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
+    // Enter would submit the details form and Escape would close the dialog: both stay with the field.
+    if (event.key === "Enter") {
+      event.preventDefault();
+      send({ type: "detail.collectionCreate" });
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      send({ type: "detail.collectionCancel" });
+    }
+  };
+  return (
+    <fieldset ref={root} className="collection-options" disabled={saving}>
+      <legend>컬렉션</legend>
+      {collections.length === 0 && <p className="field-help">아직 만든 컬렉션이 없어요.</p>}
+      {collections.map((collection) => (
+        <label key={collection.id}>
+          <input
+            type="checkbox"
+            data-collection-id={collection.id}
+            checked={checkedIds.includes(collection.id)}
+            onChange={() => send({ type: "detail.toggle", collectionId: collection.id })}
+          />
+          <span>{collection.name}</span>
+        </label>
+      ))}
+      {field ? (
+        <div className="collection-create" aria-busy={field.creating}>
+          <label className="field">
+            <span>새 컬렉션 이름</span>
+            <input
+              autoFocus
+              autoComplete="off"
+              enterKeyHint="done"
+              placeholder="예: 오래 머물고 싶은 방"
+              value={field.name}
+              readOnly={field.creating}
+              onChange={(event) => send({ type: "detail.collectionEdit", name: event.target.value })}
+              onKeyDown={keys}
+              {...fieldProps(error, "collection", errorId)}
+            />
+          </label>
+          <FieldError id={errorId} error={error} field="collection" />
+          <FieldError id={`${id}-collection-create-form-error`} error={error} field={null} />
+          <div className="collection-create-actions">
+            <button className="button secondary" type="button" disabled={field.creating || blocked} onClick={() => send({ type: "detail.collectionCreate" })}>
+              {field.creating ? "만드는 중…" : "만들기"}
+            </button>
+            <button className="text-button" type="button" disabled={field.creating} onClick={() => send({ type: "detail.collectionCancel" })}>
+              취소
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button ref={opener} className="text-button collection-add" type="button" onClick={() => send({ type: "detail.collectionOpen" })}>
+          <Plus size={15} aria-hidden="true" />
+          새 컬렉션
+        </button>
+      )}
+    </fieldset>
+  );
+}
+
 export function ProductDetailDialog({
   product,
   collections,
@@ -88,6 +185,7 @@ export function ProductDetailDialog({
   draft,
   notice,
   confirming,
+  newCollection,
   writing,
   blocked,
   send,
@@ -99,6 +197,8 @@ export function ProductDetailDialog({
   notice: DetailNotice | null;
   // The owner pressed 삭제 and the dialog is asking before it sends anything.
   confirming: boolean;
+  // The open "새 컬렉션" field, if any.
+  newCollection: { name: string; creating: boolean } | null;
   // This product's write in flight, if any.
   writing: ProductIntent | null;
   // Any write or re-read in flight: every button that would write waits.
@@ -305,24 +405,24 @@ export function ProductDetailDialog({
               />
             </label>
             <FieldError id={errorId("details", "note")} error={detailsError} field="note" />
-            <fieldset className="collection-options" disabled={saving}>
-              <legend>컬렉션</legend>
-              {collections.length === 0 && <p className="field-help">아직 만든 컬렉션이 없어요.</p>}
-              {collections.map((collection) => (
-                <label key={collection.id}>
-                  <input
-                    type="checkbox"
-                    checked={forms.collectionIds.includes(collection.id)}
-                    onChange={() => send({ type: "detail.toggle", collectionId: collection.id })}
-                  />
-                  <span>{collection.name}</span>
-                </label>
-              ))}
-            </fieldset>
+            <CollectionOptions
+              id={id}
+              collections={collections}
+              checkedIds={forms.collectionIds}
+              field={newCollection}
+              error={errorOf("collection")}
+              saving={saving}
+              blocked={blocked}
+              send={send}
+            />
             <FieldError id={errorId("details", "collection")} error={detailsError} field="collection" />
             <FieldError id={errorId("details", null)} error={detailsError} field={null} />
             <Saved notice={notice} form="details" />
-            <button className="button secondary full" type="submit" disabled={!forms.detailsChanged || saving || blocked}>
+            <button
+              className="button secondary full"
+              type="submit"
+              disabled={!forms.detailsChanged || saving || blocked || newCollection?.creating === true}
+            >
               {writing === "details" ? "저장하는 중…" : "변경사항 저장"}
             </button>
           </form>
