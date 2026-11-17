@@ -3,6 +3,7 @@ import { z } from "zod";
 import { collectionErrorCodes, imageErrorCodes, priceCheckCodes } from "../../metadata/domain/collection-error";
 import type { LibraryRestoreCommand, ProductChange } from "../application/commands";
 import type { LibraryStore } from "../application/library-store";
+import type { PicturePasteStore } from "../application/picture-paste";
 import { PICTURE_BUCKET, PICTURE_LINK_SECONDS, pictureObjectSchema } from "./product-pictures";
 import {
   LibraryError,
@@ -93,6 +94,8 @@ export const productRowSchema = z.object({
   price_check_code: z.enum(priceCheckCodes).nullable(),
   ...wishColumns,
   picture_version: z.uuid().nullable(),
+  // Missing reads as false, so this app still reads a database without 20261124000000_paste_picture.sql.
+  picture_pasted: z.boolean().default(false),
 }).refine((row) => {
   const metadataConsistent =
     row.metadata_phase === "ready"
@@ -103,8 +106,9 @@ export const productRowSchema = z.object({
   const imageConsistent = (row.metadata_phase === "ready") === (row.metadata_image !== null) &&
     (row.metadata_image === "failed") === (row.metadata_image_error_code !== null);
   const checkConsistent = row.price_check_code === null || row.price_checked_at !== null;
+  const pictureConsistent = !row.picture_pasted || row.picture_version !== null;
   return hasConsistentPurchase(row) && hasConsistentLastSuccess(row) && hasConsistentWish(row) && metadataConsistent &&
-    imageConsistent && checkConsistent;
+    imageConsistent && checkConsistent && pictureConsistent;
 });
 
 const libraryRowSchema = z.object({
@@ -199,7 +203,7 @@ export function toProduct(row: ProductRow): Product {
     lastSuccessfulPrice: toLastSuccessfulPrice(row),
     priceCheck: row.price_checked_at === null ? null : { checkedAt: row.price_checked_at, code: row.price_check_code },
     wishPrice: toWishPrice(row),
-    picture: row.picture_version === null ? null : { version: row.picture_version },
+    picture: row.picture_version === null ? null : { version: row.picture_version, pasted: row.picture_pasted },
   };
 }
 
@@ -385,6 +389,30 @@ export function createSupabaseLibraryStore(client: SupabaseClient): LibraryStore
         replaced_pictures: z.array(pictureObjectSchema),
       }), await rpc("moti_restore_library", toRestoreParameters(command)));
       return { library: toLibrary(response.library), replacedPictures: response.replaced_pictures };
+    },
+  };
+}
+
+// The paste RPCs: the name to upload to, then the product pointed at it. Names come only from SQL and must have the form
+// the bucket's other copies have.
+export function createSupabasePicturePasteStore(client: SupabaseClient): PicturePasteStore {
+  const rpc = (name: string, parameters: Record<string, unknown>) => callRpc(client, name, parameters);
+  const replaced = { product: productRowSchema, replaced_picture: pictureObjectSchema.nullable() };
+  return {
+    async reserve(productId) {
+      return readResponse(pictureObjectSchema, await rpc("moti_picture_paste_reserve", { p_product_id: productId }));
+    },
+    async apply(productId, object) {
+      const response = readResponse(z.discriminatedUnion("kind", [
+        z.object({ kind: z.literal("applied"), ...replaced }),
+        z.object({ kind: z.literal("stale") }),
+      ]), await rpc("moti_picture_paste", { p_product_id: productId, p_object: object }));
+      if (response.kind === "stale") return { kind: "stale" };
+      return { kind: "applied", product: toProduct(response.product), replaced: response.replaced_picture };
+    },
+    async clear(productId) {
+      const response = readResponse(z.object(replaced), await rpc("moti_picture_paste_clear", { p_product_id: productId }));
+      return { product: toProduct(response.product), replaced: response.replaced_picture };
     },
   };
 }

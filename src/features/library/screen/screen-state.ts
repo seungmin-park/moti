@@ -38,7 +38,7 @@ export type FormError = { field: FieldName | null; message: string };
 // Only the fields the owner touched. Every other field shows the live product, so collection results and a re-read
 // reach the untouched fields with no extra step.
 export type DetailDraft = { title?: string; note?: string; collectionIds?: string[]; date?: string; price?: string; wishPrice?: string };
-export type DetailForm = "retry" | "collection" | "details" | "record" | "wishPrice" | "status" | "delete";
+export type DetailForm = "retry" | "collection" | "details" | "record" | "wishPrice" | "picture" | "status" | "delete";
 export type DetailNotice = { form: DetailForm; kind: "error" | "saved"; field: FieldName | null; message: string };
 export type BackupStep =
   | { name: "menu" }
@@ -62,7 +62,9 @@ export type ScreenDialog =
   | { kind: "backup"; step: BackupStep; notice: BackupNotice | null }
   | { kind: "worker" };
 export type ProductChange = ProductChangeRequest["change"];
-export type ProductIntent = "retry" | "delete" | ProductChange["type"];
+// The detail's picture area: upload a pasted picture, or clear it back to the collected copy.
+export type PictureIntent = "picture.paste" | "picture.clear";
+export type ProductIntent = "retry" | "delete" | ProductChange["type"] | PictureIntent;
 // The purchase toast offers undo only while the product still has the revision the purchase gave it.
 export type Toast = { kind: "purchased"; productId: string; revision: number } | { kind: "notice"; message: string };
 export type LibraryScreenState =
@@ -93,6 +95,8 @@ export type ApiCall =
   | { type: "metadata.retry"; productId: string; body: MetadataRetryRequest }
   | { type: "product.change"; productId: string; body: ProductChangeRequest }
   | { type: "product.delete"; productId: string; body: ProductDeleteRequest }
+  | { type: "picture.paste"; productId: string; image: Blob }
+  | { type: "picture.clear"; productId: string }
   | { type: "library.poll" }
   | { type: "backup.export" }
   | { type: "backup.file"; file: File }
@@ -119,6 +123,13 @@ export type ScreenEvent =
   | { type: "detail.save"; form: SavedForm; today: string }
   // Back to the collected price: sends the owner's price as null without touching the field's draft first.
   | { type: "detail.clearWishPrice" }
+  // The picture the paste area prepared, after the owner looked at its preview and pressed 저장.
+  | { type: "detail.pastePicture"; image: Blob }
+  | { type: "detail.clearPicture" }
+  // The paste area could not get a picture (nothing copied, no permission, unreadable): shown like a refused save.
+  | { type: "detail.pictureRefused"; message: string }
+  // A new preview replaces whatever went wrong with the last attempt.
+  | { type: "detail.picturePrepared" }
   | { type: "detail.deleteAsk" }
   | { type: "detail.deleteCancel" }
   | { type: "detail.collectionOpen" }
@@ -139,6 +150,7 @@ export type ScreenEvent =
   | { type: "metadata.settled"; productId: string; outcome: ApiOutcome<MetadataRetryResponse> }
   | { type: "change.settled"; productId: string; intent: ProductChange["type"]; outcome: ApiOutcome<ProductChangeResponse> }
   | { type: "delete.settled"; productId: string; outcome: ApiOutcome<ProductDeleteResponse> }
+  | { type: "picture.settled"; productId: string; intent: PictureIntent; outcome: ApiOutcome<ProductChangeResponse> }
   | { type: "poll" }
   | { type: "poll.settled"; outcome: ApiOutcome<LibraryReadResponse> }
   | { type: "backup.open" }
@@ -366,6 +378,52 @@ function onClearWishPrice(state: Ready, dialog: DetailDialog): Transition {
   return write(state, product, { type: "wish.price", price: null });
 }
 
+// A picture write is not a PATCH: it carries bytes, or nothing, and no revision. The answer still merges by revision.
+function writePicture(state: Ready, productId: string, call: Extract<ApiCall, { type: PictureIntent }>): Transition {
+  return {
+    state: { ...state, writing: { productId, intent: call.type }, toast: null, dialog: withDetailNotice(state.dialog, productId, null) },
+    call,
+  };
+}
+
+function onPastePicture(state: Ready, dialog: DetailDialog, image: Blob): Transition {
+  if (!findProduct(state, dialog.productId) || !canWrite(state)) return stay(state);
+  return writePicture(state, dialog.productId, { type: "picture.paste", productId: dialog.productId, image });
+}
+
+function onClearPicture(state: Ready, dialog: DetailDialog): Transition {
+  const product = findProduct(state, dialog.productId);
+  if (!product?.picture?.pasted || !canWrite(state)) return stay(state);
+  return writePicture(state, product.id, { type: "picture.clear", productId: product.id });
+}
+
+function onPictureSettled(state: Ready, productId: string, intent: PictureIntent, outcome: ApiOutcome<ProductChangeResponse>): Transition {
+  const next: Ready = { ...state, writing: null };
+  const dialog = detailOf(next, productId);
+  if (outcome.ok) {
+    const products = withResponse(next.library.products, outcome.value.product);
+    const shown = products.find((item) => item.id === productId) ?? outcome.value.product;
+    const message = intent === "picture.paste"
+      ? "붙여 넣은 사진을 저장했어요"
+      : shown.picture
+        ? "붙여 넣은 사진을 지우고 가져온 사진을 보여줘요"
+        : "붙여 넣은 사진을 지웠어요. 가져온 사진이 없어요.";
+    return stay({
+      ...next,
+      library: { ...next.library, products },
+      dialog: dialog ? { ...dialog, notice: { form: "picture", kind: "saved", field: null, message } } : next.dialog,
+    });
+  }
+  const { failure } = outcome;
+  if (failure.kind === "redirect") return leave(failure.to);
+  const field = failure.kind === "invalid" ? failure.field : null;
+  const shownAt: Partial<Ready> = dialog
+    ? { dialog: { ...dialog, notice: { form: "picture", kind: "error", field, message: failure.message } } }
+    : { toast: { kind: "notice", message: failure.message } };
+  if (failure.kind === "stale") return { state: { ...next, ...shownAt, refreshing: true }, call: refresh };
+  return stay({ ...next, ...shownAt });
+}
+
 function onDetailSave(state: Ready, dialog: DetailDialog, form: SavedForm, today: string): Transition {
   const product = findProduct(state, dialog.productId);
   if (!product || !canWrite(state)) return stay(state);
@@ -401,6 +459,10 @@ function onDetailSave(state: Ready, dialog: DetailDialog, form: SavedForm, today
 }
 
 function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Transition {
+  // A paste while another write runs is answered, not dropped: it only sets the picture area's notice.
+  if (event.type === "detail.pictureRefused") {
+    return stay({ ...state, dialog: { ...dialog, notice: { form: "picture", kind: "error", field: "picture", message: event.message } } });
+  }
   if (busy(state)) return stay(state);
   switch (event.type) {
     case "detail.edit":
@@ -416,6 +478,12 @@ function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Trans
       return onDetailSave(state, dialog, event.form, event.today);
     case "detail.clearWishPrice":
       return onClearWishPrice(state, dialog);
+    case "detail.pastePicture":
+      return onPastePicture(state, dialog, event.image);
+    case "detail.clearPicture":
+      return onClearPicture(state, dialog);
+    case "detail.picturePrepared":
+      return dialog.notice?.form === "picture" ? stay({ ...state, dialog: { ...dialog, notice: null } }) : stay(state);
     case "detail.deleteAsk":
       return stay({ ...state, dialog: { ...dialog, confirming: true, notice: null } });
     case "detail.deleteCancel":
@@ -875,6 +943,8 @@ function onReady(state: Ready, event: ScreenEvent): Transition {
       return onDelete(state, event.productId);
     case "delete.settled":
       return onDeleted(state, event.productId, event.outcome);
+    case "picture.settled":
+      return onPictureSettled(state, event.productId, event.intent, event.outcome);
     case "poll":
       return { state, call: { type: "library.poll" } };
     case "poll.settled":
@@ -993,6 +1063,10 @@ export async function perform(api: LibraryApi, call: ApiCall): Promise<ScreenEve
       };
     case "product.delete":
       return { type: "delete.settled", productId: call.productId, outcome: await api.deleteProduct(call.productId, call.body) };
+    case "picture.paste":
+      return { type: "picture.settled", productId: call.productId, intent: "picture.paste", outcome: await api.pastePicture(call.productId, call.image) };
+    case "picture.clear":
+      return { type: "picture.settled", productId: call.productId, intent: "picture.clear", outcome: await api.clearPicture(call.productId) };
     case "library.poll":
       return { type: "poll.settled", outcome: await api.read() };
     case "backup.export":

@@ -47,7 +47,7 @@ import {
   type ProductDeleteResponse,
 } from "../presentation/library-dto";
 
-export type FieldName = "url" | "option" | "collection" | "title" | "note" | "date" | "price" | "wishPrice";
+export type FieldName = "url" | "option" | "collection" | "title" | "note" | "date" | "price" | "wishPrice" | "picture";
 export type ApiFailure =
   | { kind: "redirect"; to: string }
   | { kind: "invalid"; field: FieldName | null; message: string }
@@ -63,6 +63,8 @@ export type Endpoint =
   | "metadata.wake"
   | "product.change"
   | "product.delete"
+  | "picture.paste"
+  | "picture.clear"
   | "library.backup"
   | "library.restore"
   | "share.read"
@@ -81,6 +83,9 @@ export type LibraryApi = {
   retryMetadata(productId: string, body: MetadataRetryRequest): Promise<ApiOutcome<MetadataRetryResponse>>;
   changeProduct(productId: string, body: ProductChangeRequest): Promise<ApiOutcome<ProductChangeResponse>>;
   deleteProduct(productId: string, body: ProductDeleteRequest): Promise<ApiOutcome<ProductDeleteResponse>>;
+  // Sends the prepared picture's bytes; the server sniffs and re-encodes them.
+  pastePicture(productId: string, image: Blob): Promise<ApiOutcome<ProductChangeResponse>>;
+  clearPicture(productId: string): Promise<ApiOutcome<ProductChangeResponse>>;
   exportBackup(): Promise<ApiOutcome<BackupFile>>;
   // Sends the chosen file's text unchanged, so the server checks exactly what the screen checked.
   restore(text: string): Promise<ApiOutcome<LibraryReadResponse>>;
@@ -277,6 +282,28 @@ const failures: Record<Endpoint, Mapping> = {
     product_missing: stale("상품을 찾을 수 없어요. 목록을 새로 불러왔어요."),
     revision_conflict: stale("다른 곳에서 먼저 바뀌었어요. 최신 내용을 불러왔어요. 확인 후 다시 삭제해 주세요."),
   },
+  // The server's own words for a refused picture: they say what to copy instead.
+  "picture.paste": {
+    ...session,
+    ...every(retryLater),
+    // With `picture`, the server says the reservation lapsed and the owner pastes again.
+    storage_unavailable: (error) => ({
+      kind: "unavailable",
+      message: error.field === "picture" ? error.message : "사진을 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
+    }),
+    cross_origin: reload,
+    unsupported_media_type: (error) => ({ kind: "invalid", field: "picture", message: error.message }),
+    payload_too_large: (error) => ({ kind: "invalid", field: "picture", message: error.message }),
+    invalid_input: invalidIn(["picture"], "화면을 새로고침한 뒤 다시 시도해 주세요."),
+    product_missing: stale("상품을 찾을 수 없어요. 목록을 새로 불러왔어요."),
+  },
+  "picture.clear": {
+    ...session,
+    ...every(retryLater),
+    cross_origin: reload,
+    invalid_input: reload,
+    product_missing: stale("상품을 찾을 수 없어요. 목록을 새로 불러왔어요."),
+  },
   "library.backup": {
     ...session,
     storage_unavailable: backupFailed,
@@ -323,6 +350,8 @@ type Success<T> = { status: number; parse: (body: unknown) => T | null };
 
 // A large restore runs one transaction and the route allows 60 s; every other request gives up after 15 s.
 const RESTORE_TIMEOUT_MS = 60_000;
+// A paste uploads up to 4 MiB from a phone, then sharp and four bounded Storage or database calls run.
+const PASTE_TIMEOUT_MS = 60_000;
 
 export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(input, init), timeoutMs = 15_000): LibraryApi {
   async function request<T>(
@@ -377,6 +406,15 @@ export function createLibraryApi(fetcher: typeof fetch = (input, init) => fetch(
     deleteProduct: (productId, body) => request("product.delete", `/api/products/${segment(productId)}`, write("DELETE", body), [
       { status: 200, parse: parsed(productDeleteResponseSchema) },
     ]),
+    pastePicture: (productId, image) => request("picture.paste", `/api/products/${segment(productId)}/picture`, {
+      method: "PUT",
+      headers: { "content-type": image.type || "application/octet-stream", accept: "application/json" },
+      body: image,
+    }, [{ status: 200, parse: parsed(productChangeResponseSchema) }], PASTE_TIMEOUT_MS),
+    clearPicture: (productId) => request("picture.clear", `/api/products/${segment(productId)}/picture`, {
+      method: "DELETE",
+      headers: { accept: "application/json" },
+    }, [{ status: 200, parse: parsed(productChangeResponseSchema) }]),
     async exportBackup() {
       try {
         const response = await fetcher("/api/library/backup", {

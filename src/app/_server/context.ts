@@ -15,10 +15,11 @@ import {
 import type { AuthRequestContext } from "@/features/auth/presentation/auth-handlers";
 import type { LibraryRestoreResult } from "@/features/library/application/commands";
 import { createLibraryService } from "@/features/library/application/library-service";
+import { createPicturePasteService } from "@/features/library/application/picture-paste";
 import { sweepPictures } from "@/features/library/application/picture-sweep";
 import { followUpRestore } from "@/features/library/application/restore-follow-up";
 import { createPictureOrphanStore, createPictureStore } from "@/features/library/infrastructure/product-pictures";
-import { createSupabaseLibraryStore } from "@/features/library/infrastructure/supabase-library-store";
+import { createSupabaseLibraryStore, createSupabasePicturePasteStore } from "@/features/library/infrastructure/supabase-library-store";
 import type { LibraryRequestContext } from "@/features/library/presentation/library-handlers";
 import { createShareKeyService } from "@/features/share/application/share-service";
 import { createSupabaseShareKeyStore } from "@/features/share/infrastructure/supabase-share-store";
@@ -88,6 +89,17 @@ function scheduleRestoreFollowUp(config: AuthConfig, accessToken: string | null,
   after(() => followUpRestore(result, { pictures: createPictureStore(client), collect: runner.run, now: Date.now }));
 }
 
+// A paste works inside the request, with each Supabase call bounded like the work after a response.
+function picturePaste(config: AuthConfig, accessToken: string | null): LibraryRequestContext["pictures"] {
+  if (!accessToken) return { paste: unavailable, clear: unavailable };
+  const client = createAccessTokenClient(config, accessToken, { requestTimeoutMs: 10_000 });
+  return createPicturePasteService({
+    store: createSupabasePicturePasteStore(client),
+    normalize: normalizePicture,
+    pictures: createPictureStore(client),
+  });
+}
+
 export async function libraryContext(): Promise<LibraryRequestContext> {
   const connection = await connect();
   if (!connection) {
@@ -113,6 +125,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
       wake: unavailable,
       collectAll: () => {},
       sweep: () => {},
+      pictures: { paste: unavailable, clear: unavailable },
     };
   }
   const { config, client } = connection;
@@ -130,6 +143,7 @@ export async function libraryContext(): Promise<LibraryRequestContext> {
     wake: (command) => createSupabaseCollectionStore(client).wake(command),
     collectAll: (requests) => scheduleCollections(config, accessToken, requests),
     sweep: () => scheduleSweep(config, accessToken),
+    pictures: picturePaste(config, accessToken),
   };
 }
 

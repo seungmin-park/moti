@@ -267,12 +267,30 @@ const expected: Record<Endpoint, Record<ErrorCode, ApiFailure>> = {
     share_key_missing: { kind: "unavailable", message: retryLater },
     worker_key_missing: { kind: "unavailable", message: retryLater },
   },
+  "picture.paste": {
+    ...signedIn,
+    ...everyCode({ kind: "unavailable", message: retryLater }),
+    storage_unavailable: { kind: "unavailable", message: "사진을 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." },
+    cross_origin: reloadFailure,
+    unsupported_media_type: { kind: "invalid", field: "picture", message: "서버 문구" },
+    payload_too_large: { kind: "invalid", field: "picture", message: "서버 문구" },
+    invalid_input: { kind: "invalid", field: "picture", message: "사진을 읽지 못했어요. 다른 사진을 복사해 주세요." },
+    product_missing: { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." },
+  },
+  "picture.clear": {
+    ...signedIn,
+    ...everyCode({ kind: "unavailable", message: retryLater }),
+    cross_origin: reloadFailure,
+    invalid_input: reloadFailure,
+    product_missing: { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." },
+  },
 };
 
 function errorBody(endpoint: Endpoint, code: ErrorCode) {
   if (code !== "invalid_input") return { error: code, message: "서버 문구" };
   if (endpoint === "library.restore") return { error: code, message: "백업 파일이 손상되었거나 바뀌었어요.", field: "products.0.sourceUrl" };
   if (endpoint === "product.change") return { error: code, message: "메모는 3,000자까지 적을 수 있어요.", field: "note" };
+  if (endpoint === "picture.paste") return { error: code, message: "사진을 읽지 못했어요. 다른 사진을 복사해 주세요.", field: "picture" };
   return endpoint === "collection.create" || endpoint === "collection.rename"
     ? { error: code, message: "컬렉션 이름은 1~40자로 입력해 주세요.", field: "collection" }
     : { error: code, message: "서버가 거절한 링크예요.", field: "url" };
@@ -288,6 +306,11 @@ function respond(body: unknown, init: ResponseInit) {
 }
 
 describe("API 오류 응답의 화면 결과", () => {
+  it("Given 사진 저장의 예약이 지나 서버가 picture 칸으로 답한 503 When 결과로 바꾸면 Then 서버 문구를 보여준다", () => {
+    const body = { error: "storage_unavailable", message: "사진을 저장하는 데 너무 오래 걸렸어요. 다시 붙여 넣어 주세요.", field: "picture" };
+    expect(toApiFailure("picture.paste", 503, body)).toEqual({ kind: "unavailable", message: body.message });
+  });
+
   it("Given 상품 변경의 내가 살 가격 칸 오류 When 결과로 바꾸면 Then 그 칸의 오류로 보여준다", () => {
     const body = { error: "invalid_input", message: "내가 살 가격은 0 이상의 정수로 입력해 주세요.", field: "wishPrice" };
     expect(toApiFailure("product.change", 400, body)).toEqual({ kind: "invalid", field: "wishPrice", message: body.message });
@@ -473,6 +496,38 @@ describe("보관함 API 클라이언트", () => {
     expect(init?.method).toBe("DELETE");
     expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
     expect(JSON.parse(String(init?.body))).toEqual({ revision: 2 });
+  });
+
+  it("Given 붙여 넣을 사진 When 올리면 Then 사진 경로에 PUT으로 사진 바이트와 그 형식을 보내고 200 상품을 돌려준다", async () => {
+    const pasted = { ...product, revision: 2, picture: { src: `/api/products/${product.id}/picture?v=33333333-3333-4333-8333-333333333333`, pasted: true } };
+    const { fetcher, api } = respond({ product: pasted }, { status: 200 });
+    const image = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], { type: "image/jpeg" });
+
+    await expect(api.pastePicture(product.id, image)).resolves.toEqual({ ok: true, value: { product: pasted } });
+
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe(`/api/products/${product.id}/picture`);
+    expect(init?.method).toBe("PUT");
+    expect(new Headers(init?.headers).get("content-type")).toBe("image/jpeg");
+    expect(init?.body).toBe(image);
+    expect(init).toMatchObject({ cache: "no-store" });
+  });
+
+  it("Given 형식을 모르는 사진 When 올리면 Then 바이트 그대로 보내고 서버가 판별하게 한다", async () => {
+    const { fetcher, api } = respond({ product }, { status: 200 });
+    await api.pastePicture(product.id, new Blob([new Uint8Array([1])]));
+    expect(new Headers(fetcher.mock.calls[0][1]?.headers).get("content-type")).toBe("application/octet-stream");
+  });
+
+  it("Given 붙여 넣은 사진 지우기 When 요청하면 Then 사진 경로에 본문 없는 DELETE를 보내고 200 상품을 돌려준다", async () => {
+    const { fetcher, api } = respond({ product }, { status: 200 });
+
+    await expect(api.clearPicture(product.id)).resolves.toEqual({ ok: true, value: { product } });
+
+    const [path, init] = fetcher.mock.calls[0];
+    expect(path).toBe(`/api/products/${product.id}/picture`);
+    expect(init?.method).toBe("DELETE");
+    expect(init?.body).toBeUndefined();
   });
 
   it("Given 상품 삭제에 계약과 다른 200 본문 When 요청하면 Then 연결 안내로 실패한다", async () => {

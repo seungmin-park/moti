@@ -26,6 +26,7 @@ import {
 } from "../../worker/presentation/worker-dto";
 import { MAX_BACKUP_BYTES, libraryBackupSchema } from "./library-backup";
 import {
+  MAX_PICTURE_PASTE_BYTES,
   collectionCreateRequestSchema,
   collectionCreateResponseSchema,
   collectionRenameRequestSchema,
@@ -45,13 +46,15 @@ import {
 } from "./library-dto";
 
 type Route = {
-  method: "get" | "post" | "patch" | "delete";
+  method: "get" | "post" | "put" | "patch" | "delete";
   path: string;
   summary: string;
   // Routes without it use the owner's cookie session.
   security?: "shareKey" | "workerKey";
   parameters?: { name: string; in?: "path" | "query"; description: string; schema: z.ZodType }[];
   request?: z.ZodType;
+  // A body that is not JSON: its media type pattern and what it holds.
+  rawRequest?: { mediaType: string; description: string };
   responses: Record<number, { description: string; schema?: z.ZodType; headers?: Record<string, string> }>;
 };
 
@@ -196,7 +199,7 @@ export const libraryRoutes: Route[] = [
   {
     method: "get",
     path: "/api/products/{productId}/picture",
-    summary: "상품의 현재 사진 사본으로 보낸다. 화면의 이미지 주소이며 요청마다 비공개 사본의 1시간짜리 서명 주소를 새로 만든다.",
+    summary: "상품의 현재 사진 사본(붙여 넣은 사진이 있으면 그것, 없으면 마지막으로 가져온 사본)으로 보낸다. 화면의 이미지 주소이며 요청마다 비공개 사본의 1시간짜리 서명 주소를 새로 만든다.",
     parameters: [
       { name: "productId", in: "path", description: "상품 ID", schema: z.uuid() },
       { name: "v", in: "query", description: "사본 버전. 캐시 키로만 쓰고 서버는 언제나 현재 사본으로 보낸다.", schema: z.uuid() },
@@ -209,6 +212,36 @@ export const libraryRoutes: Route[] = [
       400: { description: "상품 ID가 UUID가 아니다.", schema: errorResponseSchema },
       ...denied,
       404: { description: "상품이 없거나(product_missing) 보여줄 사본이 없다(picture_missing).", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "put",
+    path: "/api/products/{productId}/picture",
+    summary: "소유자가 복사해 붙여 넣은 상품 사진을 상품에 둔다. 가져온 사본과 같은 과정을 거친다. 바이트로 형식을 정하고(JPEG·PNG·WebP·GIF·AVIF, SVG·HEIC 등은 거절), sharp가 25 MP 안에서 회전을 적용해 1200px 안으로 줄이고 메타데이터 없는 WebP로 다시 만들며(5초, 1 MiB), 소유자 토큰으로 DB가 예약한 비공개 사본 이름에 올린다. 붙여 넣은 사진은 가져온 사본 대신 보이고 수집·다시 가져오기·예약 실행이 바꾸지 않는다. revision을 확인하지 않고 하나 올린다(마지막 붙여넣기가 이긴다). 대신한 이전 붙여넣기 사본은 바로 지운다.",
+    parameters: [{ name: "productId", description: "상품 ID", schema: z.uuid() }],
+    rawRequest: {
+      mediaType: "image/*",
+      description: `사진 바이트 그대로, ${MAX_PICTURE_PASTE_BYTES}바이트 이하. 화면은 2 MiB를 넘거나 서버가 읽지 않는 형식이면 긴 변 1600px의 JPEG로 줄여 보낸다. 선언한 형식은 거르기에만 쓰고 바이트가 형식을 정한다.`,
+    },
+    responses: {
+      200: { description: "ProductChangeResponse. picture는 붙여 넣은 사진(pasted: true)이다.", schema: productChangeResponseSchema },
+      400: { description: "상품 ID가 UUID가 아니거나, 허용하지 않는 형식·읽을 수 없는 사진·처리 시간 초과다(invalid_input, field: picture).", schema: errorResponseSchema },
+      413: { description: `본문이 ${MAX_PICTURE_PASTE_BYTES}바이트를 넘거나 다시 만든 사진이 너무 크다(payload_too_large, field: picture).`, schema: errorResponseSchema },
+      415: { description: "Content-Type이 image/*가 아니다.", schema: errorResponseSchema },
+      ...denied,
+      404: { description: "상품이 없다(product_missing).", schema: errorResponseSchema },
+    },
+  },
+  {
+    method: "delete",
+    path: "/api/products/{productId}/picture",
+    summary: "붙여 넣은 사진을 지우고 마지막으로 가져온 사본을 다시 보인다. 본문이 없다. 붙여 넣은 사진이 없으면 상품을 그대로 돌려준다. 지운 사본은 바로 지우고, 실패하면 남은 사본 정리가 10분 뒤에 지운다.",
+    parameters: [{ name: "productId", description: "상품 ID", schema: z.uuid() }],
+    responses: {
+      200: { description: "ProductChangeResponse. picture는 가져온 사본(pasted: false)이거나 null이다.", schema: productChangeResponseSchema },
+      400: { description: "상품 ID가 UUID가 아니다.", schema: errorResponseSchema },
+      ...denied,
+      404: { description: "상품이 없다(product_missing).", schema: errorResponseSchema },
     },
   },
   {
@@ -334,6 +367,13 @@ export function buildApiDocument() {
         requestBody: {
           required: true,
           content: { "application/json": { schema: z.toJSONSchema(route.request) } },
+        },
+      }),
+      ...(route.rawRequest && {
+        requestBody: {
+          required: true,
+          description: route.rawRequest.description,
+          content: { [route.rawRequest.mediaType]: { schema: { type: "string", format: "binary" } } },
         },
       }),
       responses: Object.fromEntries(Object.entries(route.responses)

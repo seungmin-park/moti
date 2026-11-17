@@ -175,7 +175,7 @@ describe("상품 사진 사본 저장소", () => {
 
     const pageFailure = await claimed(product, await nextGeneration(product));
     await jobs().fail(pageFailure, "blocked_by_site");
-    expect((await current(product)).picture).toEqual({ version: first.id });
+    expect((await current(product)).picture).toEqual({ version: first.id, pasted: false });
 
     const retried = await jobs().retry({ productId: product.id, expectedGeneration: 3 });
     const absent = await claimed(product, retried.product.metadata.generation);
@@ -188,7 +188,7 @@ describe("상품 사진 사본 저장소", () => {
     const second = await claimed(product, await nextGeneration(product));
     await upload(fixture.owner.client, second.picture);
     expect(await jobs().complete(second, page, copied)).toMatchObject({ kind: "applied", replacedPicture: first.picture });
-    expect((await current(product)).picture).toEqual({ version: second.id });
+    expect((await current(product)).picture).toEqual({ version: second.id, pasted: false });
   });
 
   it("소유자도 보여주는 사진은 지우지 못하고 바뀐 사진만 지운다", async () => {
@@ -278,7 +278,7 @@ describe("상품 사진 사본 저장소", () => {
       .toBeNull();
 
     expect(await stored(`${fixture.owner.id}/`)).toEqual([kept.picture, job.picture].toSorted());
-    expect((await current(product)).picture).toEqual({ version: kept.id });
+    expect((await current(product)).picture).toEqual({ version: kept.id, pasted: false });
     const opened = await library().openPicture({ productId: product.id });
     if (opened.kind !== "found") throw new Error("사진을 열지 못했습니다.");
     expect(new URL(opened.url).pathname).toBe(`/storage/v1/object/sign/${PICTURE_BUCKET}/${kept.picture}`);

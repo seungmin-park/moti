@@ -20,10 +20,15 @@ export const collectionResponseSchema = z.object({
 }).strict();
 
 // A same-origin address that stays the same for one copy. No storage path, signed token or shop address reaches
-// the screen; the route signs a short-lived link when the browser asks for the bytes.
+// the screen; the route signs a short-lived link when the browser asks for the bytes. `pasted`: the owner pasted this
+// picture, it is shown instead of the collected copy, and clearing it shows the collected copy again.
 export const pictureResponseSchema = z.object({
   src: z.string().regex(new RegExp(`^/api/products/${uuid}/picture\\?v=${uuid}$`)),
+  pasted: z.boolean(),
 }).strict();
+
+// The largest pasted picture the route reads: under Vercel's 4.5 MB request limit. The screen shrinks larger ones first.
+export const MAX_PICTURE_PASTE_BYTES = 4 * 1024 * 1024;
 
 export const productResponseSchema = z.object({
   id: z.uuid(),
@@ -222,7 +227,7 @@ export function toProductResponse(product: Product): ProductResponse {
 }
 
 export function toPictureResponse(productId: ProductId, picture: Picture): PictureResponse {
-  return { src: `/api/products/${productId}/picture?v=${picture.version}` };
+  return { src: `/api/products/${productId}/picture?v=${picture.version}`, pasted: picture.pasted };
 }
 
 export function toLibraryReadResponse(library: Library): LibraryReadResponse {

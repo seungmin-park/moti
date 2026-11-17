@@ -9,6 +9,7 @@ import {
   type ProductField,
 } from "../../wishlist/product-fields";
 import type { PictureObject } from "../../metadata/application/picture-copy";
+import type { PictureClearCommand, PicturePasteCommand } from "./picture-paste";
 import {
   LibraryError,
   type BackupProduct,
@@ -120,6 +121,14 @@ export function toPictureViewCommand(productId: unknown): PictureViewCommand {
     throw new LibraryError("invalid_input", "상품을 다시 선택해 주세요.");
   }
   return { productId: productId.toLowerCase() as ProductId };
+}
+
+export function toPicturePasteCommand(productId: unknown, bytes: Uint8Array): PicturePasteCommand {
+  return { ...toPictureViewCommand(productId), bytes };
+}
+
+export function toPictureClearCommand(productId: unknown): PictureClearCommand {
+  return toPictureViewCommand(productId);
 }
 
 const priceProblems: Record<"price" | "wishPrice", string> = {

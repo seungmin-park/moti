@@ -7,6 +7,7 @@ import { EARLIEST_PURCHASE_DATE, seoulToday } from "../../wishlist/product-field
 import type { CollectionResponse, ProductResponse } from "../presentation/library-dto";
 import { FieldError, fieldProps } from "./AddLinkDialog";
 import type { FieldName } from "./library-api";
+import { PastePicture } from "./PastePicture";
 import { ProductPicture } from "./ProductPicture";
 import { toProductDetailView } from "./product-view";
 import { collectionFieldKey } from "./collection-field-keys";
@@ -274,6 +275,13 @@ export function ProductDetailDialog({
           <div className="detail-picture">
             <ProductPicture view={view.picture} sizes="(max-width: 640px) 90vw, 400px" iconSize={40} />
           </div>
+          <PastePicture
+            product={product}
+            notice={notice}
+            writing={writing === "picture.paste" || writing === "picture.clear" ? writing : null}
+            blocked={blocked || frozen}
+            send={send}
+          />
           {view.openUrl && (
             <a className="button secondary original-link" href={view.openUrl} target="_blank" rel="noopener noreferrer">
               원본 링크 열기 <ArrowUpRight size={17} aria-hidden="true" />

@@ -151,7 +151,7 @@ describe("실제 저장소를 쓰는 사진 사본 복사", () => {
     await runner(shopImage()).run({ productId: product.id, generation: 2 });
 
     const [, second] = await jobIds(product);
-    expect((await stored(product)).picture).toEqual({ version: second });
+    expect((await stored(product)).picture).toEqual({ version: second, pasted: false });
     expect(await objects(product)).toEqual([`${fixture.owner.id}/${product.id}/${second}-1.webp`]);
   });
 
