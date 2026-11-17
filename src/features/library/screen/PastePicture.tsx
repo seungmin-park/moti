@@ -5,23 +5,34 @@ import { Check, ClipboardPaste, ImageMinus } from "lucide-react";
 import type { ProductResponse } from "../presentation/library-dto";
 import {
   PASTE_MAX_EDGE,
+  blockedPasteMessage,
   clipboardProblem,
   fitWithin,
+  followSave,
   noImageMessage,
   pickPastedImage,
   unreadableMessage,
   uploadPlan,
+  type PreviewPhase,
 } from "./picture-paste";
 import type { DetailNotice, ScreenEvent } from "./screen-state";
 
-// Redraws a picture the browser can open but the route should not get as it is (too large, HEIC, TIFF) as a JPEG whose
-// long edge is at most 1600 px. White under transparent pixels, as JPEG has no alpha.
-async function shrink(image: Blob): Promise<Blob> {
+async function opened<T>(image: Blob, read: (element: HTMLImageElement) => T | Promise<T>): Promise<T> {
   const url = URL.createObjectURL(image);
   try {
     const element = new Image();
     element.src = url;
     await element.decode();
+    return await read(element);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// Redraws a picture the browser can open but the route should not get as it is (too large, too many pixels, HEIC,
+// TIFF) as a JPEG whose long edge is at most 1600 px. White under transparent pixels, as JPEG has no alpha.
+function shrink(image: Blob): Promise<Blob> {
+  return opened(image, async (element) => {
     const size = fitWithin({ width: element.naturalWidth, height: element.naturalHeight }, PASTE_MAX_EDGE);
     const canvas = document.createElement("canvas");
     canvas.width = size.width;
@@ -34,13 +45,14 @@ async function shrink(image: Blob): Promise<Blob> {
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
     if (!blob) throw new Error("no jpeg");
     return blob;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  });
 }
 
 async function prepare(image: Blob): Promise<Blob> {
-  return uploadPlan(image) === "send" ? image : shrink(image);
+  if (uploadPlan(image) === "shrink") return shrink(image);
+  // A small file can still hold more pixels than the server decodes. Unreadable here, the server says why.
+  const size = await opened(image, (element) => ({ width: element.naturalWidth, height: element.naturalHeight })).catch(() => null);
+  return uploadPlan(image, size) === "send" ? image : shrink(image);
 }
 
 function clipboardFiles(data: DataTransfer): File[] {
@@ -75,17 +87,21 @@ export function PastePicture({ product, notice, writing, blocked, send }: {
   const id = useId();
   const target = useRef<HTMLDivElement>(null);
   const saveButton = useRef<HTMLButtonElement>(null);
-  // `sentFrom`: the picture shown when 저장 was pressed. Once the product shows another one, the preview was saved.
-  const [preview, setPreview] = useState<{ image: Blob; url: string; sentFrom?: string | null } | null>(null);
+  const [phase, setPhase] = useState<PreviewPhase<{ image: Blob; url: string }>>({ preview: null, sending: false });
   const [preparing, setPreparing] = useState(false);
   const canRead = useSyncExternalStore(unchanging, clipboardReadable, () => false);
-  const shownSrc = product.picture?.src ?? null;
-  const previewing = preview !== null && (preview.sentFrom === undefined || preview.sentFrom === shownSrc) ? preview : null;
+  const saving = writing === "picture.paste";
+  const clearing = writing === "picture.clear";
   // Set when the owner saves or clears here, so only that answer moves the focus.
   const asked = useRef(false);
   // Where the focus goes once the preview appears or goes: the element it should land on exists only after the commit.
   const moveFocus = useRef<"save" | "target" | null>(null);
   const pictureNotice = notice?.form === "picture" ? notice : null;
+  // The save's answer settles the preview while rendering: a saved one is dropped before the next commit, so the paste
+  // target is back, and the old preview can never return when the shown picture changes again (a clear, a collection).
+  const followed = followSave(phase, { saving, saved: pictureNotice?.kind === "saved" });
+  if (followed !== phase) setPhase(followed);
+  const previewing = followed.preview;
   const error = pictureNotice?.kind === "error" ? pictureNotice.message : null;
   const helpId = `${id}-help`;
   const errorId = `${id}-error`;
@@ -111,8 +127,8 @@ export function PastePicture({ product, notice, writing, blocked, send }: {
   }, [previewing]);
 
   useEffect(() => () => {
-    if (preview) URL.revokeObjectURL(preview.url);
-  }, [preview]);
+    if (previewing) URL.revokeObjectURL(previewing.url);
+  }, [previewing]);
 
   // A saved paste or a clear removes the buttons that were pressed, so the focus goes back to the paste target.
   useEffect(() => {
@@ -129,7 +145,7 @@ export function PastePicture({ product, notice, writing, blocked, send }: {
     setPreparing(true);
     try {
       const prepared = await prepare(image);
-      setPreview({ image: prepared, url: URL.createObjectURL(prepared) });
+      setPhase({ preview: { image: prepared, url: URL.createObjectURL(prepared) }, sending: false });
       send({ type: "detail.picturePrepared" });
       moveFocus.current = "save";
     } catch {
@@ -141,7 +157,11 @@ export function PastePicture({ product, notice, writing, blocked, send }: {
 
   function onPaste(event: ClipboardEvent<HTMLDivElement>) {
     event.preventDefault();
-    if (blocked || preparing) return;
+    if (preparing) return;
+    if (blocked) {
+      send({ type: "detail.pictureRefused", message: blockedPasteMessage });
+      return;
+    }
     void show(pickPastedImage(clipboardFiles(event.clipboardData)));
   }
 
@@ -154,12 +174,10 @@ export function PastePicture({ product, notice, writing, blocked, send }: {
   }
 
   function cancel() {
-    setPreview(null);
+    setPhase({ preview: null, sending: false });
     moveFocus.current = "target";
   }
 
-  const saving = writing === "picture.paste";
-  const clearing = writing === "picture.clear";
   return (
     <div className="paste-picture" role="group" aria-labelledby={`${id}-label`} aria-busy={saving || clearing || preparing}>
       <span className="paste-picture-label" id={`${id}-label`}>
@@ -178,7 +196,6 @@ export function PastePicture({ product, notice, writing, blocked, send }: {
               disabled={blocked}
               onClick={() => {
                 asked.current = true;
-                setPreview({ ...previewing, sentFrom: shownSrc });
                 send({ type: "detail.pastePicture", image: previewing.image });
               }}
             >

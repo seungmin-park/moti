@@ -155,6 +155,62 @@ test("소유자는 복사한 상품 사진을 상세에 붙여 넣어 미리 보
   expect(await pastedColumn(product)).toBeNull();
 });
 
+// Paste, save and clear without closing the detail: the saved preview must not come back with its 저장 and 취소.
+async function pasteAndSave(page: Page, product: Product) {
+  const detail = await openDetail(page);
+  const target = detail.getByRole("textbox", { name: "사진 붙여넣기" });
+  const puts: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "PUT" && request.url().endsWith(`/api/products/${product.id}/picture`)) puts.push(request.url());
+  });
+  await target.focus();
+  await pasteInto(target, { bytes: await picture(700, 500).png().toBuffer(), type: "image/png" });
+  await detail.getByRole("button", { name: "사진 저장" }).click();
+  await expect(detail.getByRole("status").filter({ hasText: "붙여 넣은 사진을 저장했어요" })).toBeVisible();
+  await expect(target).toBeFocused();
+  return { detail, target, puts, preview: detail.getByRole("img", { name: "붙여 넣을 사진 미리보기" }) };
+}
+
+test("같은 상세에서 붙여 넣어 저장한 뒤 지우면 붙여넣기 칸으로 돌아오고 저장한 미리보기는 다시 보이지 않는다", async ({ page, context }) => {
+  const product = await blocked();
+  await signIn(context);
+  const { detail, target, puts, preview } = await pasteAndSave(page, product);
+
+  await detail.getByRole("button", { name: "붙여 넣은 사진 지우기" }).click();
+  await expect(detail.getByRole("status").filter({ hasText: "붙여 넣은 사진을 지웠어요. 가져온 사진이 없어요." })).toBeVisible();
+  await expect(target).toBeVisible();
+  await expect(target).toBeFocused();
+  await expect(preview).toHaveCount(0);
+  await expect(detail.getByRole("button", { name: "사진 저장" })).toHaveCount(0);
+  expect(await pastedColumn(product)).toBeNull();
+  expect(puts).toHaveLength(1);
+});
+
+test("다른 저장이 진행 중일 때 붙여 넣으면 무시하지 않고 기다리라고 알린다", async ({ page, context }) => {
+  const product = await blocked();
+  await signIn(context);
+  const { detail, target, puts, preview } = await pasteAndSave(page, product);
+
+  // The clear is held until the paste below has been tried, so the target is blocked by a write in flight.
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route(`**/api/products/${product.id}/picture`, async (route) => {
+    if (route.request().method() === "DELETE") await held;
+    await route.continue();
+  });
+  await detail.getByRole("button", { name: "붙여 넣은 사진 지우기" }).click();
+  await expect(detail.getByRole("button", { name: "지우는 중…" })).toBeVisible();
+  await pasteInto(target, { bytes: await picture(300, 300).png().toBuffer(), type: "image/png" });
+  await expect(detail.getByRole("alert")).toHaveText("다른 저장이 끝난 뒤 다시 붙여 넣어 주세요.");
+  await expect(preview).toHaveCount(0);
+  release();
+
+  await expect(detail.getByRole("status").filter({ hasText: "붙여 넣은 사진을 지웠어요. 가져온 사진이 없어요." })).toBeVisible();
+  await expect(detail.getByRole("alert")).toHaveCount(0);
+  await expect(preview).toHaveCount(0);
+  expect(puts).toHaveLength(1);
+});
+
 test("사진 없이 글만 붙여 넣으면 알리고, 2 MiB를 넘는 사진은 화면이 JPEG로 줄여 보내며 취소하면 아무것도 보내지 않는다", async ({ page, context }) => {
   const product = await blocked();
   await signIn(context);

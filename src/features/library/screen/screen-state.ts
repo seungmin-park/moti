@@ -459,6 +459,10 @@ function onDetailSave(state: Ready, dialog: DetailDialog, form: SavedForm, today
 }
 
 function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Transition {
+  // A paste while another write runs is answered, not dropped: it only sets the picture area's notice.
+  if (event.type === "detail.pictureRefused") {
+    return stay({ ...state, dialog: { ...dialog, notice: { form: "picture", kind: "error", field: "picture", message: event.message } } });
+  }
   if (busy(state)) return stay(state);
   switch (event.type) {
     case "detail.edit":
@@ -480,8 +484,6 @@ function onDetail(state: Ready, dialog: DetailDialog, event: ScreenEvent): Trans
       return onClearPicture(state, dialog);
     case "detail.picturePrepared":
       return dialog.notice?.form === "picture" ? stay({ ...state, dialog: { ...dialog, notice: null } }) : stay(state);
-    case "detail.pictureRefused":
-      return stay({ ...state, dialog: { ...dialog, notice: { form: "picture", kind: "error", field: "picture", message: event.message } } });
     case "detail.deleteAsk":
       return stay({ ...state, dialog: { ...dialog, confirming: true, notice: null } });
     case "detail.deleteCancel":

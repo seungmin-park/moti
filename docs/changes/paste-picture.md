@@ -17,10 +17,10 @@
 - 마이그레이션 `20261124000000_paste_picture.sql`
   - 상품에 붙여 넣은 사진 열 세 개(`pasted_picture_id`·`pasted_picture_version`·`pasted_at`)와 예약 열 두 개(`paste_reserved_id`·`paste_reserved_until`)가 생겼다. 셋은 함께 있거나 함께 없어야 하고, 둘도 그렇다. 수집 열(`picture_*`)과는 따로다.
   - 객체 이름은 가져온 사진과 같은 형식이다. `moti.picture_object(소유자, 상품, 붙여넣기 id, 1)`이 `<소유자>/<상품>/<붙여넣기 id>-1.webp`를 만든다. 그래서 남은 사진 정리의 이름 형식 검사와 앱의 이름 스키마(`pictureObjectSchema`)를 바꾸지 않았다.
-  - `moti.product_json`의 `picture_version`은 `coalesce(pasted_picture_id, picture_job_id)`다. `picture_pasted`(붙여 넣은 사진이 있는지)가 새로 생겼다. `moti.picture_locate`는 붙여 넣은 사진이 있으면 그 이름을 돌려준다. 저장된 객체 버전이 기록과 같을 때만이다(가져온 사진과 같은 규칙).
+  - `moti.product_json`의 `picture_version`은 `coalesce(pasted_picture_id, picture_job_id)`다. `picture_pasted`(붙여 넣은 사진이 있는지)가 새로 생겼다. `moti.picture_locate`는 붙여 넣은 사진이 있으면 그 이름을 돌려준다. 저장된 객체 버전이 기록과 같을 때만이다(가져온 사진과 같은 규칙). 붙여 넣은 객체가 Storage에서 없어졌거나 바뀌었으면 가져온 사본으로 넘어가지 않고 `null`을 돌려준다. 사진 경로는 404 `picture_missing`이고, 카드와 상세는 사진을 불러오지 못한 것으로 보인다. "붙여 넣은 사진 지우기"를 누르거나 다시 붙여 넣으면 돌아온다. 가져온 사진의 바뀐 객체와 같은 처리이고, 기록과 다른 사본을 대신 보여주지 않기 위해서다.
   - 새 소유자 RPC 셋. 모두 `moti_rpc`가 소유한 보안 정의자다. `set search_path = ''`이고 `moti.require_owner()`로 시작하며 `authenticated`만 실행한다(`public`·`anon`·`service_role`은 권한 없음).
     - `moti_picture_paste_reserve(p_product_id)`는 새 이름을 60초 동안 예약하고 그 이름을 돌려준다. 새 예약은 이전 예약을 대신한다.
-    - `moti_picture_paste(p_product_id, p_object)`는 상품을 업로드한 사진에 건다. 이름이 상품의 살아 있는 예약이어야 하고 객체가 있어야 한다. 예약이 지났거나 대신되었으면 `{ kind: "stale" }`이고, 객체가 없으면 `M0002`다. 객체 버전을 기록하고 revision을 하나 올린다. 대신한 이전 붙여넣기 이름은 `replaced_picture`로 돌려준다.
+    - `moti_picture_paste(p_product_id, p_object)`는 상품을 업로드한 사진에 건다. 이름이 상품의 살아 있는 예약이어야 하고 객체가 있어야 한다. 예약이 지났거나 대신되었으면 `{ kind: "stale" }`이고(경로는 503 `storage_unavailable`, `field: "picture"`, "사진을 저장하는 데 너무 오래 걸렸어요. 다시 붙여 넣어 주세요."), 객체가 없으면 `M0002`다. 객체 버전을 기록하고 revision을 하나 올린다. 대신한 이전 붙여넣기 이름은 `replaced_picture`로 돌려준다.
     - `moti_picture_paste_clear(p_product_id)`는 붙여 넣은 사진을 지운다. revision을 올리고 지운 이름을 돌려준다. 붙여 넣은 사진이 없으면 상품을 그대로 돌려준다.
     - revision은 확인하지 않는다. 사진은 이름·메모 초안과 충돌하지 않으므로 마지막 붙여넣기가 이긴다. 그래도 revision을 올린다. 화면이 응답을 revision으로 합치고, 열린 다른 탭은 다음 쓰기에서 409로 최신 상품을 다시 읽는다.
   - Storage 정책 함수 `moti_storage.may_write`는 상품의 살아 있는 예약 이름도 받는다. `may_discard`와 `moti.picture_orphans`는 상품이 지금 붙여 넣은 사진과 살아 있는 예약 이름을 지우지 않는다. 두 함수는 여전히 같은 조건을 반복하므로 함께 바꿨다(마이그레이션 주석).
@@ -44,6 +44,7 @@
     - 400 `invalid_input`, `field: "picture"`: 허용하지 않는 형식이면 "JPEG·PNG·WebP·GIF·AVIF 사진만 붙여 넣을 수 있어요.", 읽을 수 없는 사진이면 "사진을 읽지 못했어요. 다른 사진을 복사해 주세요.", 처리 시간을 넘기면 "사진을 처리하는 데 너무 오래 걸렸어요. 더 작은 사진을 복사해 주세요."다.
     - 413 `payload_too_large`, `field: "picture"`: 4 MiB를 넘으면 "사진이 너무 커요. 4MB보다 작은 사진을 붙여 넣어 주세요.", 25 MP를 넘거나 다시 만든 사진이 1 MiB를 넘으면 "사진이 너무 커요. 더 작은 사진을 복사해 주세요."다.
     - 415: `image/*`가 아니면 "사진만 붙여 넣을 수 있어요."다.
+    - 503 `storage_unavailable`: 60초 예약이 지나 걸지 못했으면 `field: "picture"`와 "사진을 저장하는 데 너무 오래 걸렸어요. 다시 붙여 넣어 주세요."다. 화면은 `field`가 `picture`일 때만 서버 문구를 보이고, 그 밖의 503은 "사진을 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요."다.
     - 나머지는 401·403(다른 계정, 다른 출처)·404 `product_missing`·503이다.
   - `DELETE /api/products/{productId}/picture`는 본문이 없고 200 `{ product }`다. 오류는 400(UUID 아님)·401·403·404·503이다.
   - `ProductResponse.picture`가 `{ src, pasted }`가 되었다. `docs/api/openapi.json`을 다시 생성했다. 경로의 `maxDuration`은 60초다(sharp 5초와 Supabase 호출 넷이 각 10초).
@@ -51,14 +52,16 @@
   - 상세의 사진 아래에 "사진 붙여넣기" 묶음이 생겼다. 붙여넣기 칸은 편집 가능한 상자다. `role="textbox"`, 이름 "사진 붙여넣기", `inputmode="none"`이다. 도움말 "상품 사진을 복사한 뒤 여기에 붙여 넣어요. iPhone은 칸을 길게 눌러 붙여넣기를, PC는 ⌘V나 Ctrl+V를 눌러요."를 `aria-describedby`로 잇는다. iPhone은 편집 가능한 칸에서만 길게 누르면 붙여넣기 메뉴를 보인다. `inputmode="none"`이라 키보드는 올라오지 않는다. 글자 입력과 끌어 놓기는 막고, 칸은 언제나 비어 있다.
   - `navigator.clipboard.read()`가 있는 브라우저에는 "클립보드에서 가져오기" 버튼이 보인다. 읽기를 허용하지 않으면 칸을 길게 누르거나 ⌘V·Ctrl+V로 붙여 넣으라고 알린다.
   - 붙여 넣으면 미리보기("붙여 넣을 사진 미리보기")와 "사진 저장"·"취소"가 칸을 대신하고 초점이 "사진 저장"으로 간다. 저장하면 "붙여 넣은 사진을 저장했어요"가 보이고 초점이 붙여넣기 칸으로 돌아온다. 취소해도 초점은 칸으로 간다.
+  - 미리보기는 저장이 성공하면 버린다(객체 주소도 해제). 보내는 중인지는 화면 상태의 쓰기(`picture.paste`)로 알고 사진 주소를 비교하지 않는다(`followSave`). 그래서 같은 상세에서 저장한 뒤 지워 사진 주소가 저장 전으로 돌아가도 이전 미리보기가 다시 나타나지 않고, 저장 중에 수집·가격 확인이 사진을 바꿔도 미리보기가 먼저 사라지지 않는다. 저장이 실패하면 미리보기를 남겨 다시 저장할 수 있다.
+  - 다른 저장이 진행 중이라 칸이 막혀 있을 때 붙여 넣으면 무시하지 않고 "다른 저장이 끝난 뒤 다시 붙여 넣어 주세요."를 칸 아래에 보인다.
   - 붙여 넣은 사진이 있으면 "붙여 넣은 사진 지우기"가 보인다. 지운 뒤 가져온 사진이 있으면 "붙여 넣은 사진을 지우고 가져온 사진을 보여줘요", 없으면 "붙여 넣은 사진을 지웠어요. 가져온 사진이 없어요."다. 초점은 칸으로 간다.
   - 오류는 칸 아래 `role="alert"`이고 칸에 `aria-invalid`가 붙는다. 사진이 없는 클립보드("클립보드에 사진이 없어요. 상품 사진을 복사한 뒤 다시 붙여 넣어 주세요."), 브라우저가 열 수 없는 사진, 서버의 거절 문구가 여기에 보인다.
   - 브라우저에서 줄이기(`screen/picture-paste.ts`)
-    - JPEG·PNG·WebP·GIF·AVIF이고 2 MiB 이하면 그대로 보낸다.
-    - 그 밖(2 MiB 초과, HEIC·TIFF 등 브라우저만 여는 형식)은 `<img>`로 열어 긴 변 1600px 안의 JPEG(품질 0.85, 투명은 흰색)로 다시 그린다. 미리보기는 보낼 사진 그대로다.
+    - JPEG·PNG·WebP·GIF·AVIF이고 2 MiB 이하이며 서버의 25 MP 안이면 그대로 보낸다. 크기는 `<img>`로 열어 읽고, 열지 못하면 그대로 보내 서버가 이유를 답한다.
+    - 그 밖(2 MiB 초과, 25 MP 초과, HEIC·TIFF 등 브라우저만 여는 형식)은 `<img>`로 열어 긴 변 1600px 안의 JPEG(품질 0.85, 투명은 흰색)로 다시 그린다. 미리보기는 보낼 사진 그대로다.
     - 서버 한도 4 MiB와 Vercel 요청 한도 4.5 MB 안에 들기 위해서다.
   - 카드와 상세는 기존 `ProductPicture`로 붙여 넣은 사진을 보인다. 이미지 주소의 `v`가 붙여넣기 id라 붙여 넣거나 지우면 주소가 바뀐다.
-  - 상태 전환은 `screen-state.ts`가 맡는다. 이벤트는 `detail.pastePicture`·`detail.clearPicture`·`detail.pictureRefused`, 호출은 `picture.paste`·`picture.clear`, 결과는 `picture.settled`다. 다른 쓰기처럼 한 번에 하나이고, 올리는 동안 상세는 닫히지 않는다. 손댄 이름·메모 초안은 지킨다. 404는 다시 읽는다.
+  - 상태 전환은 `screen-state.ts`가 맡는다. 이벤트는 `detail.pastePicture`·`detail.clearPicture`·`detail.pictureRefused`, 호출은 `picture.paste`·`picture.clear`, 결과는 `picture.settled`다. 다른 쓰기처럼 한 번에 하나이고, 올리는 동안 상세는 닫히지 않는다. `detail.pictureRefused`만은 쓰는 중에도 사진 칸의 안내를 바꾼다(요청 없음). 손댄 이름·메모 초안은 지킨다. 404는 다시 읽는다.
   - 색은 흰색·중립 회색·차콜이다. 칸은 점선 테두리이고, 초점이 가면 중립 배경과 아래쪽 강조를 쓴다. 키보드 초점 윤곽은 유지했다.
 
 ## 배포 순서
@@ -91,13 +94,13 @@
 
 | 검사 | 결과 |
 | --- | --- |
-| 단위 (`npm test`) | 1,754개 통과 (이전 1,641개) |
+| 단위 (`npm test`) | 1,764개 통과 (이전 1,641개) |
 | 실제 DB | persistence 371개, service 72개 통과 (이전 356·69개) |
 | 실제 HTTP | 68개 통과 (이전 59개) |
-| 실제 스택 브라우저 (PC Chromium, iPhone 크기 WebKit) | 80개 통과 (이전 74개) |
+| 실제 스택 브라우저 (PC Chromium, iPhone 크기 WebKit) | 84개 통과 (이전 74개) |
 | Supabase 없는 브라우저 (`tests/ui`) | 50개 통과 (이전 50개) |
 
-`feat/paste-picture`(`main` 2fe16d3에서 시작)의 로컬 `npm run verify`(종료 0)로 개수를 확인했다. PR·CI 전이다.
+`feat/paste-picture`(`main` 2fe16d3에서 시작)의 독립 리뷰 반영 뒤 로컬 `npm run verify`(종료 0)로 개수를 확인했다. 첫 구현의 verify는 단위 1,754개, 브라우저 80개였다.
 
 - 단위: 화면의 규칙(사진 고르기, 그대로 보낼지 줄일지, 1600px 맞추기, 클립보드 읽기 실패 문구), 상태 전환(저장·지우기 호출, 쓰는 중 닫히지 않음, 성공 문구 셋, 서버 거절·상품 없음, 사진 없는 클립보드, 새 미리보기가 사진 칸 오류만 지움, 같은 revision의 수집이 붙여 넣은 사진을 바꾸지 않음), API 클라이언트(PUT 바이트·형식, 형식 모름은 `application/octet-stream`, DELETE 본문 없음, 오류 대응표 두 줄), 처리기 Given–When–Then(200, 415, 413 두 가지, 거절 넷, UUID, 404·503, 다른 출처, 401·503, 다른 계정), 응용 계층(판별·정규화·예약·업로드·걸기·대신한 사본 지우기, 거절 형식 셋, 정규화 거절 셋, 업로드 실패, stale이면 올린 사본 지우기, 걸기 예외면 지우지 않기, 지우기), 저장소 어댑터(`picture_pasted`가 없는 행, 손상 행, RPC 응답 읽기, moti가 만들지 않은 이름 거절), OpenAPI 일치.
 - persistence: 예약·업로드·걸기, 예약하지 않은 이름·지난 예약·다른 상품 이름의 Storage 쓰기 거절, 다른 계정·익명의 쓰기 거절, 지난·대신된·다른 이름의 걸기 stale, 올리지 않은 예약의 `M0002`, 없는 상품·`M0001`·`42501`, 바뀐 객체 버전, 수집과 다시 가져오기 뒤에도 붙여 넣은 사진 유지와 지우면 최신 수집 사본, 가져온 사진 없는 지우기와 두 번 지우기, 작업자 역할의 열 권한 없음, 대신한 사본은 지울 수 있고 지금 사본은 못 지움, 정리 대상(대신한·지운·지난 예약·지운 상품)과 비대상(지금 사본·살아 있는 예약)을 Storage의 실제 지우기와 비교, 9분 된 사본 제외, 공개·내부 함수의 소유자·보안 정의자·`search_path`·실행 권한. 공개 RPC 목록 검사에 셋을 더했다.
@@ -105,7 +108,11 @@
 - 실제 HTTP: PNG 붙여넣기의 200과 WebP 1200×900·EXIF 없음, 응답에 객체 이름·버킷이 없음, 보관함 읽기, 수집 뒤 유지와 지우기, 다시 붙여넣기의 사본 교체, SVG·HEIC·잘린 JPEG의 400, 25 MP 413과 4 MiB 413, 415·400·404, 401·403·다른 출처 403.
 - 실제 스택 브라우저(두 기기, 세 흐름): `ClipboardEvent`로 PNG(글과 함께)를 붙여 넣어 미리보기·"사진 저장" 초점·저장·칸 초점 복귀, 상세와 카드의 새 주소, 새로고침 유지, 지우기와 초점, axe 위반 0, 칸의 중립 색, 가로 넘침 없음. 글만 붙여 넣은 오류와 `aria-invalid`, 취소는 요청 없음, 2 MiB를 넘는 PNG를 화면이 2 MiB 아래 JPEG로 줄여 보냄. "클립보드에서 가져오기"는 Chromium의 실제 클립보드(권한 부여 뒤 `navigator.clipboard.write`)와 WebKit의 `navigator.clipboard` 대역으로 저장하고, 읽기 거절(대역) 문구를 확인한다.
 
-Red는 [docs/evidence/paste-picture/red.txt](../evidence/paste-picture/red.txt)에 있다.
+- 리뷰 반영(단위 10개, 브라우저 두 흐름 × 두 기기): 저장 성공이면 미리보기를 버리고 실패면 남기며 보내는 중에는 사진 주소가 바뀌어도 그대로인 `followSave`, 25 MP를 넘는 작은 사진은 줄여 보냄, 막힌 칸의 안내 문구와 쓰는 중의 `detail.pictureRefused`, 예약이 지난 503의 `field: "picture"`와 화면의 서버 문구. 브라우저는 같은 상세에서 붙여 넣기 → 저장 → 지우기 뒤 칸이 보이고 초점이 있으며 미리보기·"사진 저장"이 없고 PUT이 한 번인지, 지우는 중(DELETE를 붙잡음)에 붙여 넣으면 안내가 보이고 미리보기가 생기지 않는지를 확인한다.
+
+Red는 [docs/evidence/paste-picture/red.txt](../evidence/paste-picture/red.txt)에 있다. 리뷰 반영의 Red는 [red-review.txt](../evidence/paste-picture/red-review.txt)에 있다.
+
+- 리뷰 반영: b4385a6 소스에 테스트만 더한 상태에서 단위 9개가 실패했다(`followSave`·`blockedPasteMessage`·25 MP 상수 없음, 예약 만료 오류에 `field` 없음, 화면이 고정 문구). 실제 스택 브라우저는 두 기기 모두 저장 → 지우기 뒤 붙여넣기 칸이 없었고(저장한 미리보기가 다시 나타남), 막힌 칸의 붙여넣기에 안내가 없었다. 첫 수정 뒤 verify에서 안내가 여전히 보이지 않았다. 상태 전환이 쓰는 중의 상세 이벤트를 모두 버렸기 때문이다. 상태 단위 Red를 남기고 고쳤다.
 
 - 단위: 테스트만 바꾼 상태에서 74개가 실패했다(`picture-paste` 모듈 없음, 처리기·API 클라이언트·상태 전환·어댑터의 새 동작 없음, 응답 사진에 `pasted` 없음).
 - persistence: 앱 코드를 바꾼 뒤 마이그레이션만 뺀 스택에서 새 검사 16개와 공개 RPC 목록 검사가 실패했다. 기존 사진 검사 3개도 사진 모양이 바뀌어 실패했고, 기대값을 고쳤다.

@@ -1,0 +1,95 @@
+# paste-picture review follow-up: Red (source b4385a6 + tests only)
+
+## Unit
+$ npx vitest run src/features/library/screen/picture-paste.test.ts src/features/library/screen/library-api.test.ts src/features/library/application/picture-paste.test.ts
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/features/library/application/picture-paste.test.ts > 사진 붙여넣기 > Given 예약이 그새 바뀜 When 저장하면 Then 올린 사본을 버리고 저장소 오류를 던진다
+AssertionError: expected LibraryError: 사진을 저장하는 데 너무 오래 걸렸어요. 다시 붙… { …(2) } to match object { code: 'storage_unavailable', …(2) }
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given 사진 저장의 예약이 지나 서버가 picture 칸으로 답한 503 When 결과로 바꾸면 Then 서버 문구를 보여준다
+AssertionError: expected { kind: 'unavailable', …(1) } to deeply equal { kind: 'unavailable', …(1) }
+ FAIL  src/features/library/screen/picture-paste.test.ts > 올리기 전 줄이기 > Given 2MiB 이하지만 서버의 25 MP를 넘는 PNG When 계획하면 Then 줄여 보낸다
+AssertionError: expected undefined to be 25000000 // Object.is equality
+ FAIL  src/features/library/screen/picture-paste.test.ts > 저장한 뒤의 미리보기 > Given 미리보기 When 저장이 시작되면 Then 미리보기를 두고 보내는 중으로 둔다
+TypeError: followSave is not a function
+ FAIL  src/features/library/screen/picture-paste.test.ts > 저장한 뒤의 미리보기 > Given 보내는 중 When 다른 곳의 수집·확인으로 상품 사진이 바뀌어 다시 그려도 Then 미리보기와 보내는 중이 그대로다
+TypeError: followSave is not a function
+ FAIL  src/features/library/screen/picture-paste.test.ts > 저장한 뒤의 미리보기 > Given 보내는 중 When 저장이 성공하면 Then 미리보기를 버린다
+TypeError: followSave is not a function
+ FAIL  src/features/library/screen/picture-paste.test.ts > 저장한 뒤의 미리보기 > Given 보내는 중 When 저장이 실패하면 Then 다시 저장할 수 있게 미리보기를 남긴다
+TypeError: followSave is not a function
+ FAIL  src/features/library/screen/picture-paste.test.ts > 저장한 뒤의 미리보기 > Given 저장한 적 없는 미리보기 When 다른 저장 문구가 보여도 Then 그대로다
+TypeError: followSave is not a function
+ FAIL  src/features/library/screen/picture-paste.test.ts > 막힌 붙여넣기 > 다른 저장이 끝나기를 기다리라고 알린다
+AssertionError: expected undefined to be '다른 저장이 끝난 뒤 다시 붙여 넣어 주세요.' // Object.is equality
+ Test Files  3 failed (3)
+      Tests  9 failed | 382 passed (391)
+
+## Real stack browser (desktop Chromium, iPhone-sized WebKit)
+$ npm run build   # b4385a6 source; the new unit test file set aside so the build type-checks
+$ npm run test:database
+Verified 371 persistence and 72 service tests with no skipped assertions.
+Verified 68 HTTP tests against the running app with no skipped assertions.
+  ✘  25 [desktop-chromium] › tests/browser/paste-picture.spec.ts:174:1 › 같은 상세에서 붙여 넣어 저장한 뒤 지우면 붙여넣기 칸으로 돌아오고 저장한 미리보기는 다시 보이지 않는다 (5.9s)
+  ✘  26 [desktop-chromium] › tests/browser/paste-picture.spec.ts:189:1 › 다른 저장이 진행 중일 때 붙여 넣으면 무시하지 않고 기다리라고 알린다 (5.9s)
+  ✘  67 [iphone-webkit] › tests/browser/paste-picture.spec.ts:174:1 › 같은 상세에서 붙여 넣어 저장한 뒤 지우면 붙여넣기 칸으로 돌아오고 저장한 미리보기는 다시 보이지 않는다 (6.2s)
+  ✘  68 [iphone-webkit] › tests/browser/paste-picture.spec.ts:189:1 › 다른 저장이 진행 중일 때 붙여 넣으면 무시하지 않고 기다리라고 알린다 (6.3s)
+  1) [desktop-chromium] › tests/browser/paste-picture.spec.ts:174:1 › 같은 상세에서 붙여 넣어 저장한 뒤 지우면 붙여넣기 칸으로 돌아오고 저장한 미리보기는 다시 보이지 않는다 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog', { name: '담아둔 물건' }).getByRole('textbox', { name: '사진 붙여넣기' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('dialog', { name: '담아둔 물건' }).getByRole('textbox', { name: '사진 붙여넣기' }) with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '담아둔 물건' }).getByRole('textbox', { name: '사진 붙여넣기' })
+
+
+      179 |   await detail.getByRole("button", { name: "붙여 넣은 사진 지우기" }).click();
+      180 |   await expect(detail.getByRole("status").filter({ hasText: "붙여 넣은 사진을 지웠어요. 가져온 사진이 없어요." })).toBeVisible();
+    > 181 |   await expect(target).toBeVisible();
+          |                        ^
+      182 |   await expect(target).toBeFocused();
+  2) [desktop-chromium] › tests/browser/paste-picture.spec.ts:189:1 › 다른 저장이 진행 중일 때 붙여 넣으면 무시하지 않고 기다리라고 알린다 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByRole('dialog', { name: '담아둔 물건' }).getByRole('alert')
+    Expected: "다른 저장이 끝난 뒤 다시 붙여 넣어 주세요."
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" getByRole('dialog', { name: '담아둔 물건' }).getByRole('alert') with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '담아둔 물건' }).getByRole('alert')
+
+
+      202 |   await expect(detail.getByRole("button", { name: "지우는 중…" })).toBeVisible();
+      203 |   await pasteInto(target, { bytes: await picture(300, 300).png().toBuffer(), type: "image/png" });
+  4 failed
+  80 passed (2.4m)
+
+The paste -> save -> clear test fails on both devices: after the clear the paste target is gone because the
+saved preview (src back to null) is shown again with 사진 저장/취소. The blocked paste shows no notice.
+A first run combined both cases in one test and stopped at the missing notice on both devices.
+
+## After the first fix: the blocked-paste notice never reached the screen
+$ npm run verify   # browser phase
+  ✘  26 [desktop-chromium] › tests/browser/paste-picture.spec.ts:189:1 › 다른 저장이 진행 중일 때 붙여 넣으면 무시하지 않고 기다리라고 알린다 (5.9s)
+  ✘  68 [iphone-webkit] › tests/browser/paste-picture.spec.ts:189:1 › 다른 저장이 진행 중일 때 붙여 넣으면 무시하지 않고 기다리라고 알린다 (6.1s)
+  1) [desktop-chromium] › tests/browser/paste-picture.spec.ts:189:1 › 다른 저장이 진행 중일 때 붙여 넣으면 무시하지 않고 기다리라고 알린다 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByRole('dialog', { name: '담아둔 물건' }).getByRole('alert')
+    Expected: "다른 저장이 끝난 뒤 다시 붙여 넣어 주세요."
+  2 failed
+  82 passed (2.2m)
+The reducer drops every detail event while the product has a write in flight (busy), so the notice was lost.
+
+$ npx vitest run src/features/library/screen/screen-state.test.ts
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 그 상품의 다른 쓰기가 진행 중 When 막힌 칸에 붙여 넣었다고 알리면 Then 요청 없이 사진 칸에 안내를 보인다
+AssertionError: expected null to deeply equal { Object (form, kind, ...) }
+      Tests  1 failed | 172 passed (173)

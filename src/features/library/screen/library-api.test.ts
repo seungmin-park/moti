@@ -306,6 +306,11 @@ function respond(body: unknown, init: ResponseInit) {
 }
 
 describe("API 오류 응답의 화면 결과", () => {
+  it("Given 사진 저장의 예약이 지나 서버가 picture 칸으로 답한 503 When 결과로 바꾸면 Then 서버 문구를 보여준다", () => {
+    const body = { error: "storage_unavailable", message: "사진을 저장하는 데 너무 오래 걸렸어요. 다시 붙여 넣어 주세요.", field: "picture" };
+    expect(toApiFailure("picture.paste", 503, body)).toEqual({ kind: "unavailable", message: body.message });
+  });
+
   it("Given 상품 변경의 내가 살 가격 칸 오류 When 결과로 바꾸면 Then 그 칸의 오류로 보여준다", () => {
     const body = { error: "invalid_input", message: "내가 살 가격은 0 이상의 정수로 입력해 주세요.", field: "wishPrice" };
     expect(toApiFailure("product.change", 400, body)).toEqual({ kind: "invalid", field: "wishPrice", message: body.message });

@@ -41,7 +41,8 @@ export function createPicturePasteService({ store, normalize, pictures }: {
       const applied = await store.apply(productId, object);
       if (applied.kind === "stale") {
         await pictures.discard([object]);
-        throw new LibraryError("storage_unavailable", "사진을 저장하는 데 너무 오래 걸렸어요. 다시 붙여 넣어 주세요.");
+        // `picture`: the owner pastes again, so the screen shows these words rather than its own retry notice.
+        throw new LibraryError("storage_unavailable", "사진을 저장하는 데 너무 오래 걸렸어요. 다시 붙여 넣어 주세요.", "picture");
       }
       if (applied.replaced !== null) await pictures.discard([applied.replaced]);
       return { kind: "pasted", product: applied.product };

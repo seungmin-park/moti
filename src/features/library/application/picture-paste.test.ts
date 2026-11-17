@@ -97,7 +97,11 @@ describe("사진 붙여넣기", () => {
   it("Given 예약이 그새 바뀜 When 저장하면 Then 올린 사본을 버리고 저장소 오류를 던진다", async () => {
     const { pictures, service } = given({ applied: { kind: "stale" } });
 
-    await expect(service.paste({ productId, bytes: png })).rejects.toBeInstanceOf(LibraryError);
+    await expect(service.paste({ productId, bytes: png })).rejects.toMatchObject({
+      code: "storage_unavailable",
+      message: "사진을 저장하는 데 너무 오래 걸렸어요. 다시 붙여 넣어 주세요.",
+      field: "picture",
+    });
     expect(pictures.discard).toHaveBeenCalledExactlyOnceWith([reserved]);
   });
 

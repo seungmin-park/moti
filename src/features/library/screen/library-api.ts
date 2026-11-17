@@ -286,7 +286,11 @@ const failures: Record<Endpoint, Mapping> = {
   "picture.paste": {
     ...session,
     ...every(retryLater),
-    storage_unavailable: unavailable("사진을 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요."),
+    // With `picture`, the server says the reservation lapsed and the owner pastes again.
+    storage_unavailable: (error) => ({
+      kind: "unavailable",
+      message: error.field === "picture" ? error.message : "사진을 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
+    }),
     cross_origin: reload,
     unsupported_media_type: (error) => ({ kind: "invalid", field: "picture", message: error.message }),
     payload_too_large: (error) => ({ kind: "invalid", field: "picture", message: error.message }),

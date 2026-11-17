@@ -1233,6 +1233,14 @@ describe("상세에서 사진 붙여넣기", () => {
     expect(detailOf(state).notice).toEqual({ form: "picture", kind: "error", field: "picture", message: "클립보드에 사진이 없어요." });
   });
 
+  it("Given 그 상품의 다른 쓰기가 진행 중 When 막힌 칸에 붙여 넣었다고 알리면 Then 요청 없이 사진 칸에 안내를 보인다", () => {
+    const busy = viewing(blocked, { writing: { productId: lamp.id, intent: "picture.clear" } });
+    const { state, call } = transition(busy, { type: "detail.pictureRefused", message: "다른 저장이 끝난 뒤 다시 붙여 넣어 주세요." });
+    expect(call).toBeNull();
+    expect(state).toMatchObject({ writing: { productId: lamp.id, intent: "picture.clear" } });
+    expect(detailOf(state).notice).toEqual({ form: "picture", kind: "error", field: "picture", message: "다른 저장이 끝난 뒤 다시 붙여 넣어 주세요." });
+  });
+
   it("Given 사진 칸의 오류 When 다음 붙여넣기로 미리보기가 생기면 Then 사진 칸의 오류만 지우고 다른 양식의 알림은 둔다", () => {
     const refused = transition(viewing(blocked), { type: "detail.pictureRefused", message: "클립보드에 사진이 없어요." }).state;
     const { state, call } = transition(refused, { type: "detail.picturePrepared" });
