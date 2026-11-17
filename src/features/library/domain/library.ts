@@ -15,8 +15,9 @@ export type MetadataState = { generation: number; attempts: number } & (
   | { phase: "ready"; completedAt: string; image: ImageOutcome }
   | { phase: "failed"; errorCode: CollectionErrorCode }
 );
-// The last good private copy. `version` changes only when a newer copy replaces it.
-export type Picture = { version: string };
+// The shown private copy: the owner's pasted picture when there is one, otherwise the last good collected copy.
+// `version` changes whenever the shown copy does; `pasted` says the owner put it there and can clear it.
+export type Picture = { version: string; pasted: boolean };
 // The latest daily price check. `code` says why it kept the previous price; null when it confirmed one or has not
 // settled. A check newer than the last good price with a code means the shown price is an earlier one.
 export type PriceCheck = { checkedAt: string; code: PriceCheckCode | null };

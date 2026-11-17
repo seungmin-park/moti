@@ -1614,6 +1614,86 @@ h1 {
   padding: 12px;
   margin: 0 0 20px;
 }
+.paste-picture {
+  margin-top: 14px;
+}
+.paste-picture-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--ink-soft);
+  margin-bottom: 7px;
+}
+.paste-target {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px;
+  border: 1px dashed var(--control);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: text;
+  overflow: hidden;
+  white-space: nowrap;
+  caret-color: transparent;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.paste-target:empty::before {
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+.paste-target:focus {
+  outline: none;
+  background: var(--surface);
+  border-style: solid;
+  box-shadow: inset 0 -2px 0 var(--focus);
+}
+.paste-target:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.paste-target[aria-invalid="true"] {
+  border-color: var(--error);
+}
+.paste-help {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  word-break: keep-all;
+}
+.paste-preview img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--active);
+}
+.paste-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 10px;
+}
+.paste-actions:empty {
+  display: none;
+}
+.paste-actions .button,
+.paste-actions .text-button {
+  min-height: 44px;
+}
+.paste-actions .text-button:disabled {
+  color: var(--muted);
+}
+.paste-picture .form-error,
+.paste-picture .form-success {
+  margin: 8px 0 0;
+}
 .wish-price-form .field-help {
   margin: 6px 0 12px;
   word-break: keep-all;

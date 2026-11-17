@@ -58,6 +58,18 @@ export async function readJsonBody(request: Request, limit = MAX_JSON_BYTES): Pr
   }
 }
 
+export type ImageBody = { ok: true; bytes: Uint8Array } | { ok: false; reason: "unsupported_media_type" | "payload_too_large" };
+
+// A declared image/* body read up to `limit`. The declared type only filters; the bytes decide the format later.
+export async function readImageBody(request: Request, limit: number): Promise<ImageBody> {
+  const type = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+  if (!type?.startsWith("image/")) return { ok: false, reason: "unsupported_media_type" };
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > limit) return { ok: false, reason: "payload_too_large" };
+  const bytes = await readLimited(request, limit);
+  return bytes ? { ok: true, bytes } : { ok: false, reason: "payload_too_large" };
+}
+
 async function readLimited(request: Request, limit: number): Promise<Uint8Array | null> {
   if (!request.body) return new Uint8Array();
   const reader = request.body.getReader();

@@ -8,7 +8,7 @@ import {
   type MetadataWakeCommand,
   type MetadataWakeResult,
 } from "../../metadata/application/commands";
-import { isSameOrigin, readJsonBody } from "../../shared/presentation/http";
+import { isSameOrigin, readImageBody, readJsonBody } from "../../shared/presentation/http";
 import { toShareKeyIssueCommand, toShareKeyRevokeCommand } from "../../share/application/commands";
 import type { ShareKeyService } from "../../share/application/share-service";
 import {
@@ -31,12 +31,15 @@ import {
   toCollectionRenameCommand,
   toLibraryRestoreCommand,
   toLinkSaveCommand,
+  toPictureClearCommand,
+  toPicturePasteCommand,
   toPictureViewCommand,
   toProductChangeCommand,
   toProductDeleteCommand,
   type LibraryRestoreResult,
 } from "../application/commands";
 import type { LibraryService } from "../application/library-service";
+import type { PicturePasteProblem, PicturePasteService } from "../application/picture-paste";
 import { LibraryError, type LibraryErrorCode } from "../domain/library";
 import {
   MAX_BACKUP_BYTES,
@@ -46,6 +49,7 @@ import {
   type BackupProblem,
 } from "./library-backup";
 import {
+  MAX_PICTURE_PASTE_BYTES,
   collectionCreateRequestSchema,
   collectionRenameRequestSchema,
   linkSaveRequestSchema,
@@ -82,6 +86,8 @@ export type LibraryRequestContext = {
   collectAll(requests: CollectionRequest[]): void;
   // After the response: removes the owner's leftover picture copies. Never delays or fails the request.
   sweep(): void;
+  // The owner's pasted picture: the collected copies' pipeline, then the product pointed at the new copy.
+  pictures: Pick<PicturePasteService, "paste" | "clear">;
 };
 export type ProductRoute = { params: Promise<{ productId: string }> };
 export type CollectionRoute = { params: Promise<{ collectionId: string }> };
@@ -148,6 +154,14 @@ const backupProblems: Record<BackupProblem, string> = {
   invalid: "백업 파일이 손상되었거나 바뀌었어요.",
 };
 
+// What the owner reads under the picture area when a paste is refused, with the status each one answers.
+const pasteProblems: Record<PicturePasteProblem, { code: ErrorCode; message: string }> = {
+  unsupported_format: { code: "invalid_input", message: "JPEG·PNG·WebP·GIF·AVIF 사진만 붙여 넣을 수 있어요." },
+  unreadable: { code: "invalid_input", message: "사진을 읽지 못했어요. 다른 사진을 복사해 주세요." },
+  too_large: { code: "payload_too_large", message: "사진이 너무 커요. 더 작은 사진을 복사해 주세요." },
+  timeout: { code: "invalid_input", message: "사진을 처리하는 데 너무 오래 걸렸어요. 더 작은 사진을 복사해 주세요." },
+};
+
 function json(status: number, body: unknown): Response {
   return Response.json(body, { status, headers: { "cache-control": "no-store" } });
 }
@@ -159,7 +173,7 @@ function failure(code: ErrorCode, message = errorMessages[code], field?: string)
 
 type Allowed = Pick<
   LibraryRequestContext,
-  "service" | "collect" | "retry" | "settleRestore" | "shareKeys" | "workerKeys" | "wake" | "collectAll" | "sweep"
+  "service" | "collect" | "retry" | "settleRestore" | "shareKeys" | "workerKeys" | "wake" | "collectAll" | "sweep" | "pictures"
 >;
 type Action<Route> = (allowed: Allowed, request: Request, route: Route) => Promise<Response>;
 
@@ -309,6 +323,29 @@ export function createLibraryHandlers(context: (request: Request) => Promise<Lib
       }
       sweep();
       return json(202, toMetadataWakeResponse(result));
+    }, { write: true }),
+    // The body is the pasted picture's bytes, as the screen prepared them. Only the signed-in owner gets this far, so
+    // only the owner can make the route read up to 4 MiB and run sharp.
+    putPicture: handle<ProductRoute>(async ({ pictures }, request, route) => {
+      const { productId } = await route.params;
+      const { productId: id } = toPictureClearCommand(productId);
+      const body = await readImageBody(request, MAX_PICTURE_PASTE_BYTES);
+      if (!body.ok) {
+        return body.reason === "unsupported_media_type"
+          ? failure("unsupported_media_type", "사진만 붙여 넣을 수 있어요.")
+          : failure("payload_too_large", "사진이 너무 커요. 4MB보다 작은 사진을 붙여 넣어 주세요.", "picture");
+      }
+      const result = await pictures.paste(toPicturePasteCommand(id, body.bytes));
+      if (result.kind === "refused") {
+        const { code, message } = pasteProblems[result.problem];
+        return failure(code, message, "picture");
+      }
+      return json(200, toProductChangeResponse(result.product));
+    }, { write: true }),
+    // Back to the collected copy, if any. No body: the product is the whole request.
+    deletePicture: handle<ProductRoute>(async ({ pictures }, _request, route) => {
+      const { productId } = await route.params;
+      return json(200, toProductChangeResponse(await pictures.clear(toPictureClearCommand(productId))));
     }, { write: true }),
     // The src of an <img>: same-origin and stable for one copy. Each request signs a fresh short-lived link, and the
     // browser keeps the redirect privately for less than that link lives.

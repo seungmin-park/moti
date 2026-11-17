@@ -16,6 +16,7 @@ import {
   type Product,
   type ProductId,
 } from "../domain/library";
+import type { PictureClearCommand, PicturePasteCommand, PicturePasteResult } from "../application/picture-paste";
 import type { CollectionRequest } from "../../metadata/application/collection";
 import type { MetadataRetryCommand, MetadataRetryResult, MetadataWakeCommand, MetadataWakeResult } from "../../metadata/application/commands";
 import type { ShareKeyIssueCommand, ShareKeyIssueResult, ShareKeyRevokeCommand } from "../../share/application/commands";
@@ -40,6 +41,7 @@ import {
 import { MAX_BACKUP_BYTES, readLibraryBackup, toLibraryBackupDocument } from "./library-backup";
 import { createLibraryHandlers } from "./library-handlers";
 import {
+  MAX_PICTURE_PASTE_BYTES,
   collectionCreateResponseSchema,
   errorResponseSchema,
   libraryReadResponseSchema,
@@ -79,6 +81,11 @@ const product = {
   priceCheck: null,
   wishPrice: null,
   picture: null,
+} satisfies Product;
+const pastedProduct = {
+  ...product,
+  revision: 2,
+  picture: { version: "77777777-7777-4777-8777-777777777777", pasted: true },
 } satisfies Product;
 const backup = {
   collections: [{ name: "책상", createdAt: "2026-11-11T00:00:00.000Z" }],
@@ -173,10 +180,20 @@ function given(access: Access) {
   const collectAll = vi.fn<(requests: CollectionRequest[]) => void>();
   // sweep is a mock too: scheduling the leftover-picture cleanup after the wake's response is the requirement.
   const sweep = vi.fn<() => void>();
+  const pictures = {
+    paste: vi.fn(async (command: PicturePasteCommand): Promise<PicturePasteResult> => {
+      void command;
+      return { kind: "pasted", product: pastedProduct };
+    }),
+    clear: vi.fn(async (command: PictureClearCommand): Promise<Product> => {
+      void command;
+      return product;
+    }),
+  };
   const handlers = createLibraryHandlers(async () => ({
-    access, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll, sweep,
+    access, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll, sweep, pictures,
   }));
-  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll, sweep };
+  return { handlers, service, signOut, collect, retry, settleRestore, shareKeys, workerKeys, wake, collectAll, sweep, pictures };
 }
 
 const get = () => new Request(`${origin}/api/library`);
@@ -212,7 +229,7 @@ describe("GET /api/library", () => {
           phase: "ready", generation: 2, attempts: 1, completedAt: "2026-11-12T00:00:00.000Z",
           image: { outcome: "failed", errorCode: "upload_failed" },
         },
-        picture: { version },
+        picture: { version, pasted: false },
       }],
       collections: [],
     });
@@ -221,7 +238,7 @@ describe("GET /api/library", () => {
 
     expect(body.products[0]).toMatchObject({
       metadata: { phase: "ready", image: { outcome: "failed", errorCode: "upload_failed" } },
-      picture: { src: `/api/products/${product.id}/picture?v=${version}` },
+      picture: { src: `/api/products/${product.id}/picture?v=${version}`, pasted: false },
     });
   });
 
@@ -255,7 +272,8 @@ describe("GET /api/library", () => {
     { src: "https://cdn.shop.example/a.jpg" },
     { src: "/storage/v1/object/sign/product-pictures/a/b/c-1.webp?token=x" },
     { src: "//evil.example/api/products/22222222-2222-4222-8222-222222222222/picture?v=33333333-3333-4333-8333-333333333333" },
-    { src: "/api/products/22222222-2222-4222-8222-222222222222/picture?v=33333333-3333-4333-8333-333333333333", url: "x" },
+    { src: "/api/products/22222222-2222-4222-8222-222222222222/picture?v=33333333-3333-4333-8333-333333333333", pasted: false, url: "x" },
+    { src: "/api/products/22222222-2222-4222-8222-222222222222/picture?v=33333333-3333-4333-8333-333333333333" },
   ])("Given 같은 출처 사진 경로가 아닌 $src When 계약으로 검증하면 Then 거절한다", (picture) => {
     const body = { products: [{ ...JSON.parse(JSON.stringify(product)), picture }], collections: [] };
     expect(libraryReadResponseSchema.safeParse(body).success).toBe(false);
@@ -989,6 +1007,175 @@ describe("GET /api/products/{productId}/picture", () => {
     expect(response.status).toBe(403);
     expect(signOut).toHaveBeenCalledOnce();
     expect(service.openPicture).not.toHaveBeenCalled();
+  });
+});
+
+describe("PUT /api/products/{productId}/picture", () => {
+  const productId = product.id;
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+  const put = (body: BodyInit | null, headers: Record<string, string> = {}, id: string = productId) =>
+    [new Request(`${origin}/api/products/${id}/picture`, {
+      method: "PUT",
+      headers: { origin, "content-type": "image/png", ...headers },
+      body,
+    }), { params: Promise.resolve({ productId: id }) }] as const;
+
+  it("Given 소유자와 붙여 넣은 사진 바이트 When 올리면 Then 200과 붙여 넣은 사진을 가리키는 상품을 돌려준다", async () => {
+    const { handlers, pictures } = given(allowed);
+
+    const response = await handlers.putPicture(...put(png, {}, productId.toUpperCase()));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const body = productChangeResponseSchema.parse(await response.json());
+    expect(body.product.picture).toEqual({
+      src: `/api/products/${productId}/picture?v=77777777-7777-4777-8777-777777777777`, pasted: true,
+    });
+    expect(pictures.paste).toHaveBeenCalledExactlyOnceWith({ productId, bytes: png });
+  });
+
+  it("Given 이미지가 아닌 Content-Type When 올리면 Then 415이고 본문을 읽지 않는다", async () => {
+    const { handlers, pictures } = given(allowed);
+
+    const response = await handlers.putPicture(...put("hello", { "content-type": "text/plain" }));
+
+    expect(response.status).toBe(415);
+    expect(await errorOf(response)).toEqual({ error: "unsupported_media_type", message: "사진만 붙여 넣을 수 있어요." });
+    expect(pictures.paste).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["선언한 크기", { "content-length": String(MAX_PICTURE_PASTE_BYTES + 1) }, png],
+    ["실제 크기", {}, new Uint8Array(MAX_PICTURE_PASTE_BYTES + 1)],
+  ])("Given 4MiB를 넘는 %s When 올리면 Then 413이고 저장소를 부르지 않는다", async (_name, headers, body) => {
+    const { handlers, pictures } = given(allowed);
+
+    const response = await handlers.putPicture(...put(body, headers));
+
+    expect(response.status).toBe(413);
+    expect(await errorOf(response)).toEqual({
+      error: "payload_too_large", message: "사진이 너무 커요. 4MB보다 작은 사진을 붙여 넣어 주세요.", field: "picture",
+    });
+    expect(pictures.paste).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["unsupported_format", 400, "invalid_input", "JPEG·PNG·WebP·GIF·AVIF 사진만 붙여 넣을 수 있어요."],
+    ["unreadable", 400, "invalid_input", "사진을 읽지 못했어요. 다른 사진을 복사해 주세요."],
+    ["too_large", 413, "payload_too_large", "사진이 너무 커요. 더 작은 사진을 복사해 주세요."],
+    ["timeout", 400, "invalid_input", "사진을 처리하는 데 너무 오래 걸렸어요. 더 작은 사진을 복사해 주세요."],
+  ] as const)("Given 사진 처리가 %s로 거절 When 올리면 Then %i %s와 picture 칸의 안내다", async (problem, status, error, message) => {
+    const { handlers, pictures } = given(allowed);
+    pictures.paste.mockResolvedValueOnce({ kind: "refused", problem });
+
+    const response = await handlers.putPicture(...put(png));
+
+    expect(response.status).toBe(status);
+    expect(await errorOf(response)).toEqual({ error, message, field: "picture" });
+  });
+
+  it("Given UUID가 아닌 상품 When 올리면 Then 400이고 사진을 처리하지 않는다", async () => {
+    const { handlers, pictures } = given(allowed);
+
+    const response = await handlers.putPicture(...put(png, {}, "not-a-uuid"));
+
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).error).toBe("invalid_input");
+    expect(pictures.paste).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["product_missing", 404],
+    ["storage_unavailable", 503],
+  ] as const)("Given 저장소가 %s로 답함 When 올리면 Then %i이다", async (code, status) => {
+    const { handlers, pictures } = given(allowed);
+    pictures.paste.mockRejectedValueOnce(new LibraryError(code, "거절"));
+
+    const response = await handlers.putPicture(...put(png));
+
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+  });
+
+  it("Given 다른 출처 When 올리면 Then 403이고 세션도 읽지 않는다", async () => {
+    const { handlers, pictures } = given(allowed);
+
+    const response = await handlers.putPicture(...put(png, { origin: "https://evil.test" }));
+
+    expect(response.status).toBe(403);
+    expect((await errorOf(response)).error).toBe("cross_origin");
+    expect(pictures.paste).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ kind: "signed_out" } as Access, 401, "signed_out"],
+    [{ kind: "unconfigured" } as Access, 503, "unconfigured"],
+  ])("Given 접근 결과 $kind When 올리면 Then %i이고 사진을 처리하지 않는다", async (access, status, code) => {
+    const { handlers, pictures } = given(access);
+
+    const response = await handlers.putPicture(...put(png));
+
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+    expect(pictures.paste).not.toHaveBeenCalled();
+  });
+
+  it("Given 다른 Google 계정 When 올리면 Then 403이고 세션을 한 번 종료한다", async () => {
+    const { handlers, pictures, signOut } = given({ kind: "forbidden" });
+
+    const response = await handlers.putPicture(...put(png));
+
+    expect(response.status).toBe(403);
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(pictures.paste).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /api/products/{productId}/picture", () => {
+  const productId = product.id;
+  const remove = (headers: Record<string, string> = { origin }, id: string = productId) =>
+    [new Request(`${origin}/api/products/${id}/picture`, { method: "DELETE", headers }),
+      { params: Promise.resolve({ productId: id }) }] as const;
+
+  it("Given 붙여 넣은 사진이 있는 상품 When 지우면 Then 200과 가져온 사진으로 돌아간 상품을 돌려준다", async () => {
+    const { handlers, pictures } = given(allowed);
+
+    const response = await handlers.deletePicture(...remove());
+
+    expect(response.status).toBe(200);
+    expect(productChangeResponseSchema.parse(await response.json()).product.picture).toBeNull();
+    expect(pictures.clear).toHaveBeenCalledExactlyOnceWith({ productId });
+  });
+
+  it("Given 다른 출처 When 지우면 Then 403이고 지우지 않는다", async () => {
+    const { handlers, pictures } = given(allowed);
+
+    const response = await handlers.deletePicture(...remove({ origin: "https://evil.test" }));
+
+    expect(response.status).toBe(403);
+    expect(pictures.clear).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["product_missing", 404],
+    ["storage_unavailable", 503],
+  ] as const)("Given 저장소가 %s로 답함 When 지우면 Then %i이다", async (code, status) => {
+    const { handlers, pictures } = given(allowed);
+    pictures.clear.mockRejectedValueOnce(new LibraryError(code, "거절"));
+
+    const response = await handlers.deletePicture(...remove());
+
+    expect(response.status).toBe(status);
+    expect((await errorOf(response)).error).toBe(code);
+  });
+
+  it("Given 로그인하지 않음 When 지우면 Then 401이다", async () => {
+    const { handlers, pictures } = given({ kind: "signed_out" });
+
+    const response = await handlers.deletePicture(...remove());
+
+    expect(response.status).toBe(401);
+    expect(pictures.clear).not.toHaveBeenCalled();
   });
 });
 

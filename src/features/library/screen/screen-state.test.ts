@@ -540,6 +540,8 @@ describe("요청 실행", () => {
       readWorker: vi.fn(async () => ({ ok: true as const, value: { key: null, runs: [] } })),
       issueWorkerKey: vi.fn(async () => ({ ok: true as const, value: { key: workerKey, secret: workerSecret } })),
       revokeWorkerKey: vi.fn(async () => ({ ok: true as const, value: { key: { ...workerKey, revokedAt: "2026-11-13T06:00:00.000Z" } } })),
+      pastePicture: vi.fn(async () => ({ ok: true as const, value: { product: lamp } })),
+      clearPicture: vi.fn(async () => ({ ok: true as const, value: { product: chair } })),
     };
     await expect(perform(api, { type: "library.read" })).resolves.toEqual({ type: "library.settled", outcome: { ok: true, value: library } });
     const body = { url: "https://a.example", option: "", collectionIds: [] };
@@ -580,6 +582,13 @@ describe("요청 실행", () => {
     await expect(perform(api, { type: "key.revoke", endpoint: "worker", keyId: workerKey.id })).resolves.toMatchObject({ type: "key.revoke.settled", endpoint: "worker" });
     expect(api.revokeWorkerKey).toHaveBeenCalledWith(workerKey.id);
     expect(api.readShareKey).toHaveBeenCalledOnce();
+    const image = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+    await expect(perform(api, { type: "picture.paste", productId: lamp.id, image }))
+      .resolves.toEqual({ type: "picture.settled", productId: lamp.id, intent: "picture.paste", outcome: { ok: true, value: { product: lamp } } });
+    expect(api.pastePicture).toHaveBeenCalledWith(lamp.id, image);
+    await expect(perform(api, { type: "picture.clear", productId: chair.id }))
+      .resolves.toEqual({ type: "picture.settled", productId: chair.id, intent: "picture.clear", outcome: { ok: true, value: { product: chair } } });
+    expect(api.clearPicture).toHaveBeenCalledWith(chair.id);
   });
 });
 
@@ -620,7 +629,7 @@ describe("수집 결과 기다리기", () => {
   });
 
   it("Given 새 사본이 담긴 확인 결과 When 받으면 Then 사진도 반영한다", () => {
-    const picture = { src: `/api/products/${lamp.id}/picture?v=77777777-7777-4777-8777-777777777777` };
+    const picture = { src: `/api/products/${lamp.id}/picture?v=77777777-7777-4777-8777-777777777777`, pasted: false };
     const copied: ProductResponse = {
       ...readyLamp,
       metadata: { ...readyLamp.metadata, image: { outcome: "copied" } } as ProductResponse["metadata"],
@@ -1144,6 +1153,102 @@ describe("상세에서 내가 살 가격", () => {
     expect(mergeProduct(shown, collected)).toMatchObject({
       wishPrice: { amountMinor: 3000, currency: "KRW" }, lastSuccessfulPrice: { amountMinor: 350 },
     });
+  });
+});
+
+describe("상세에서 사진 붙여넣기", () => {
+  const image = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" });
+  const collectedPicture = { src: `/api/products/${lamp.id}/picture?v=99999999-9999-4999-8999-999999999999`, pasted: false };
+  const pastedPicture = { src: `/api/products/${lamp.id}/picture?v=12121212-1212-4121-8121-121212121212`, pasted: true };
+  const blocked: ProductResponse = { ...lamp, revision: 2, metadata: { phase: "failed", generation: 1, attempts: 1, errorCode: "blocked_by_site" } };
+  const pasted: ProductResponse = { ...blocked, revision: 3, picture: pastedPicture };
+  const viewing = (product: ProductResponse, overrides: Partial<Ready> = {}) =>
+    withProducts([product, chair], { dialog: opened({ draft: { note: "메모" } }), ...overrides });
+  const settledPicture = (product: ProductResponse, intent: "picture.paste" | "picture.clear"): ScreenEvent =>
+    ({ type: "picture.settled", productId: lamp.id, intent, outcome: { ok: true, value: { product } } });
+
+  it("Given 상세 When 붙여 넣은 사진을 저장하면 Then 그 상품에 사진을 올리고 쓰는 중으로 둔다", () => {
+    const { state, call } = transition(viewing(blocked), { type: "detail.pastePicture", image });
+    expect(call).toEqual({ type: "picture.paste", productId: lamp.id, image });
+    expect(state).toMatchObject({ writing: { productId: lamp.id, intent: "picture.paste" } });
+    expect(detailOf(state)).toMatchObject({ draft: { note: "메모" }, notice: null });
+  });
+
+  it("Given 다른 쓰기가 진행 중 When 붙여 넣은 사진을 저장하면 Then 보내지 않는다", () => {
+    const start = viewing(blocked, { writing: { productId: chair.id, intent: "purchase" } });
+    expect(transition(start, { type: "detail.pastePicture", image })).toEqual({ state: start, call: null });
+  });
+
+  it("Given 올리는 중 When 상세를 닫으면 Then 닫지 않는다", () => {
+    const start = viewing(blocked, { writing: { productId: lamp.id, intent: "picture.paste" } });
+    expect(transition(start, { type: "dialog.close" }).state).toEqual(start);
+  });
+
+  it("Given 올리는 중 When 성공하면 Then 붙여 넣은 사진을 보이고 저장했다고 알리며 초안은 지킨다", () => {
+    const start = viewing(blocked, { writing: { productId: lamp.id, intent: "picture.paste" } });
+    const { state } = transition(start, settledPicture(pasted, "picture.paste"));
+    expect(productsOf(state)[0]).toEqual(pasted);
+    expect(state).toMatchObject({ writing: null });
+    expect(detailOf(state)).toEqual(opened({
+      draft: { note: "메모" }, notice: { form: "picture", kind: "saved", field: null, message: "붙여 넣은 사진을 저장했어요" },
+    }));
+  });
+
+  it("Given 붙여 넣은 사진 When 지우면 Then 지우기를 보내고, 붙여 넣은 사진이 없으면 보내지 않는다", () => {
+    expect(transition(viewing(pasted), { type: "detail.clearPicture" }).call).toEqual({ type: "picture.clear", productId: lamp.id });
+    const collected = viewing({ ...blocked, picture: collectedPicture });
+    expect(transition(collected, { type: "detail.clearPicture" })).toEqual({ state: collected, call: null });
+  });
+
+  it.each([
+    [collectedPicture, "붙여 넣은 사진을 지우고 가져온 사진을 보여줘요"],
+    [null, "붙여 넣은 사진을 지웠어요. 가져온 사진이 없어요."],
+  ])("Given 지우는 중 When 성공하면 Then 돌아간 사진에 맞게 알린다 (%o)", (picture, message) => {
+    const start = viewing(pasted, { writing: { productId: lamp.id, intent: "picture.clear" } });
+    const { state } = transition(start, settledPicture({ ...blocked, revision: 4, picture }, "picture.clear"));
+    expect(productsOf(state)[0].picture).toEqual(picture);
+    expect(detailOf(state).notice).toEqual({ form: "picture", kind: "saved", field: null, message });
+  });
+
+  it("Given 서버가 사진을 거절 When 결과를 받으면 Then 사진 칸에 알리고 다시 읽지 않는다", () => {
+    const start = viewing(blocked, { writing: { productId: lamp.id, intent: "picture.paste" } });
+    const invalid: ApiFailure = { kind: "invalid", field: "picture", message: "사진을 읽지 못했어요. 다른 사진을 복사해 주세요." };
+    const { state, call } = transition(start, { type: "picture.settled", productId: lamp.id, intent: "picture.paste", outcome: { ok: false, failure: invalid } });
+    expect(call).toBeNull();
+    expect(detailOf(state).notice).toEqual({ form: "picture", kind: "error", field: "picture", message: invalid.message });
+    expect(productsOf(state)[0]).toEqual(blocked);
+  });
+
+  it("Given 상품이 사라짐 When 결과를 받으면 Then 알리고 보관함을 다시 읽는다", () => {
+    const start = viewing(blocked, { writing: { productId: lamp.id, intent: "picture.clear" } });
+    const missing: ApiFailure = { kind: "stale", message: "상품을 찾을 수 없어요. 목록을 새로 불러왔어요." };
+    const { state, call } = transition(start, { type: "picture.settled", productId: lamp.id, intent: "picture.clear", outcome: { ok: false, failure: missing } });
+    expect(call).toEqual({ type: "library.read" });
+    expect(detailOf(state).notice).toMatchObject({ form: "picture", kind: "error", message: missing.message });
+  });
+
+  it("Given 클립보드에 사진이 없음 When 화면이 알리면 Then 요청 없이 사진 칸에 오류를 보인다", () => {
+    const { state, call } = transition(viewing(blocked), { type: "detail.pictureRefused", message: "클립보드에 사진이 없어요." });
+    expect(call).toBeNull();
+    expect(detailOf(state).notice).toEqual({ form: "picture", kind: "error", field: "picture", message: "클립보드에 사진이 없어요." });
+  });
+
+  it("Given 사진 칸의 오류 When 다음 붙여넣기로 미리보기가 생기면 Then 사진 칸의 오류만 지우고 다른 양식의 알림은 둔다", () => {
+    const refused = transition(viewing(blocked), { type: "detail.pictureRefused", message: "클립보드에 사진이 없어요." }).state;
+    const { state, call } = transition(refused, { type: "detail.picturePrepared" });
+    expect(call).toBeNull();
+    expect(detailOf(state).notice).toBeNull();
+    const other = viewing(blocked, { dialog: opened({ notice: { form: "details", kind: "saved", field: null, message: "변경사항을 저장했어요" } }) });
+    expect(transition(other, { type: "detail.picturePrepared" }).state).toEqual(other);
+  });
+
+  it("Given 붙여 넣은 사진이 있는 상품 When 같은 revision의 수집이 새 사본을 가져오면 Then 붙여 넣은 사진이 그대로 보인다", () => {
+    const shown: ProductResponse = { ...pasted, metadata: { phase: "running", generation: 2, attempts: 1, stalled: false } };
+    const collected: ProductResponse = {
+      ...pasted,
+      metadata: { phase: "ready", generation: 2, attempts: 1, completedAt: "2026-11-13T00:00:00.000Z", image: { outcome: "copied" } },
+    };
+    expect(mergeProduct(shown, collected).picture).toEqual(pastedPicture);
   });
 });
 

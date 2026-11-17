@@ -1,0 +1,177 @@
+# Red: 사진 붙여넣기 (feat/paste-picture, origin/main 2fe16d3에서 시작)
+
+## 1. 단위 — 테스트만 쓴 상태 (구현·계약·마이그레이션 적용 전)
+
+$ npx vitest run src/features/library
+ FAIL  src/features/library/application/picture-paste.test.ts [ src/features/library/application/picture-paste.test.ts ]
+Error: Cannot find module './picture-paste' imported from /Users/seungmin/Desktop/repo/moti/.claude/worktrees/agent-af2c2b271e19cda81/src/features/library/application/picture-paste.test.ts
+ FAIL  src/features/library/screen/picture-paste.test.ts [ src/features/library/screen/picture-paste.test.ts ]
+Error: Cannot find module './picture-paste' imported from /Users/seungmin/Desktop/repo/moti/.claude/worktrees/agent-af2c2b271e19cda81/src/features/library/screen/picture-paste.test.ts
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library > Given 사진 사본이 있는 상품 When 보관함을 읽으면 Then 같은 출처의 사진 주소와 이번 사진 결과만 돌려준다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > GET /api/library > Given 같은 출처 사진 경로가 아닌 /api/products/22222222-2222-4222-8222-2… When 계약으로 검증하면 Then 거절한다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 소유자와 붙여 넣은 사진 바이트 When 올리면 Then 200과 붙여 넣은 사진을 가리키는 상품을 돌려준다
+TypeError: handlers.putPicture is not a function
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 이미지가 아닌 Content-Type When 올리면 Then 415이고 본문을 읽지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 4MiB를 넘는 선언한 크기 When 올리면 Then 413이고 저장소를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 4MiB를 넘는 실제 크기 When 올리면 Then 413이고 저장소를 부르지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 사진 처리가 unsupported_format로 거절 When 올리면 Then 400 invalid_input와 picture 칸의 안내다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 사진 처리가 unreadable로 거절 When 올리면 Then 400 invalid_input와 picture 칸의 안내다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 사진 처리가 too_large로 거절 When 올리면 Then 413 payload_too_large와 picture 칸의 안내다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 사진 처리가 timeout로 거절 When 올리면 Then 400 invalid_input와 picture 칸의 안내다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given UUID가 아닌 상품 When 올리면 Then 400이고 사진을 처리하지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 저장소가 product_missing로 답함 When 올리면 Then 404이다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 저장소가 storage_unavailable로 답함 When 올리면 Then 503이다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 다른 출처 When 올리면 Then 403이고 세션도 읽지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 접근 결과 signed_out When 올리면 Then NaN이고 사진을 처리하지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 접근 결과 unconfigured When 올리면 Then NaN이고 사진을 처리하지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > PUT /api/products/{productId}/picture > Given 다른 Google 계정 When 올리면 Then 403이고 세션을 한 번 종료한다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId}/picture > Given 붙여 넣은 사진이 있는 상품 When 지우면 Then 200과 가져온 사진으로 돌아간 상품을 돌려준다
+TypeError: handlers.deletePicture is not a function
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId}/picture > Given 다른 출처 When 지우면 Then 403이고 지우지 않는다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId}/picture > Given 저장소가 product_missing로 답함 When 지우면 Then 404이다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId}/picture > Given 저장소가 storage_unavailable로 답함 When 지우면 Then 503이다
+ FAIL  src/features/library/presentation/library-handlers.test.ts > DELETE /api/products/{productId}/picture > Given 로그인하지 않음 When 지우면 Then 401이다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 signed_out 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'signed_out')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 forbidden 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'forbidden')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 unconfigured 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'unconfigured')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 storage_unavailable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'storage_unavailable')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 cross_origin 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'cross_origin')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 unsupported_media_type 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'unsupported_media_type')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 payload_too_large 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'payload_too_large')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 invalid_input 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'invalid_input')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 collection_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'collection_missing')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 collection_duplicate 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'collection_duplicate')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 identity_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'identity_conflict')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 product_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'product_missing')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 metadata_not_retryable 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'metadata_not_retryable')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 revision_conflict 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'revision_conflict')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 picture_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'picture_missing')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 share_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'share_key_missing')
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.paste의 worker_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+ FAIL  src/features/library/screen/library-api.test.ts > API 오류 응답의 화면 결과 > Given picture.clear의 worker_key_missing 응답 When 결과로 바꾸면 Then 정한 화면 결과가 된다
+TypeError: Cannot read properties of undefined (reading 'worker_key_missing')
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 붙여 넣을 사진 When 올리면 Then 사진 경로에 PUT으로 사진 바이트와 그 형식을 보내고 200 상품을 돌려준다
+TypeError: api.pastePicture is not a function
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 형식을 모르는 사진 When 올리면 Then 바이트 그대로 보내고 서버가 판별하게 한다
+ FAIL  src/features/library/screen/library-api.test.ts > 보관함 API 클라이언트 > Given 붙여 넣은 사진 지우기 When 요청하면 Then 사진 경로에 본문 없는 DELETE를 보내고 200 상품을 돌려준다
+TypeError: api.clearPicture is not a function
+ FAIL  src/features/library/screen/screen-state.test.ts > 요청 실행 > Given 각 요청 When 실행하면 Then 해당 API를 부르고 결과 이벤트로 돌려준다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 상세 When 붙여 넣은 사진을 저장하면 Then 그 상품에 사진을 올리고 쓰는 중으로 둔다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 올리는 중 When 성공하면 Then 붙여 넣은 사진을 보이고 저장했다고 알리며 초안은 지킨다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 붙여 넣은 사진 When 지우면 Then 지우기를 보내고, 붙여 넣은 사진이 없으면 보내지 않는다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 지우는 중 When 성공하면 Then 돌아간 사진에 맞게 알린다 ({ …(2) })
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 지우는 중 When 성공하면 Then 돌아간 사진에 맞게 알린다 (null)
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 서버가 사진을 거절 When 결과를 받으면 Then 사진 칸에 알리고 다시 읽지 않는다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 상품이 사라짐 When 결과를 받으면 Then 알리고 보관함을 다시 읽는다
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 클립보드에 사진이 없음 When 화면이 알리면 Then 요청 없이 사진 칸에 오류를 보인다
+ FAIL  src/features/library/infrastructure/supabase-library-store.test.ts > 붙여 넣은 사진 열이 없는 DB의 응답 > Given picture_pasted 칸이 없는 상품 행 When 읽으면 Then 가져온 사본으로 읽는다
+ FAIL  src/features/library/infrastructure/supabase-library-store.test.ts > 붙여 넣은 사진 열이 없는 DB의 응답 > Given 붙여 넣은 사진이라는 행 When 읽으면 Then 붙여 넣은 사진으로 읽는다
+ FAIL  src/features/library/infrastructure/supabase-library-store.test.ts > 붙여 넣은 사진 열이 없는 DB의 응답 > Given 사진 없이 붙여 넣었다는 행 When 읽으면 Then 손상된 응답으로 거절한다
+ FAIL  src/features/library/infrastructure/supabase-library-store.test.ts > 사진 붙여넣기 저장소 > Given 예약·걸기·지우기 응답 When 읽으면 Then 이름과 상품과 대신한 사본으로 바꾼다
+TypeError: createSupabasePicturePasteStore is not a function
+ FAIL  src/features/library/infrastructure/supabase-library-store.test.ts > 사진 붙여넣기 저장소 > Given 예약이 지난 걸기 응답 When 읽으면 Then stale이다
+ FAIL  src/features/library/infrastructure/supabase-library-store.test.ts > 사진 붙여넣기 저장소 > Given moti가 만들지 않은 이름 When 예약을 읽으면 Then 손상된 응답으로 거절한다
+ Test Files  6 failed | 11 passed (17)
+      Tests  74 failed | 953 passed (1027)
+
+## 2. 실제 DB (persistence·service) — 앱 코드는 바꾸고 20261124000000_paste_picture.sql만 뺀 스택
+
+$ mv supabase/migrations/20261124000000_paste_picture.sql <scratch>/ && npm run test:database
+(첫 단계에서 멈춰 HTTP·브라우저는 실행하지 않았다. 실행 뒤 마이그레이션을 되돌려 놓았다.)
+
+ FAIL  tests/persistence/library-security.test.ts > 실제 DB 소유자 경계 > 모든 저장 테이블에 FORCE RLS를 두고 RPC는 별도의 비우회 역할로 실행한다
+    AssertionError: expected [ 'moti_backup', …(31) ] to deeply equal [ 'moti_backup', …(34) ]
+ FAIL  tests/persistence/paste-picture.test.ts > 사진 붙여넣기 예약과 걸기 > 예약한 이름에 소유자 토큰으로 올리고 걸면 상품이 붙여 넣은 사진을 보이고 revision이 오른다
+    LibraryError: 보관함 요청을 처리하지 못했어요.
+    314|     throw new LibraryError(
+ FAIL  tests/persistence/paste-picture.test.ts > 사진 붙여넣기 예약과 걸기 > 예약하지 않은 이름, 지난 예약, 다른 상품의 이름에는 Storage가 쓰기를 거절한다
+ FAIL  tests/persistence/paste-picture.test.ts > 사진 붙여넣기 예약과 걸기 > 다른 계정은 소유자의 예약에 쓰지 못한다
+ FAIL  tests/persistence/paste-picture.test.ts > 사진 붙여넣기 예약과 걸기 > 지난 예약, 새 예약이 대신한 예약, 다른 이름으로는 걸지 못하고 상품은 그대로다
+ FAIL  tests/persistence/paste-picture.test.ts > 사진 붙여넣기 예약과 걸기 > 올리지 않은 예약을 걸면 M0002이다
+ FAIL  tests/persistence/paste-picture.test.ts > 사진 붙여넣기 예약과 걸기 > 다른 소유자·없는 상품은 거절하고, 소유자가 아니면 M0001, 익명은 42501이다
+    AssertionError: expected LibraryError: 보관함 요청을 처리하지 못했어요. { …(2) } to match object { code: 'product_missing' }
+    + LibraryError {
+    168|     for (const [client, code] of [[fixture.stranger.client, "M0001"], …
+ FAIL  tests/persistence/paste-picture.test.ts > 사진 붙여넣기 예약과 걸기 > 붙여 넣은 사진이 Storage에서 바뀌면 서명할 이름을 주지 않는다
+ FAIL  tests/persistence/paste-picture.test.ts > 붙여 넣은 사진과 수집 > 수집·다시 가져오기가 새 사본을 가져와도 붙여 넣은 사진이 보이고, 지우면 마지막으로 가져온 사본으로 돌아간다
+ FAIL  tests/persistence/paste-picture.test.ts > 붙여 넣은 사진과 수집 > 가져온 사진이 없는 상품에서 지우면 사진이 없고, 붙여 넣은 사진이 없으면 아무것도 바꾸지 않는다
+ FAIL  tests/persistence/paste-picture.test.ts > 붙여 넣은 사진과 수집 > 작업자 역할은 붙여 넣은 사진 열을 읽지도 쓰지도 못한다
+    AssertionError: expected [] to deeply equal [ 'paste_reserved_id', …(4) ]
+ FAIL  tests/persistence/paste-picture.test.ts > 붙여 넣은 사진과 남은 사진 정리 > 새로 붙여 넣으면 대신한 사본을 돌려주고 소유자가 지울 수 있지만 지금 붙여 넣은 사진은 지우지 못한다
+ FAIL  tests/persistence/paste-picture.test.ts > 붙여 넣은 사진과 남은 사진 정리 > 대신한·지운 붙여넣기와 지난 예약의 업로드는 10분 뒤 정리 대상이고, 지금 붙여 넣은 사진과 살아 있는 예약은 아니다
+ FAIL  tests/persistence/paste-picture.test.ts > 붙여 넣은 사진과 남은 사진 정리 > 방금 대신한 붙여넣기는 10분이 지나기 전에는 정리 대상이 아니다
+ FAIL  tests/persistence/paste-picture.test.ts > 붙여넣기 RPC의 권한 > 공개 RPC는 RPC 역할이 소유한 보안 정의자이고 authenticated만 실행하며 search_path를 비운다
+    AssertionError: expected [] to deeply equal [ { …(7) }, { …(7) }, { …(7) } ]
+ FAIL  tests/persistence/paste-picture.test.ts > 붙여넣기 RPC의 권한 > 내부 함수는 RPC 역할만 실행하고 공개 REST에 드러나지 않는다
+    AssertionError: expected [] to deeply equal [ { …(4) }, { …(4) }, { …(4) }, …(2) ]
+ FAIL  tests/persistence/picture-storage.test.ts > 상품 사진 사본 저장소 > 완료는 이번 사진 결과를 기록하고 새 사본만 보여줄 사진을 바꾼다
+    AssertionError: expected { …(2) } to deeply equal { Object (version) }
+ FAIL  tests/persistence/picture-storage.test.ts > 상품 사진 사본 저장소 > 작업이 끝난 뒤 서명 업로드 주소로 예약된 이름에 써도 보여줄 사진은 바뀌지 않는다
+ FAIL  tests/service/picture-copy.test.ts > 실제 저장소를 쓰는 사진 사본 복사 > 새 사본이 생기면 이전 사본을 지워 상품마다 사본이 하나만 남는다
+ Test Files  4 failed | 25 passed (29)
+      Tests  19 failed | 421 passed (440)
+
+- 새 persistence 16개가 실패한다: RPC가 없어(`moti_picture_paste_reserve` 등) 어댑터가 `storage_unavailable`을 던지고, `paste_*` 열이 없고, Storage가 예약을 모른다.
+- `library-security`의 공개 RPC 목록 검사가 새 함수 셋이 없어 실패한다.
+- `picture-storage` 2개와 service `picture-copy` 1개는 응답의 사진 모양이 `{ version, pasted }`로 바뀌어 `{ version }`을 기대하던 기존 단언이 실패한 것이다(기대값을 고쳤다, 요구 동작의 부재가 아님).
+
+## 3. 실제 스택 브라우저 — 첫 구현의 npm run test:database (persistence 371, service 72, HTTP 68 통과 뒤)
+
+$ npm run test:database
+  1) [desktop-chromium] › tests/browser/paste-picture.spec.ts:158:1 › 사진 없이 글만 붙여 넣으면 알리고, 2 MiB를 넘는 사진은 화면이 JPEG로 줄여 보내며 취소하면 아무것도 보내지 않는다 
+    Expected: 0
+    Received: 1
+    > 178 |   await expect(detail.getByRole("alert")).toHaveCount(0);
+  2) [iphone-webkit] › tests/browser/paste-picture.spec.ts:158:1 › 사진 없이 글만 붙여 넣으면 알리고, 2 MiB를 넘는 사진은 화면이 JPEG로 줄여 보내며 취소하면 아무것도 보내지 않는다 
+    Expected: 0
+    Received: 1
+    > 178 |   await expect(detail.getByRole("alert")).toHaveCount(0);
+  2 failed / 78 passed
+
+- 사진 없는 클립보드의 오류가 다음 붙여넣기로 미리보기가 생겨도 남았다. 같은 원인을 단위 검사로 먼저 고정했다:
+
+$ npx vitest run src/features/library/screen/screen-state.test.ts
+ FAIL  src/features/library/screen/screen-state.test.ts > 상세에서 사진 붙여넣기 > Given 사진 칸의 오류 When 다음 붙여넣기로 미리보기가 생기면 Then 사진 칸의 오류만 지우고 다른 양식의 알림은 둔다
+AssertionError: expected { Object (form, kind, ...) } to be null
+      Tests  1 failed | 171 passed (172)
+
+- 수정: 미리보기가 생기면 화면이 detail.picturePrepared를 보내고 상태가 사진 칸의 알림만 지운다.
+
+## 4. 마지막 전체 검증 전의 초점 실패
+
+$ npm run verify
+  [desktop-chromium] paste-picture.spec.ts:124 expect(save).toBeFocused() — Received: inactive (1 failed / 79 passed)
+
+- 미리보기 뒤 requestAnimationFrame으로 옮기던 초점이 React 커밋보다 먼저 실행될 수 있었다. 커밋 뒤 effect로 옮긴 뒤 npm run verify가 종료 0이었다.

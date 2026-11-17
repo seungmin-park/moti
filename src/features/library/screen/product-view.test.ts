@@ -308,9 +308,15 @@ describe("상품 사진", () => {
   const running = everyPhase.find((item) => item.phase === "running")!;
 
   it("Given 사본이 있는 상품 When 카드와 상세로 보이면 Then 같은 출처 주소로 사진을 보이고 상세는 이름을 대체 글로 쓴다", () => {
-    const product = ready({ outcome: "copied" }, { src });
+    const product = ready({ outcome: "copied" }, { src, pasted: false });
     expect(toProductCardView(product, []).picture).toEqual({ kind: "photo", src, alt: "" });
     expect(toProductDetailView(product, null).picture).toEqual({ kind: "photo", src, alt: "무선 헤드폰 사진" });
+  });
+
+  it("Given 정보를 가져오지 못했지만 소유자가 붙여 넣은 사진 When 카드와 상세로 보이면 Then 그 사진을 보인다", () => {
+    const product: ProductResponse = { ...queued, metadata: failed, picture: { src, pasted: true } };
+    expect(toProductCardView(product, []).picture).toEqual({ kind: "photo", src, alt: "" });
+    expect(toProductDetailView(product, null).picture).toEqual({ kind: "photo", src, alt: "새로 담은 상품 사진" });
   });
 
   it.each<[string, ProductResponse, string, string]>([
@@ -327,7 +333,7 @@ describe("상품 사진", () => {
   });
 
   it("Given 예약 실행이 이름과 가격만 가져옴 When 보이면 Then 이전 사본이 있으면 계속 보이고, 상세는 사진을 곧 가져온다고 말하며 다시 가져오기는 없다", () => {
-    expect(toProductCardView(ready({ outcome: "waiting" }, { src }), []).picture).toEqual({ kind: "photo", src, alt: "" });
+    expect(toProductCardView(ready({ outcome: "waiting" }, { src, pasted: false }), []).picture).toEqual({ kind: "photo", src, alt: "" });
     const view = toProductDetailView(ready({ outcome: "waiting" }), null);
     expect(view.status).toEqual({ title: "상품 정보를 가져왔어요", detail: "2026. 11. 11.에 확인했어요. 사진은 곧 가져와요." });
     expect(view.canRetry).toBe(false);
@@ -335,7 +341,7 @@ describe("상품 사진", () => {
   });
 
   it("Given 이전 사본이 있고 이번 사진은 실패 When 보이면 Then 이전 사본을 계속 보인다", () => {
-    expect(toProductCardView(ready({ outcome: "failed", errorCode: "timeout" }, { src }), []).picture).toEqual({ kind: "photo", src, alt: "" });
+    expect(toProductCardView(ready({ outcome: "failed", errorCode: "timeout" }, { src, pasted: false }), []).picture).toEqual({ kind: "photo", src, alt: "" });
   });
 
   it("Given 사진을 가져오지 못한 상품 When 상세로 보이면 Then 이유와 이름·가격은 가져왔다는 말을 하고 다시 가져올 수 있다", () => {
@@ -343,7 +349,7 @@ describe("상품 사진", () => {
     expect(view.status).toEqual({ title: "사진을 가져오지 못했어요", detail: "쇼핑몰이 사진 요청을 막았어요. 이름과 가격은 가져왔어요." });
     expect(view.canRetry).toBe(true);
     expect(toProductCardView(ready({ outcome: "failed", errorCode: "blocked_by_site" }), []).status).toBeNull();
-    expect(canRetry(ready({ outcome: "copied" }, { src }))).toBe(false);
+    expect(canRetry(ready({ outcome: "copied" }, { src, pasted: false }))).toBe(false);
     expect(canRetry(ready({ outcome: "absent" }))).toBe(false);
   });
 });
