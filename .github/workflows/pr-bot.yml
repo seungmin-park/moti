@@ -241,10 +241,13 @@ jobs:
               if [ "$OPEN" -eq 0 ]; then
                 FILE=$(gh pr diff "$PR" --repo "$REPO" --name-only | sed -n '1p')
                 gh api "repos/$REPO/pulls/$PR/comments" \
-                  -f body="**[사람 확인 필요]** 리뷰 라운드 상한(${LIMIT}회)을 넘었습니다. 고치는 방식 자체를 다시 검토해 주세요. 이 스레드를 닫으면 3라운드를 더 쓸 수 있습니다. 이 head는 아직 리뷰되지 않았으니 닫은 뒤 pr-bot을 다시 실행하거나 새로 push해 주세요." \
+                  -f body="**[사람 확인 필요]** 리뷰 라운드 상한(${LIMIT}회)을 넘었습니다. 고치는 방식 자체를 다시 검토해 주세요. 이 스레드를 닫으면 3라운드를 더 쓸 수 있습니다. 이 head는 리뷰되지 않아 체크가 실패합니다. 닫은 뒤 pr-bot을 다시 실행하거나 새로 push해 주세요." \
                   -f commit_id="$HEAD_SHA" -f path="$FILE" -f subject_type=file >/dev/null
               fi
-              upsert "$(printf '%s\n## PR 봇\n\n라운드 상한(%s회)을 넘어 이 head(`%s`)는 자동 리뷰하지 않았습니다. 상한 스레드를 닫은 뒤 pr-bot을 다시 실행하거나 새로 push하면 3라운드를 더 리뷰합니다.' "$MARK" "$LIMIT" "${HEAD_SHA:0:7}")"
+              upsert "$(printf '%s\n## PR 봇\n\n라운드 상한(%s회)을 넘어 이 head(`%s`)는 자동 리뷰하지 않았고 이 체크는 실패합니다. 상한 스레드를 닫은 뒤 pr-bot을 다시 실행하거나 새로 push하면 3라운드를 더 리뷰합니다.' "$MARK" "$LIMIT" "${HEAD_SHA:0:7}")"
+              # 리뷰하지 않은 head가 필수 체크를 통과하지 못하게 한다.
+              echo "::error::리뷰 라운드 상한(${LIMIT}회)을 넘었습니다. 상한 스레드를 닫은 뒤 pr-bot을 다시 실행하세요."
+              exit 1
               ;;
             review)
               OUTPUT=$PRIMARY_OUTPUT
