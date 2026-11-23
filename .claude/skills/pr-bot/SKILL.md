@@ -25,7 +25,7 @@ allowed-tools: Read, Grep, Glob, Bash(gh pr diff *), Bash(gh pr view *), Bash(gi
 ## 1. 범위
 
 - `gh pr view <번호> --json title,body,baseRefName,headRefOid,files`와 `gh pr diff <번호>`로 변경을 읽는다.
-- `--since SHA`가 있으면 재리뷰다. `.pr-bot/new-changes.diff`가 있으면 그 내용만 새 변경으로 본다. base에서 들어온 변경은 리뷰하지 않는다. 파일이 없으면 `git log --no-merges -p SHA..HEAD`로 PR의 커밋만 본다.
+- `--since SHA`가 있으면 재리뷰다. `.pr-bot/new-changes.diff`가 있으면 그 내용만 새 변경으로 본다. base에서 들어온 변경은 리뷰하지 않는다. 파일이 없으면 `git log --no-merges -p SHA..HEAD ^origin/<base>`로 PR의 커밋만 본다.
 - `.pr-bot/threads.json`이 있으면 기존 스레드다. 이미 올라온 지적(열림, 닫힘 모두)을 다시 올리지 않는다. 닫힌 지적을 뒤집으려면 새 변경이 그 근거를 무너뜨린 경우만 허용한다.
 - 생성 파일, lock 파일, `tools/pstack/` 같은 벤더링 코드는 건너뛴다.
 

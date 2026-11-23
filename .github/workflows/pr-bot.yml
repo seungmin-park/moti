@@ -78,9 +78,10 @@ jobs:
           # 지난 리뷰 이후 커밋이 충돌 해결 없는 base 머지뿐인지 본다.
           only_clean_base_merges() {
             [ -z "$(git rev-list --no-merges "$LAST_SHA..$HEAD_SHA" "^origin/$BASE_REF")" ] || return 1
-            local merge
+            local merge resolution
             for merge in $(git rev-list --merges "$LAST_SHA..$HEAD_SHA" "^origin/$BASE_REF"); do
-              [ -z "$(git show --remerge-diff --format= "$merge")" ] || return 1
+              resolution=$(git show --remerge-diff --format= "$merge") || return 1 # 판정 실패는 리뷰한다
+              [ -z "$resolution" ] || return 1
             done
           }
 
@@ -147,9 +148,11 @@ jobs:
 
       - name: Refresh threads before fallback
         if: steps.state.outputs.mode == 'review' && (steps.primary.outcome != 'success' || steps.primary.outputs.structured_output == '')
+        continue-on-error: true
         run: |
           gh api graphql -F owner="${REPO%/*}" -F repo="${REPO#*/}" -F pr="$PR" -f query="$THREADS_QUERY" \
-            --jq '.data.repository.pullRequest.reviewThreads.nodes' > .pr-bot/threads.json
+            --jq '.data.repository.pullRequest.reviewThreads.nodes' > .pr-bot/threads.next
+          mv .pr-bot/threads.next .pr-bot/threads.json
 
       # 사용량 제한은 --fallback-model이 처리하지 않으므로 실패하면 다른 모델로 다시 돌린다.
       - name: Review with fallback model
@@ -196,7 +199,7 @@ jobs:
             unchanged)
               if [ -n "$COMMENT_ID" ]; then
                 OLD=$(gh api "repos/$REPO/issues/comments/$COMMENT_ID" --jq .body)
-                upsert "$(printf '%s\n%s' "$MARK" "$(tail -n +2 <<<"$OLD" | sed -E "s/head \`[0-9a-f]{7}\`/head \`${HEAD_SHA:0:7}\` (코드 변경 없음)/; s/ \(코드 변경 없음\) \(코드 변경 없음\)/ (코드 변경 없음)/")")"
+                upsert "$(printf '%s\n%s' "$MARK" "$(tail -n +2 <<<"$OLD" | sed -E "\$s/head \`[0-9a-f]{7}\`/head \`${HEAD_SHA:0:7}\` (코드 변경 없음)/; \$s/ \(코드 변경 없음\) \(코드 변경 없음\)/ (코드 변경 없음)/")")"
               fi
               echo "코드 변경이 없어 이전 리뷰를 유지합니다."
               ;;
