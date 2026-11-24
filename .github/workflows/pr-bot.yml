@@ -218,17 +218,19 @@ jobs:
           # 끝내 올리지 못한 지적은 표준 출력으로 돌려줘 요약에 넣는다.
           post_review() {
             local comments=$1 n i c
+            # 실행마다 다른 표식으로 이 실행이 만든 리뷰만 알아본다(재실행은 attempt가 바뀐다).
+            local run_tag="<!-- pr-bot:run ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} -->"
             n=$(jq length <<<"$comments")
             [ "$n" -gt 0 ] || return 0
-            if jq -n --arg sha "$HEAD_SHA" --arg body "PR 봇 라운드 ${ROUND}: 인라인 지적 ${n}개. 요약은 PR 봇 코멘트에 있습니다." --argjson c "$comments" \
+            local body
+            body=$(printf 'PR 봇 라운드 %s: 인라인 지적 %s개. 요약은 PR 봇 코멘트에 있습니다.\n\n%s' "$ROUND" "$n" "$run_tag")
+            if jq -n --arg sha "$HEAD_SHA" --arg body "$body" --argjson c "$comments" \
                 '{commit_id:$sha, event:"COMMENT", body:$body, comments:[$c[] | {path, line, side:"RIGHT", body}]}' \
                 | gh api "repos/$REPO/pulls/$PR/reviews" --input - >/dev/null; then
               return 0
             fi
-            # 리뷰가 만들어졌는데 응답만 실패했으면 다시 올리지 않는다.
-            if gh api "repos/$REPO/pulls/$PR/reviews" --paginate \
-                --jq ".[] | select(.user.login == \"github-actions[bot]\" and .commit_id == \"$HEAD_SHA\" and (.body | startswith(\"PR 봇 라운드 ${ROUND}:\"))) | .id" \
-                | grep -q .; then
+            # 이 실행의 리뷰가 만들어졌는데 응답만 실패했으면 다시 올리지 않는다.
+            if gh api "repos/$REPO/pulls/$PR/reviews" --paginate --jq '.[].body' | grep -qF "$run_tag"; then
               return 0
             fi
             echo "::warning::지적을 리뷰 하나로 올리지 못해 하나씩 올립니다." >&2
