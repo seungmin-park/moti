@@ -213,7 +213,8 @@ jobs:
             fi
           }
 
-          # 지적을 리뷰 하나로 올린다. 줄이 diff에 없어 거부되면 하나씩 올리고, 그래도 안 되면 파일 단위로 올린다.
+          # 지적을 리뷰 하나로 올린다. 줄이 diff에 없어 거부되면 하나씩 올리고, 그래도 안 되면 파일 단위,
+          # 그다음 diff의 첫 파일에 올려 모든 지적이 닫을 수 있는 스레드가 되게 한다.
           # 끝내 올리지 못한 지적은 표준 출력으로 돌려줘 요약에 넣는다.
           post_review() {
             local comments=$1 n i c
@@ -224,14 +225,27 @@ jobs:
                 | gh api "repos/$REPO/pulls/$PR/reviews" --input - >/dev/null; then
               return 0
             fi
+            # 리뷰가 만들어졌는데 응답만 실패했으면 다시 올리지 않는다.
+            if gh api "repos/$REPO/pulls/$PR/reviews" --paginate \
+                --jq ".[] | select(.user.login == \"github-actions[bot]\" and .commit_id == \"$HEAD_SHA\" and (.body | startswith(\"PR 봇 라운드 ${ROUND}:\"))) | .id" \
+                | grep -q .; then
+              return 0
+            fi
             echo "::warning::지적을 리뷰 하나로 올리지 못해 하나씩 올립니다." >&2
+            local first
+            first=$(gh pr diff "$PR" --repo "$REPO" --name-only | sed -n '1p') || first=
             for i in $(seq 0 $((n - 1))); do
               c=$(jq -c ".[$i]" <<<"$comments")
               jq -n --arg sha "$HEAD_SHA" --argjson c "$c" '{commit_id:$sha, path:$c.path, line:$c.line, side:"RIGHT", body:$c.body}' \
                 | gh api "repos/$REPO/pulls/$PR/comments" --input - >/dev/null && continue
               jq -n --arg sha "$HEAD_SHA" --argjson c "$c" '{commit_id:$sha, path:$c.path, subject_type:"file", body:$c.body}' \
                 | gh api "repos/$REPO/pulls/$PR/comments" --input - >/dev/null && continue
-              jq -r '"- `\(.path):\(.line)` \(.body | split("\n")[0])"' <<<"$c"
+              if [ -n "$first" ]; then
+                jq -n --arg sha "$HEAD_SHA" --arg first "$first" --argjson c "$c" \
+                  '{commit_id:$sha, path:$first, subject_type:"file", body:"\($c.body)\n\n(원래 위치: `\($c.path):\($c.line)`)"}' \
+                  | gh api "repos/$REPO/pulls/$PR/comments" --input - >/dev/null && continue
+              fi
+              jq -r '"- `\(.path):\(.line)` \(.body | gsub("\n+"; " "))"' <<<"$c"
             done
           }
 
